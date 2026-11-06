@@ -6,9 +6,6 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Author](https://img.shields.io/badge/author-%E5%BC%A0%E5%AD%90%E4%BC%97%20(Zhang%20Zizhong)-informational.svg)](#author)
-
-**作者 / Author：张子众（Zhang Zizhong）** · 个人独立作品，非职务作品，不隶属于任何机构
 
 ![总览界面](screenshots/overview.jpg)
 
