@@ -1,3 +1,9 @@
+/*!
+ * 前列腺癌随访与科研数据库 (Prostate Cancer Follow-up & Research Database)
+ * Copyright © 2026 张子众 (Zhang Zizhong)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* =========================================================
  * 前列腺癌临床数据库 - 后端服务
  * Node.js + Express + SQLite

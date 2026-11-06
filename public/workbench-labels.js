@@ -1,3 +1,9 @@
+/*!
+ * 前列腺癌随访与科研数据库 (Prostate Cancer Follow-up & Research Database)
+ * Copyright © 2026 张子众 (Zhang Zizhong)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* 工作台统一临床标签层
  * 只做展示映射，不改数据库里的代码值。
  * 所有页面、弹窗、打印件都应通过 WsLabels.label(kind, value) 取中文。

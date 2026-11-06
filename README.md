@@ -6,6 +6,9 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Author](https://img.shields.io/badge/author-%E5%BC%A0%E5%AD%90%E4%BC%97%20(Zhang%20Zizhong)-informational.svg)](#author)
+
+**作者 / Author：张子众（Zhang Zizhong）** · 个人独立作品，非职务作品，不隶属于任何机构
 
 ![总览界面](screenshots/overview.jpg)
 
@@ -31,7 +34,7 @@
 - [8. 部署](#8-部署)
 - [9. 测试](#9-测试)
 - [10. 贡献](#10-贡献)
-- [11. 许可证与引用](#11-许可证与引用)
+- [11. 作者与许可](#11-作者与许可)
 
 ---
 
@@ -231,9 +234,17 @@ node scripts/check-frontend.mjs
 
 请先读 [CONTRIBUTING.md](CONTRIBUTING.md)。**任何 PR 都不得包含真实患者数据**；测试请使用 `scripts/generate-test-cohort.py` 生成的模拟数据。
 
-## 11. 许可证与引用
+<a id="author"></a>
 
-以 [Apache License 2.0](LICENSE) 发布，见 [NOTICE](NOTICE)。
+## 11. 作者与许可
+
+**作者：张子众（Zhang Zizhong）**
+
+本项目的全部代码与文档由张子众个人独立完成，使用个人设备与个人时间开发，**不隶属于任何公司、医院、高校或其他机构，不属于职务作品**。
+
+**Copyright © 2026 张子众（Zhang Zizhong）**
+
+以 [Apache License 2.0](LICENSE) 发布，完整的版权与第三方声明见 [NOTICE](NOTICE)。Apache-2.0 允许商业使用、修改与闭源分发，但要求保留版权声明与许可证副本、标注修改过的文件，并且**不得使用作者姓名或项目名称为衍生作品背书**（第 6 条）。
 
 如果你在论文、标书或产品中使用了本项目的代码或设计，欢迎按 [CITATION.cff](CITATION.cff) 引用，或在致谢中注明项目地址。
 

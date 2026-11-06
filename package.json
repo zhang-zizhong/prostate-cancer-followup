@@ -2,6 +2,7 @@
   "name": "prostate-cancer-followup",
   "version": "2.0.0",
   "description": "前列腺癌随访与科研数据库 / Prostate Cancer Follow-up & Research Database",
+  "author": "张子众 (Zhang Zizhong) <zhang-zizhong@users.noreply.github.com>",
   "type": "module",
   "license": "Apache-2.0",
   "engines": {
