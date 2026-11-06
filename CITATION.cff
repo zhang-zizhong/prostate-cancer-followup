@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "如果本项目对你的研究有帮助，请按以下格式引用。"
+title: "前列腺癌随访与科研数据库 (Prostate Cancer Follow-up & Research Database)"
+abstract: "面向泌尿外科与肿瘤科的单病种随访与科研数据平台，覆盖前列腺癌从初诊、根治治疗、随访预警到 CRPC 判定与结局统计的全链路，支持结构化随访、队列统计、科研导出与可选的 AI 病历登记。"
+type: software
+license: Apache-2.0
+repository-code: "https://github.com/zhang-zizhong/prostate-cancer-followup"
+url: "https://github.com/zhang-zizhong/prostate-cancer-followup"
+keywords:
+  - prostate cancer
+  - clinical database
+  - follow-up
+  - oncology
+  - research data
+  - 前列腺癌
+  - 随访
+authors:
+  - name: "张子众 (Zhang Zizhong)"
+version: 2.0.0
+date-released: "2026-11-06"

@@ -1,0 +1,59 @@
+{
+  // F5 启动调试。共 3 种模式：
+  //   1) 调试后端       —— 最常用，断点打在 server.js 上
+  //   2) 调试后端+浏览器 —— 同时开 Chrome，前端后端一起调
+  //   3) 附加到运行中进程 —— 服务已用 npm start 起着时，挂上去打断点
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "① 调试后端 (server.js)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "restart": true,
+      "envFile": "${workspaceFolder}/.env",
+      "outputCapture": "std"
+    },
+    {
+      "name": "② 调试后端 + 打开浏览器",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "envFile": "${workspaceFolder}/.env",
+      "serverReadyAction": {
+        "pattern": "服务器已启动|listening|Server running|http://",
+        "action": "debugWithChrome",
+        "uriFormat": "http://127.0.0.1:3000"
+      }
+    },
+    {
+      "name": "③ 附加到已运行的服务 (--inspect)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "④ 只调前端 (浏览器)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:3000",
+      "webRoot": "${workspaceFolder}/public",
+      "sourceMaps": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "⑤ 前后端一起调 (后端断点 + Chrome)",
+      "configurations": ["① 调试后端 (server.js)", "④ 只调前端 (浏览器)"],
+      "stopAll": true
+    }
+  ]
+}

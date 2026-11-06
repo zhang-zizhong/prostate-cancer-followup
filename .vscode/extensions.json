@@ -1,0 +1,51 @@
+{
+  // 打开本项目时，VS Code 右下角会弹出「是否安装推荐插件」，点「全部安装」即可。
+  // 也可手动：左侧扩展面板（Cmd+Shift+X）→ 搜索框输入 @recommended
+  "recommendations": [
+    // ---- 必备：中文界面 ----
+    "MS-CEINTL.vscode-language-pack-zh-hans",
+
+    // ---- 前端开发（public/index.html）----
+    // HTML 智能提示与格式化，VS Code 已内置大部分能力，此插件补全 class/id 跳转
+    "Zignd.html-css-class-completion",
+    // CSS 颜色可视化、变量补全
+    "ecmel.vscode-html-css",
+    // 浏览器实时刷新：保存 index.html 后自动刷新页面（前端调试神器）
+    "ritwickdey.LiveServer",
+
+    // ---- 后端开发（server.js）----
+    // ESLint 语法与潜在错误检查（本项目为原生 ESM，无构建步骤，轻量检查即可）
+    "dbaeumer.vscode-eslint",
+    // 代码格式化（Prettier），统一缩进与引号风格
+    "esbenp.prettier-vscode",
+
+    // ---- 数据库：查看/编辑 SQLite ----
+    // 可直接在侧栏点开 data/clinical.db 浏览表和数据，验证改动结果
+    "qwtel.sqlite-viewer",
+
+    // ---- 版本管理增强 ----
+    // 在代码行旁显示每行是谁、哪次提交改的，看历史很方便
+    "eamodio.gitlens",
+    // 提交信息规范化助手
+    "vivaxy.vscode-conventional-commits",
+
+    // ---- 远程开发：直接在服务器上改代码 ----
+    // 微软官方 Remote 套件，含 SSH 远程开发能力
+    // 装好后左下角点 >< 图标 → 连接主机 → pcd，就像打开本地文件夹一样编辑服务器文件
+    "ms-vscode-remote.vscode-remote-extensionpack",
+
+    // ---- 接口调试（替代 Postman）----
+    // 在项目里写 .rest 文件直接发请求测接口，登录、导数据都能测
+    "humao.rest-client",
+
+    // ---- 辅助：路径补全与 TODO 高亮 ----
+    "christian-kohler.path-intellisense",
+    "gruntfuggly.todo-tree",
+
+    // ---- 安全：提交前扫描密钥泄露 ----
+    // 防止误把 .env 里的 JWT_SECRET 提交到仓库
+    "RedHat.vscode-yaml",
+    "gitleaks.gitleaks-vscode"
+  ],
+  "unwantedRecommendations": []
+}

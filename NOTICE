@@ -1,0 +1,27 @@
+前列腺癌随访与科研数据库
+Prostate Cancer Follow-up & Research Database
+
+Copyright 2026 张子众 (Zhang Zizhong)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+---
+
+第三方组件（通过 npm 安装，不随本仓库分发）：
+
+  express          MIT
+  better-sqlite3   MIT
+  jsonwebtoken     MIT
+  bcryptjs         MIT
+  multer           MIT
+  dotenv           BSD-2-Clause
+
+指南知识库（lib/guideline-catalog.mjs）中的节点标题与推荐等级，整理自
+CSCO 与 NCCN 公开发布的前列腺癌诊疗指南，仅用于本项目的结构化导航，
+版权归各指南发布机构所有。使用或再分发相关内容前，请自行确认并遵守
+原指南的版权与使用条款。

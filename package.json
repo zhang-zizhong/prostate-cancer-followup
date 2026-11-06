@@ -1,0 +1,37 @@
+{
+  "name": "prostate-cancer-followup",
+  "version": "2.0.0",
+  "description": "前列腺癌随访与科研数据库 / Prostate Cancer Follow-up & Research Database",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhang-zizhong/prostate-cancer-followup.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zhang-zizhong/prostate-cancer-followup/issues"
+  },
+  "keywords": [
+    "prostate-cancer",
+    "clinical-database",
+    "follow-up",
+    "oncology",
+    "research"
+  ],
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test scripts/test-clinical-logic.mjs scripts/test-record-core.mjs scripts/test-export-core.mjs scripts/test-cohort-core.mjs scripts/test-ai-warnings.mjs scripts/test-guideline-catalog.mjs scripts/test-visit-rules.mjs && node scripts/test-structured-api.mjs && node scripts/test-ai-intake-fixes.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.4.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}

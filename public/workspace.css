@@ -1,0 +1,306 @@
+/* =========================================================
+ * 患者工作台 2.0
+ * 读优先布局：结论卡 → 记录册 → 表格/参考；沿用现有设计变量。
+ * 所有类以 ws2- 前缀，避免与旧页签样式冲突。
+ * ========================================================= */
+.ws2 { font-size: 13px; color: var(--text, #2c3e50); }
+.ws2-loading, .ws2-error { padding: 40px 20px; text-align: center; color: var(--text-light, #7f8c8d); }
+.ws2-error { color: #b33; }
+.ws2-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.ws2-head-main { min-width: 260px; flex: 1; }
+.ws2-name { font-size: 19px; font-weight: 800; color: var(--primary, #1a5276); line-height: 1.35; }
+.ws2-name span { font-size: 12px; color: var(--text-light, #7f8c8d); font-weight: 500; letter-spacing: .04em; }
+.ws2-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.ws2-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: #eef3f7; color: #365a6e; font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+.ws2-badge.warn { background: #fff3df; color: #9a6412; }
+.ws2-head-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ws2-path { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin: 12px 0 8px; padding: 8px 10px; background: #f6f9fb; border: 1px solid #e3ebf1; border-radius: 10px; }
+.ws2-path-node { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: #8a9aa5; padding: 3px 6px; border-radius: 6px; }
+.ws2-path-node i { font-style: normal; font-size: 10px; }
+.ws2-path-node.done { color: #2d6a55; }
+.ws2-path-node.active { background: #e6f4ef; color: #1d6b52; font-weight: 700; }
+.ws2-path-arrow { color: #b9c7cf; font-size: 10px; }
+.ws2-alerts { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 6px; margin: 10px 0; }
+.ws2-alert { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 9px; border: 1px solid #e4ebef; background: #fff; }
+.ws2-alert b { font-size: 12px; }
+.ws2-alert span { font-size: 11px; color: #6d7f88; }
+.ws2-alert.red { border-color: #f0c4bf; background: #fff7f5; }
+.ws2-alert.red b { color: #a33; }
+.ws2-alert.yellow { border-color: #f0d9a8; background: #fffaf0; }
+.ws2-alert.yellow b { color: #8a6414; }
+.ws2-alert.green { border-color: #c9e6d8; background: #f6fcf9; }
+.ws2-alert.green b { color: #2d7a53; }
+.ws2-link { border: 0; background: none; color: #28749b; font-size: 11.5px; cursor: pointer; padding: 1px 2px; text-align: left; }
+.ws2-link:hover { text-decoration: underline; }
+.ws2-tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid #dfe8ee; margin: 10px 0 12px; padding-bottom: 0; }
+.ws2-tab { border: 0; background: transparent; padding: 9px 12px; font-size: 12.5px; color: #617987; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; }
+.ws2-tab.active { color: var(--primary, #1a5276); font-weight: 700; border-bottom-color: var(--primary, #1a5276); }
+.ws2-content { min-height: 200px; }
+.ws2-card { background: #fff; border: 1px solid #e3ebf1; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(24, 64, 58, .035); }
+.ws2-card-h { font-size: 13px; font-weight: 700; color: #234b5e; margin-bottom: 8px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ws2-card-h span { font-size: 11px; color: #8a9aa5; font-weight: 400; }
+.ws2-grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.ws2-status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ws2-status-grid > div, .ws2-kv > div { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; background: #f7fafc; border-radius: 7px; }
+.ws2-status-grid b, .ws2-kv b { font-size: 10.5px; color: #8a9aa5; font-weight: 500; }
+.ws2-status-grid span, .ws2-kv span { font-size: 12.5px; font-weight: 700; color: #25495a; }
+.ws2-status-grid i { font-style: normal; font-size: 10.5px; color: #8a9aa5; }
+.ws2-kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+.ws2-summary { font-size: 12.5px; line-height: 1.75; color: #31515f; margin: 2px 0 8px; }
+.ws2-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.ws2-muted { color: #8a9aa5; font-size: 11px; }
+.ws2-empty { padding: 14px 8px; color: #9aaab3; font-size: 12px; text-align: center; background: #fafcfd; border: 1px dashed #dbe6ec; border-radius: 8px; }
+.ws2-episode { border: 1px solid #dde8ee; border-radius: 10px; margin: 8px 0; padding: 10px; background: #fff; }
+.ws2-episode.active { border-left: 4px solid #2f8f74; }
+.ws2-episode.done { border-left: 4px solid #7c8f8c; }
+.ws2-episode.stopped { border-left: 4px solid #a94a4a; }
+.ws2-ep-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.ws2-ep-head b { font-size: 13px; color: #1f4658; }
+.ws2-ep-head .ws2-muted { display: block; margin-top: 2px; }
+.ws2-ep-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+.ws2-layer { margin-top: 8px; border-top: 1px dashed #e1eaef; padding-top: 7px; }
+.ws2-layer-h { font-size: 11.5px; font-weight: 700; color: #4d6b7a; margin-bottom: 5px; }
+.ws2-layer-h span { font-weight: 400; color: #9aaab3; margin-left: 5px; }
+.ws2-layer-b { display: flex; flex-wrap: wrap; gap: 5px; }
+.ws2-layer-b > span { background: #f5f9fb; border: 1px solid #e5eef3; padding: 2px 7px; border-radius: 6px; font-size: 11px; }
+.ws2-term { cursor: pointer; border: 0; background: #f2f8f6; color: #315b5b; border-radius: 5px; padding: 3px 7px; font: inherit; }
+.ws2-term:hover { background: #e2f0ea; text-decoration: underline; }
+.ws2-table-wrap { overflow-x: auto; border: 1px solid #e3ebf1; border-radius: 8px; }
+.ws2-maxh { max-height: 330px; overflow-y: auto; }
+.ws2-table { width: 100%; border-collapse: collapse; font-size: 11.5px; min-width: 520px; }
+.ws2-table th, .ws2-table td { padding: 6px 8px; border-bottom: 1px solid #edf2f5; text-align: left; vertical-align: top; }
+.ws2-table th { background: #f7fafc; color: #6d8491; font-weight: 600; font-size: 10.5px; position: sticky; top: 0; z-index: 1; }
+.ws2-table tr:last-child td { border-bottom: 0; }
+.ws2-table tbody tr:hover { background: #fbfdfe; }
+.ws2-sum { max-width: 360px; color: #4d6572; }
+.ws2-resp { display: inline-block; font-weight: 800; padding: 1px 6px; border-radius: 5px; margin-right: 4px; font-size: 11px; }
+.ws2-resp.r-cr { background: #e4f5ec; color: #1f7a4f; }
+.ws2-resp.r-pr { background: #e8f4fb; color: #216b91; }
+.ws2-resp.r-sd { background: #fdf5df; color: #8a6414; }
+.ws2-resp.r-pd { background: #fde9e5; color: #a33; }
+.ws2-resp.r-ne, .ws2-resp.r-na { background: #f0f3f5; color: #7d8f99; }
+.ws2-grade { border: 1px solid transparent; min-width: 26px; padding: 2px 5px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 11px; }
+.ws2-grade.g-none { background: #f4f6f7; color: #9aaab3; }
+.ws2-grade.g0 { background: #eef4f2; color: #54766b; }
+.ws2-grade.g1 { background: #fff4d6; color: #8a6414; }
+.ws2-grade.g2 { background: #ffe3bd; color: #8a4d0d; }
+.ws2-grade.g3 { background: #f9c9c1; color: #8f2a1d; }
+.ws2-grade.g4 { background: #e8a79b; color: #6d1b12; }
+.ws2-grade.g5 { background: #3a2a2a; color: #fff; }
+.ws2-epchips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+.ws2-epchip { border: 1px solid #d9e5ec; background: #fff; color: #4f6d7c; border-radius: 999px; padding: 4px 10px; font-size: 11.5px; cursor: pointer; }
+.ws2-epchip.active { background: var(--primary, #1a5276); color: #fff; border-color: var(--primary, #1a5276); }
+.ws2-epchip.add { border-style: dashed; }
+.ws2-gantt { margin: 6px 0 10px; }
+.ws2-gantt-row { display: grid; grid-template-columns: 150px 1fr; gap: 8px; align-items: center; font-size: 10.5px; color: #6d8491; margin: 2px 0; }
+.ws2-gantt-track { position: relative; height: 9px; background: #f1f5f7; border-radius: 5px; overflow: hidden; }
+.ws2-gantt-track i { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: #7fa8bd; }
+.ws2-gantt-track i.active { background: #2f8f74; }
+.ws2-gantt-track i.completed { background: #7895a3; }
+.ws2-gantt-track i.stopped { background: #b07b76; }
+.ws2-print-row { margin-top: 8px; }
+.ws2-scenario-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.ws2-scenario-row label { font-size: 11px; color: #8a9aa5; }
+.ws2-scenario-row select { max-width: 320px; }
+.ws2-option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.ws2-option { border: 1px solid #e1eaf0; border-radius: 9px; padding: 9px 10px; background: #fff; display: flex; flex-direction: column; gap: 5px; }
+.ws2-option.lv1 { border-top: 3px solid #2f8f74; }
+.ws2-option.lv2 { border-top: 3px solid #c9a227; }
+.ws2-option.lv3 { border-top: 3px solid #9aaab3; }
+.ws2-option-h { display: flex; justify-content: space-between; gap: 6px; align-items: flex-start; }
+.ws2-option-h b { font-size: 12px; color: #1f4658; line-height: 1.45; }
+.ws2-option-h span { font-size: 10px; font-weight: 700; color: #28749b; background: #eaf3f8; padding: 2px 6px; border-radius: 5px; white-space: nowrap; }
+.ws2-option-meta { font-size: 10px; color: #9aaab3; }
+.ws2-option-pre { font-size: 10.5px; color: #8a5a12; background: #fff8ea; padding: 4px 6px; border-radius: 5px; }
+.ws2-option-mon { font-size: 10.5px; color: #5d7582; }
+.ws2-option .btn { align-self: flex-start; margin-top: auto; }
+.ws2-line { padding: 5px 0; border-bottom: 1px dashed #edf2f5; font-size: 11.5px; }
+.ws2-line:last-child { border-bottom: 0; }
+.ws2-line b { color: #1f4658; }
+.ws2-comorb { display: flex; flex-wrap: wrap; gap: 4px; }
+.ws2-comorb-item { font-size: 10.5px; border-radius: 999px; padding: 2px 7px; background: #f4f6f7; color: #8a9aa5; border: 1px solid #e8eef2; cursor: pointer; font-family: inherit; line-height: 1.5; }
+.ws2-comorb-item:hover { border-color: #b9d2df; color: #31515f; }
+.ws2-comorb-item.active { background: #fdeeea; color: #9a4a36; border-color: #f0c9be; }
+.ws2-comorb-item.history { background: #fff6e2; color: #8a6414; border-color: #f0d9a8; }
+.ws2-comorb-item.negative { background: #f1f7f3; color: #4f7662; border-color: #d5e8dc; }
+.ws2-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.ws2-form-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+.ws2-form-row label { font-size: 11px; color: #6d8491; min-width: 90px; }
+.ws2-form-row input, .ws2-form-row select, .ws2-form-row textarea { font-size: 12px; padding: 6px 8px; border: 1px solid #d9e5ec; border-radius: 6px; background: #fff; }
+.ws2-form-row textarea { width: 100%; min-height: 52px; }
+.ws2-form-row input[type="date"] { min-width: 135px; }
+.ws2-visit-ep { border: 1px solid #e1eaf0; border-radius: 8px; margin: 6px 0; padding: 7px 9px; background: #fbfdfe; }
+.ws2-visit-ep.on { background: #fff; border-color: #b9d9cb; }
+.ws2-visit-ep-h { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; flex-wrap: wrap; }
+.ws2-visit-ep-h span { font-size: 10.5px; color: #8a9aa5; }
+.ws2-visit-ep-body { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e3ebf1; }
+.ws2-img-box { margin: 8px 0; border: 1px dashed #d9e5ec; border-radius: 8px; padding: 7px 9px; background: #fbfdfe; }
+.ws2-img-box summary { cursor: pointer; font-size: 12px; color: #31515f; font-weight: 600; }
+.ws2-ae-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+.ws2-ae-item { display: flex; align-items: center; justify-content: space-between; gap: 5px; background: #f7fafc; padding: 4px 6px; border-radius: 6px; font-size: 11px; }
+.ws2-ae-item i { color: #9aaab3; font-style: normal; font-size: 10px; }
+.ws2-modal-mask { position: fixed; inset: 0; background: rgba(20, 40, 48, .42); z-index: 3000; display: flex; align-items: flex-start; justify-content: center; padding: 4vh 12px; overflow-y: auto; }
+.ws2-modal { width: min(760px, 100%); background: #fff; border-radius: 12px; box-shadow: 0 24px 70px rgba(0, 20, 30, .30); max-height: 92vh; display: flex; flex-direction: column; }
+.ws2-modal-h { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-bottom: 1px solid #e8eef2; font-size: 13px; }
+.ws2-modal-x { border: 0; background: none; font-size: 15px; cursor: pointer; color: #7d8f99; }
+.ws2-modal-b { padding: 12px 14px; overflow-y: auto; }
+.ws2-modal-f { padding: 9px 14px; border-top: 1px solid #e8eef2; display: flex; justify-content: flex-end; gap: 7px; }
+.ws2-defs { background: #f7fafc; border: 1px solid #e3ebf1; border-radius: 7px; padding: 8px 10px; font-size: 11.5px; margin-bottom: 8px; }
+.ws2-defs div { margin: 2px 0; }
+.ws2-defs b { display: inline-block; min-width: 28px; color: #28749b; }
+@media (max-width: 860px) {
+  .ws2-grid2 { grid-template-columns: 1fr; }
+  .ws2-status-grid, .ws2-kv { grid-template-columns: 1fr 1fr; }
+  .ws2-head-actions { justify-content: flex-start; }
+  .ws2-name { font-size: 17px; }
+  .ws2-table { min-width: 560px; }
+}
+@media (max-width: 520px) {
+  .ws2-status-grid, .ws2-kv { grid-template-columns: 1fr; }
+  .ws2-tab { padding: 8px 9px; font-size: 11.5px; }
+  .ws2-gantt-row { grid-template-columns: 110px 1fr; }
+}
+
+/* ===== 患者页：列表 + 工作台合并 ===== */
+.patient-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.patient-view-switch{display:inline-flex;background:#eef4f7;border:1px solid #dbe7ee;border-radius:9px;padding:3px;gap:2px}
+.patient-view-switch button{border:0;background:transparent;color:#5e7582;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:7px;cursor:pointer;font-family:inherit}
+.patient-view-switch button.active{background:#fff;color:#1a5276;box-shadow:0 1px 4px rgba(25,64,82,.12)}
+.patient-toolbar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.patient-view[hidden]{display:none!important}
+.cohort-panel{padding:14px 14px 10px}
+.cohort-panel .toolbar{margin:0 0 8px;padding:8px 10px}
+.cohort-panel .filter-bar{margin:0 0 8px}
+.cohort-panel .table-head{padding-left:14px;padding-right:14px}
+#patients .mgmt-layout{grid-template-columns:minmax(280px,320px) minmax(0,1fr)}
+@media(max-width:1100px){#patients .mgmt-layout{grid-template-columns:280px minmax(0,1fr)}}
+@media(max-width:860px){#patients .mgmt-layout{grid-template-columns:1fr}.patient-toolbar{align-items:flex-start}.patient-view-switch{width:100%}.patient-view-switch button{flex:1}.cohort-panel{padding:10px 8px}.cohort-panel .toolbar{padding:8px}.cohort-panel .table-head{display:none}}
+.ws2-path-detail{border:1px solid #e3ebf1;border-radius:8px;padding:7px 9px;margin:6px 0;background:#fbfdfe}
+.ws2-path-detail summary{cursor:pointer;font-size:11.5px;color:#31515f;font-weight:600}
+.ws2-path-detail .ws2-kv{margin-top:7px}
+#patients .med-tl-box{margin-top:0}
+
+/* ===== 当前状态卡片语义色 ===== */
+.ws2-status-grid > div.tone-ok{background:#edf9f2;border-left:4px solid #2f8f74}
+.ws2-status-grid > div.tone-ok b{color:#1f6f4f}
+.ws2-status-grid > div.tone-warn{background:#fff8e8;border-left:4px solid #d9a441}
+.ws2-status-grid > div.tone-warn b{color:#8a6414}
+.ws2-status-grid > div.tone-danger{background:#fdf0ed;border-left:4px solid #c0504a}
+.ws2-status-grid > div.tone-danger b{color:#9a3b33}
+.ws2-status-grid > div.tone-muted{background:#f3f5f6;border-left:4px solid #aab8bf}
+.ws2-status-grid > div.tone-muted b{color:#72848d}
+.ws2-tone-legend{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:#7d8f99}
+.ws2-tone-legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-left:6px}
+.ws2-tone-legend i.ok{background:#2f8f74}.ws2-tone-legend i.warn{background:#d9a441}.ws2-tone-legend i.danger{background:#c0504a}.ws2-tone-legend i.muted{background:#aab8bf}
+
+/* ===== 患者头部风险色（与旧版红黄绿灰保持一致） ===== */
+.panel-title.tone-red{background:linear-gradient(100deg,rgba(252,232,228,.96),rgba(255,250,249,.55) 62%,rgba(255,255,255,.2))}
+.panel-title.tone-red::before{background:linear-gradient(180deg,#c0504a,rgba(192,80,74,.28));box-shadow:0 0 12px rgba(192,80,74,.28)}
+.panel-title.tone-yellow{background:linear-gradient(100deg,rgba(255,244,214,.96),rgba(255,251,241,.55) 62%,rgba(255,255,255,.2))}
+.panel-title.tone-yellow::before{background:linear-gradient(180deg,#d9a441,rgba(217,164,65,.28));box-shadow:0 0 12px rgba(217,164,65,.28)}
+.panel-title.tone-green{background:linear-gradient(100deg,rgba(229,247,238,.96),rgba(248,253,251,.55) 62%,rgba(255,255,255,.2))}
+.panel-title.tone-green::before{background:linear-gradient(180deg,#2f8f74,rgba(47,143,116,.28));box-shadow:0 0 12px rgba(47,143,116,.28)}
+.panel-title.tone-gray,.panel-title.tone-pending{background:linear-gradient(100deg,rgba(240,244,245,.96),rgba(249,251,252,.55) 62%,rgba(255,255,255,.2))}
+.panel-title.tone-gray::before,.panel-title.tone-pending::before{background:linear-gradient(180deg,#9aaab3,rgba(154,170,179,.28));box-shadow:none}
+
+.ws2-badge.chip-ok{background:#e9f7ef;color:#1f6f4f}
+.ws2-badge.chip-warn{background:#fff4d9;color:#8a6414}
+.ws2-badge.chip-danger{background:#fdece8;color:#9a3b33}
+.ws2-badge.chip-muted{background:#f1f4f5;color:#72848d}
+.ws2-badge.ws2-warn{display:inline-flex;align-items:center;gap:5px;background:#fff4d9;color:#8a6414;font-weight:700}
+.ws2-badge.ws2-warn i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.ws2-badge.ws2-warn.tone-red{background:#fdece8;color:#a33}
+.ws2-badge.ws2-warn.tone-yellow{background:#fff4d9;color:#8a6414}
+.ws2-badge.ws2-warn.tone-green{background:#e9f7ef;color:#1f6f4f}
+.ws2-badge.ws2-warn.tone-gray,.ws2-badge.ws2-warn.tone-pending{background:#f1f4f5;color:#72848d}
+
+/* 覆盖 #edit-title 的默认头部渐变，让风险色真正显示出来 */
+#edit-title.tone-red{background:linear-gradient(100deg,rgba(252,226,221,.96),rgba(255,249,247,.62) 64%,rgba(255,255,255,.25));box-shadow:inset 4px 0 0 #c0504a,inset 0 1px 0 rgba(255,255,255,.9)}
+#edit-title.tone-red::before{background:linear-gradient(180deg,#c0504a,rgba(192,80,74,.25));box-shadow:0 0 12px rgba(192,80,74,.28)}
+#edit-title.tone-yellow{background:linear-gradient(100deg,rgba(255,241,205,.98),rgba(255,251,240,.66) 64%,rgba(255,255,255,.25));box-shadow:inset 4px 0 0 #d9a441,inset 0 1px 0 rgba(255,255,255,.9)}
+#edit-title.tone-yellow::before{background:linear-gradient(180deg,#d9a441,rgba(217,164,65,.25));box-shadow:0 0 12px rgba(217,164,65,.26)}
+#edit-title.tone-green{background:linear-gradient(100deg,rgba(223,245,234,.96),rgba(248,253,250,.62) 64%,rgba(255,255,255,.25));box-shadow:inset 4px 0 0 #2f8f74,inset 0 1px 0 rgba(255,255,255,.9)}
+#edit-title.tone-green::before{background:linear-gradient(180deg,#2f8f74,rgba(47,143,116,.25));box-shadow:0 0 12px rgba(47,143,116,.26)}
+#edit-title.tone-gray,#edit-title.tone-pending{background:linear-gradient(100deg,rgba(239,243,244,.96),rgba(249,251,252,.62) 64%,rgba(255,255,255,.25));box-shadow:inset 4px 0 0 #9aaab3,inset 0 1px 0 rgba(255,255,255,.9)}
+#edit-title.tone-gray::before,#edit-title.tone-pending::before{background:linear-gradient(180deg,#9aaab3,rgba(154,170,179,.25));box-shadow:none}
+
+/* Aurora 的 #editPanel #edit-title 用 --risk-rgb 生成头部渐变；
+   在更具体的层级覆盖变量，避免它永远用默认绿色。 */
+#editPanel #edit-title.tone-red{--risk-rgb:192,80,74}
+#editPanel #edit-title.tone-yellow{--risk-rgb:217,164,65}
+#editPanel #edit-title.tone-green{--risk-rgb:47,143,116}
+#editPanel #edit-title.tone-gray,
+#editPanel #edit-title.tone-pending{--risk-rgb:154,170,179}
+#editPanel #edit-title.tone-red::before{background:linear-gradient(180deg,#c0504a,rgba(192,80,74,.25))}
+#editPanel #edit-title.tone-yellow::before{background:linear-gradient(180deg,#d9a441,rgba(217,164,65,.25))}
+#editPanel #edit-title.tone-green::before{background:linear-gradient(180deg,#2f8f74,rgba(47,143,116,.25))}
+#editPanel #edit-title.tone-gray::before,
+#editPanel #edit-title.tone-pending::before{background:linear-gradient(180deg,#9aaab3,rgba(154,170,179,.25))}
+
+/* 提高风险色对比度：覆盖 Aurora 的固定浅色头部 */
+#editPanel #edit-title.tone-red{background-color:#fdf1ee!important;background-image:linear-gradient(95deg,rgba(192,80,74,.38),rgba(255,255,255,.55) 100%)!important;box-shadow:inset 4px 0 0 #c0504a,inset 0 1px 0 rgba(255,255,255,.92)!important}
+#editPanel #edit-title.tone-yellow{background-color:#fff9e8!important;background-image:linear-gradient(95deg,rgba(217,164,65,.38),rgba(255,255,255,.55) 100%)!important;box-shadow:inset 4px 0 0 #d9a441,inset 0 1px 0 rgba(255,255,255,.92)!important}
+#editPanel #edit-title.tone-green{background-color:#f1fbf6!important;background-image:linear-gradient(95deg,rgba(47,143,116,.30),rgba(255,255,255,.55) 100%)!important;box-shadow:inset 4px 0 0 #2f8f74,inset 0 1px 0 rgba(255,255,255,.92)!important}
+#editPanel #edit-title.tone-gray,#editPanel #edit-title.tone-pending{background-color:#f5f7f8!important;background-image:linear-gradient(95deg,rgba(154,170,179,.24),rgba(255,255,255,.55) 100%)!important;box-shadow:inset 4px 0 0 #9aaab3,inset 0 1px 0 rgba(255,255,255,.92)!important}
+
+/* 新旧登记台统一：旧版 #editPanel / .edit-chip 也使用新版红黄绿灰 */
+#editPanel:has(.status-evidence.se-red){--risk-rgb:192,80,74}
+#editPanel:has(.status-evidence.se-yellow){--risk-rgb:217,164,65}
+#editPanel:has(.status-evidence.se-green){--risk-rgb:47,143,116}
+#editPanel:has(.status-evidence.se-gray){--risk-rgb:154,170,179}
+#editPanel:has(.status-evidence.se-pending){--risk-rgb:154,170,179}
+.edit-chip{background:#eef3f7;color:#365a6e;border-color:#e3ebf1}
+.edit-chip.risk-red{background:#fdece8;color:#9a3b33;border-color:#f0c9c2}
+.edit-chip.risk-yellow{background:#fff4d9;color:#8a6414;border-color:#f0d9a8}
+.edit-chip.risk-green{background:#e9f7ef;color:#1f6f4f;border-color:#cfe8d8}
+.edit-chip.risk-gray,.edit-chip.risk-pending{background:#f1f4f5;color:#72848d;border-color:#d9e2e5}
+
+/* ===== 就诊登记：附加记录 / 子弹窗 ===== */
+.ws2-submask{z-index:3120;background:rgba(20,40,48,.30)}
+.ws2-submodal{width:min(720px,100%);max-height:88vh}
+.ws2-visit-items{display:flex;flex-direction:column;gap:6px;margin:6px 0 8px}
+.ws2-visit-item{display:flex;align-items:center;gap:8px;border:1px solid #dce8ee;background:#f8fbfc;border-radius:7px;padding:7px 9px}
+.ws2-visit-item-main{flex:1;min-width:0}
+.ws2-visit-item-main b{display:block;font-size:12.5px;color:#294d4d}
+.ws2-visit-item-main span{display:block;font-size:11px;color:#71838f;margin-top:2px;overflow-wrap:anywhere}
+.ws2-visit-item .ws2-mini-btn{border:1px solid #dbe6ea;background:#fff;color:#526975;border-radius:5px;padding:3px 7px;font-size:10.5px;cursor:pointer;font-family:inherit}
+.ws2-visit-item .ws2-mini-btn.danger{color:#a3443a;border-color:#eed4cf}
+.ws2-visit-pick-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ws2-visit-pick-cats button{border:1px solid #dbe6ea;background:#fff;color:#526975;border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.ws2-visit-pick-cats button.active{background:#edf7f3;border-color:#a9d3c2;color:#1f6f5a;font-weight:700}
+.ws2-visit-pick-cats button:disabled{opacity:.45;cursor:not-allowed}
+.ws2-visit-pick-list{display:flex;flex-wrap:wrap;gap:6px;max-height:300px;overflow:auto;padding:2px}
+.ws2-visit-pick-list button{border:1px solid #dce8ee;background:#fbfdfe;color:#31515f;border-radius:14px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit;text-align:left}
+.ws2-visit-pick-list button:hover{background:#edf7f3;border-color:#a9d3c2}
+.ws2-visit-editor .st-group{margin-bottom:8px}
+.ws2-visit-editor .ws2-form-row{margin-bottom:7px}
+
+/* 就诊登记：四个大类别入口 */
+.ws2-visit-entry-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:2px 0 10px}
+.ws2-visit-entry{border:1px solid #cfe2dc;background:linear-gradient(160deg,#f4fbf8,#fff 70%);border-radius:10px;padding:12px 9px;cursor:pointer;font-family:inherit;text-align:left;transition:border-color .15s,box-shadow .15s,transform .15s}
+.ws2-visit-entry:hover{border-color:#8fc7b4;box-shadow:0 4px 14px rgba(28,104,82,.10);transform:translateY(-1px)}
+.ws2-visit-entry b{display:block;font-size:15px;color:#1f5f50;letter-spacing:.03em}
+.ws2-visit-entry span{display:block;font-size:10.5px;color:#7b918b;margin-top:4px;line-height:1.4}
+@media(max-width:700px){.ws2-visit-entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* 治疗段甘特：年份轴 + 单日操作里程碑 */
+.ws2-gantt-axis{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:end;height:16px;margin:0 0 2px}
+.ws2-gantt-axis-track{position:relative;height:14px}
+.ws2-gantt-axis-track b{position:absolute;top:0;transform:translateX(-50%);font-size:9px;font-weight:500;color:#95a7af;white-space:nowrap}
+.ws2-gantt-axis-track b:first-child{transform:none}
+.ws2-gantt-axis-track b:last-child{transform:translateX(-100%)}
+.ws2-gantt-track .ws2-gantt-milestone{width:10px;height:10px;border-radius:2px;transform:translate(-50%,-50%) rotate(45deg);top:50%;bottom:auto;box-shadow:0 1px 3px #173f4b25;z-index:2}
+.ws2-gantt-row{min-height:15px}
+@media(max-width:860px){.ws2-gantt-axis{grid-template-columns:110px 1fr}}
+
+/* 总览页：诊疗路径总览入口 */
+.ov-head-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.ov-path-entry{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#31515f;background:#f2f8f6;border:1px solid #cfe3dc;border-radius:7px;padding:5px 9px;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.ov-path-entry:hover{background:#e7f4ee;border-color:#9fcbbb;transform:translateY(-1px)}
+.ov-path-entry span{color:#2f8f74;font-weight:700}
+@media(max-width:600px){.workspace-heading .ov-head-right{align-items:flex-start}.ov-path-entry{font-size:11px}}
+
+/* 随访计划卡 */
+.ws2-plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 18px;margin:4px 0 10px}
+.ws2-plan-grid .ws2-line{margin:0;padding:7px 0;border-bottom:1px dashed #e4efec}
+.ws2-plan-grid .ws2-line:last-child{border-bottom:0}

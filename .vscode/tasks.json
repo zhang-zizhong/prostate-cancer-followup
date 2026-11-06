@@ -1,0 +1,141 @@
+{
+  // 一键任务菜单：快捷键 Cmd+Shift+B 打开「运行生成任务」，
+  // 或按 Cmd+Shift+P → 输入「运行任务」→ 回车，看到完整清单。
+  // 部署类任务均设置了 confirmation 二次确认，防止误点上线。
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "① 启动网站（本地调试）",
+      "detail": "npm start —— 访问 http://localhost:3000",
+      "type": "shell",
+      "command": "npm start",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [{ "regexp": "^$", "file": 1, "location": 1, "message": 1 }],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "服务器已启动|listening|Server running"
+        }
+      },
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": true
+      }
+    },
+    {
+      "label": "② 开发模式（改代码自动重启）",
+      "detail": "npm run dev —— 保存 server.js 后自动重载，前端改动刷新浏览器即可",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [{ "regexp": "^$", "file": 1, "location": 1, "message": 1 }],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "服务器已启动|listening|Server running|Restarting"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": true
+      }
+    },
+    {
+      "label": "③ 在浏览器中打开网站",
+      "detail": "打开 http://localhost:3000（需服务已启动）",
+      "type": "shell",
+      "command": "open",
+      "args": ["http://localhost:3000"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "never", "panel": "shared" }
+    },
+    {
+      "label": "④ 停止本地服务",
+      "detail": "结束占用 3000 端口的 node 进程",
+      "type": "shell",
+      "command": "lsof -ti:3000 | xargs kill 2>/dev/null; echo '✅ 本地服务已停止'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "⑤ 重置本地测试数据（导入40例演示）",
+      "detail": "删除本地数据库并重新导入演示数据，恢复到干净状态",
+      "type": "shell",
+      "command": "bash ./scripts/reset-local-data.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "⑥ 检查线上站点状态",
+      "detail": "只读检测：域名解析、HTTPS 证书、首页响应",
+      "type": "shell",
+      "command": "bash ./scripts/check-online.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "🚀 部署上线（常规代码）",
+      "detail": "预检 + 测试 → 上传 server.js、public/、lib/ → 逐文件校验 → 平滑重启 → 验证；不含数据库与 .env",
+      "type": "shell",
+      "command": "bash ./scripts/deploy.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": true
+      }
+    },
+    {
+      "label": "🚀 部署上线（完整依赖）",
+      "detail": "首次部署或改了依赖时用：全量上传 + 服务器 npm ci + 重启（普通代码改动请用⑦）",
+      "type": "shell",
+      "command": "bash ./scripts/deploy.sh --full",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": true
+      }
+    },
+    {
+      "label": "⑨ 登录服务器（SSH）",
+      "detail": "打开服务器终端，用于查日志、看进程状态",
+      "type": "shell",
+      "command": "ssh pcd",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "focus": true
+      }
+    },
+    {
+      "label": "⑩ 查看线上运行日志",
+      "detail": "pm2 logs pcd --lines 50（Ctrl+C 退出）",
+      "type": "shell",
+      "command": "ssh pcd 'pm2 logs pcd --lines 50 --nostream'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    }
+  ]
+}
