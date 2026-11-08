@@ -47,6 +47,8 @@ Node.js 单进程（Express 4，ESM）
 
 **三态语义**贯穿全库：`NULL` = 未评估，`0` = 评估为否，`1` = 是。统计与导出都把 `NULL` 当「缺失」而不是「阴性」，这是本项目和普通 CRUD 最大的区别，改代码时务必保持。
 
+**临床动作与时间轴的溯源**：手术、化疗周期、给药、不良事件四类「真正发生的动作」各自带 `event_id`，写入时镜像一条 `timeline_events` 记录，删除时同步清理。治疗线、用药区间、合并症、疾病状态等「状态型」数据不自动造节点，避免时间轴被状态变更刷屏。新增类似动作时，沿用 `upsertMirrorEvent` / `deleteMirrorEvent` 这一对函数，不要直接写 `timeline_events`。
+
 ## 4. 请求链路
 
 1. **鉴权**：`POST /api/auth/login` 校验 bcrypt 哈希，签发 JWT（`Authorization: Bearer`）。前端存 `sessionStorage`，关闭标签页即失效；没有 refresh token。

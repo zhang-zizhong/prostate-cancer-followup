@@ -5,7 +5,8 @@
 #   无参数  重置后停止服务
 #   --keep  重置后保持服务运行，浏览器可直接访问
 #
-# 流程：停止服务 → 删除本地数据库与上传文件 → 启动建库 → 导入40例演示数据
+# 流程：停止服务 → 删除本地数据库与上传文件 → 启动建库 → 导入演示数据
+#       （找不到演示文件时，自动用 scripts/generate-test-cohort.py 生成 60 例）
 # =========================================================
 set -uo pipefail
 
@@ -26,22 +27,20 @@ PORT=$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2 | tr -d ' \r')
 PORT=${PORT:-3000}
 BASE="http://127.0.0.1:$PORT"
 
-# 演示数据文件（优先用字段最全的那份）
+# 演示数据文件（优先用字段最全的那份；都没有则现场生成）
 DEMO=""
 for F in "演示数据-40例患者.json" "测试数据40例.json"; do
   [ -f "$F" ] && DEMO="$F" && break
 done
-if [ -z "$DEMO" ]; then
-  bad "找不到演示数据文件（演示数据-40例患者.json / 测试数据40例.json）"
-  exit 1
-fi
+NEED_GEN=0
+[ -z "$DEMO" ] && NEED_GEN=1
 
 echo "${B}==========================================${N}"
 echo "${B} 重置本地测试数据${N}"
 echo "${B}==========================================${N}"
 echo "  项目目录：$ROOT"
 echo "  本地端口：$PORT"
-echo "  演示数据：$DEMO"
+echo "  演示数据：${DEMO:-（未找到，将生成 60 例模拟数据）}"
 echo
 echo "${Y}注意：本脚本只操作本机 data/ 目录，${N}"
 echo "${Y}      与线上服务器完全无关，不会上传任何数据。${N}"
@@ -87,6 +86,23 @@ if [ -d uploads ]; then
 else
   mkdir -p uploads && touch uploads/.gitkeep
   ok "已新建 uploads 目录"
+fi
+
+# 没有演示文件时，用生成器现造 60 例（仓库不随带演示 JSON）
+if [ "$NEED_GEN" = "1" ]; then
+  echo
+  info "生成 60 例模拟患者数据"
+  if ! command -v python3 >/dev/null 2>&1; then
+    bad "需要 python3 才能生成演示数据，请先安装 python3"
+    exit 1
+  fi
+  if python3 scripts/generate-test-cohort.py; then
+    DEMO="data/test-cohort-60.json"
+    ok "已生成 $DEMO"
+  else
+    bad "生成失败，请检查 scripts/generate-test-cohort.py"
+    exit 1
+  fi
 fi
 
 # ---------- 3. 启动服务建库 ----------

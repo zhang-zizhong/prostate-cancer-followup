@@ -1,7 +1,7 @@
 {
   // 一键任务菜单：快捷键 Cmd+Shift+B 打开「运行生成任务」，
   // 或按 Cmd+Shift+P → 输入「运行任务」→ 回车，看到完整清单。
-  // 部署类任务均设置了 confirmation 二次确认，防止误点上线。
+  // 这里只保留本地开发任务；部署与服务器操作不随开源版本发布。
   "version": "2.0.0",
   "tasks": [
     {
@@ -69,70 +69,10 @@
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
-      "label": "⑤ 重置本地测试数据（导入40例演示）",
-      "detail": "删除本地数据库并重新导入演示数据，恢复到干净状态",
+      "label": "⑤ 重置本地测试数据（60 例模拟患者）",
+      "detail": "清空本地数据库，未找到演示文件时自动用 scripts/generate-test-cohort.py 生成 60 例；只影响本机",
       "type": "shell",
       "command": "bash ./scripts/reset-local-data.sh",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
-    },
-    {
-      "label": "⑥ 检查线上站点状态",
-      "detail": "只读检测：域名解析、HTTPS 证书、首页响应",
-      "type": "shell",
-      "command": "bash ./scripts/check-online.sh",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
-    },
-    {
-      "label": "🚀 部署上线（常规代码）",
-      "detail": "预检 + 测试 → 上传 server.js、public/、lib/ → 逐文件校验 → 平滑重启 → 验证；不含数据库与 .env",
-      "type": "shell",
-      "command": "bash ./scripts/deploy.sh",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true,
-        "focus": true
-      }
-    },
-    {
-      "label": "🚀 部署上线（完整依赖）",
-      "detail": "首次部署或改了依赖时用：全量上传 + 服务器 npm ci + 重启（普通代码改动请用⑦）",
-      "type": "shell",
-      "command": "bash ./scripts/deploy.sh --full",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true,
-        "focus": true
-      }
-    },
-    {
-      "label": "⑨ 登录服务器（SSH）",
-      "detail": "打开服务器终端，用于查日志、看进程状态",
-      "type": "shell",
-      "command": "ssh pcd",
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": false,
-        "focus": true
-      }
-    },
-    {
-      "label": "⑩ 查看线上运行日志",
-      "detail": "pm2 logs pcd --lines 50（Ctrl+C 退出）",
-      "type": "shell",
-      "command": "ssh pcd 'pm2 logs pcd --lines 50 --nostream'",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared", "clear": true }
