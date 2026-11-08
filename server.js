@@ -768,6 +768,15 @@ CREATE INDEX IF NOT EXISTS idx_ihc_patient ON ihc_results(patient_id, marker);
   if (!cols.includes('lab_record_id'))   db.exec('ALTER TABLE timeline_events ADD COLUMN lab_record_id INTEGER');
   if (!cols.includes('notes'))           db.exec('ALTER TABLE timeline_events ADD COLUMN notes TEXT');
 }
+/* 治疗实施表的镜像事件溯源列：手术表原本已有 event_id，这里补齐化疗周期、
+   给药和 AE。保守方案：只镜像真正发生的临床动作，不镜像治疗线/用药区间、
+   合并症、疾病状态、科研同意等状态数据。 */
+for (const t of ['chemo_cycles', 'medication_administrations', 'adverse_events']) {
+  try {
+    const cols = db.prepare('PRAGMA table_info(' + t + ')').all().map(c => c.name);
+    if (!cols.includes('event_id')) db.exec('ALTER TABLE ' + t + ' ADD COLUMN event_id INTEGER');
+  } catch (e) { /* 旧库缺表时跳过，后续建表会带列 */ }
+}
 
 /* ---- CSCO 2026 对齐：睾酮与化验记录表（报告 P1 ⑨、P2 ⑲⑳）----
    指南 8.1/8.2.1 的去势抵抗诊断以血清睾酮为前提（<50ng/dl 或 1.7nmol/L），
@@ -966,6 +975,7 @@ CREATE TABLE IF NOT EXISTS chemo_cycles (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   patient_id        TEXT NOT NULL,
   episode_id        INTEGER NOT NULL,
+  event_id          INTEGER,
   line_id           INTEGER,
   cycle_no          INTEGER NOT NULL,
   cycle_date        TEXT NOT NULL,
@@ -999,6 +1009,7 @@ CREATE TABLE IF NOT EXISTS adverse_events (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   patient_id        TEXT NOT NULL,
   visit_id          INTEGER,
+  event_id          INTEGER,
   episode_row_id    INTEGER,
   chemo_cycle_id    INTEGER,
   episode_id        INTEGER,
@@ -1068,6 +1079,7 @@ CREATE INDEX IF NOT EXISTS idx_surgery_patient ON surgery_records(patient_id, su
 CREATE TABLE IF NOT EXISTS medication_administrations (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   patient_id      TEXT NOT NULL,
+  event_id        INTEGER,
   medication_id   INTEGER,
   episode_id      INTEGER,
   admin_date      TEXT NOT NULL,
@@ -1465,6 +1477,33 @@ function removePsaMirrorEvent(psaRecordId) {
   db.prepare('DELETE FROM timeline_events WHERE id=?').run(ev.id);
   files.forEach(f => { try { fs.unlinkSync(path.join(uploadDir, f.stored_name)); } catch (e) {} });
   return true;
+}
+
+/* 真正发生的临床动作 → 时间轴事件（保守镜像）。
+   只用于手术、化疗周期、给药、AE；治疗线/用药区间、合并症、疾病状态、
+   科研同意等状态数据不在这里自动造节点。 */
+function upsertMirrorEvent(patientId, eventId, opts, actor) {
+  const o = opts || {};
+  const date = normDate(o.date);
+  const type = String(o.type || '').trim().slice(0, 80);
+  if (!date || !type) return null;
+  const isSurgery = o.isSurgery ? 1 : 0;
+  const notes = String(o.notes || '').slice(0, 1000);
+  const existing = eventId
+    ? db.prepare('SELECT id FROM timeline_events WHERE id=? AND patient_id=?').get(eventId, patientId)
+    : db.prepare('SELECT id FROM timeline_events WHERE patient_id=? AND event_date=? AND event_type=? ORDER BY id LIMIT 1').get(patientId, date, type);
+  if (existing) {
+    db.prepare('UPDATE timeline_events SET event_date=?, event_type=?, is_surgery=?, notes=? WHERE id=? AND patient_id=?')
+      .run(date, type, isSurgery, notes, existing.id, patientId);
+    return existing.id;
+  }
+  const r = db.prepare(`INSERT INTO timeline_events(patient_id,event_date,event_type,is_surgery,notes,created_by)
+    VALUES(?,?,?,?,?,?)`).run(patientId, date, type, isSurgery, notes, actor || 'system');
+  return r.lastInsertRowid;
+}
+function deleteMirrorEvent(patientId, eventId) {
+  if (!eventId) return;
+  db.prepare('DELETE FROM timeline_events WHERE id=? AND patient_id=?').run(eventId, patientId);
 }
 
 /* ---- 睾酮 / 化验记录 → 时间轴镜像事件 ----
@@ -4747,6 +4786,22 @@ function insertVisitItem(visitId, rowId, item, source) {
          item.reason || '', item.dueDate || null, source || 'manual', new Date().toISOString());
   return r.lastInsertRowid;
 }
+function mirrorAdverseEvent(pid, aeId, eventId, termLabel, grade, onsetDate, visitId, chemoCycleId, management, actor) {
+  let date = normDate(onsetDate);
+  if (!date && visitId) { const v = getVisitOf(pid, visitId); if (v) date = v.visit_date; }
+  if (!date && chemoCycleId) {
+    const c = db.prepare('SELECT cycle_date FROM chemo_cycles WHERE id=? AND patient_id=?').get(chemoCycleId, pid);
+    if (c) date = c.cycle_date;
+  }
+  if (!date) return null;
+  const evId = upsertMirrorEvent(pid, eventId, {
+    date, type: '不良反应：' + String(termLabel || '未命名'),
+    notes: ['G' + (grade == null ? '未评估' : grade), management].filter(Boolean).join(' · ')
+  }, actor);
+  if (evId) db.prepare('UPDATE adverse_events SET event_id=? WHERE id=? AND patient_id=?').run(evId, aeId, pid);
+  return evId;
+}
+
 function insertAdverseEvent(pid, visitId, rowId, episodeId, chemoCycleId, ae, actor) {
   const v = validateAdverseEventInput(ae);
   if (!v.ok) throw new Error(v.error);
@@ -4757,8 +4812,8 @@ function insertAdverseEvent(pid, visitId, rowId, episodeId, chemoCycleId, ae, ac
     if (comp) { grade = comp.grade; basis = comp.basis; }
   }
   const existing = rowId
-    ? db.prepare('SELECT id FROM adverse_events WHERE episode_row_id=? AND term_code=?').get(rowId, v.value.termCode)
-    : (chemoCycleId ? db.prepare('SELECT id FROM adverse_events WHERE chemo_cycle_id=? AND term_code=?').get(chemoCycleId, v.value.termCode) : null);
+    ? db.prepare('SELECT id,event_id FROM adverse_events WHERE episode_row_id=? AND term_code=?').get(rowId, v.value.termCode)
+    : (chemoCycleId ? db.prepare('SELECT id,event_id FROM adverse_events WHERE chemo_cycle_id=? AND term_code=?').get(chemoCycleId, v.value.termCode) : null);
   if (existing) {
     db.prepare(`UPDATE adverse_events SET grade=?, grade_basis=?, onset_date=?, resolution_date=?, recovery_status=?,
                 aux_meds=?, management=?, action=?, causality=?, notes=?, visit_id=?, episode_id=?
@@ -4766,6 +4821,7 @@ function insertAdverseEvent(pid, visitId, rowId, episodeId, chemoCycleId, ae, ac
       .run(grade, basis, v.value.onsetDate, v.value.resolutionDate, v.value.recoveryStatus,
            v.value.auxMeds, v.value.management, v.value.action, v.value.causality, v.value.notes,
            visitId || null, episodeId || null, existing.id);
+    mirrorAdverseEvent(pid, existing.id, existing.event_id, v.value.termLabel, grade, v.value.onsetDate, visitId, chemoCycleId, v.value.management, actor);
     return existing.id;
   }
   const r = db.prepare(`INSERT INTO adverse_events
@@ -4776,6 +4832,7 @@ function insertAdverseEvent(pid, visitId, rowId, episodeId, chemoCycleId, ae, ac
          v.value.termCode, v.value.termLabel, grade, v.value.ctcaeVersion, basis,
          v.value.onsetDate, v.value.resolutionDate, v.value.recoveryStatus, v.value.auxMeds,
          v.value.management, v.value.action, v.value.causality, v.value.notes, actor, new Date().toISOString());
+  mirrorAdverseEvent(pid, r.lastInsertRowid, null, v.value.termLabel, grade, v.value.onsetDate, visitId, chemoCycleId, v.value.management, actor);
   return r.lastInsertRowid;
 }
 function saveVisitRow(pid, visitId, ep, actor) {
@@ -5111,6 +5168,16 @@ app.put('/api/patients/:id/episodes/:eid', auth(), (req, res) => {
   const old = getEpisodeOf(p.id, req.params.eid);
   if (!old) return res.status(404).json({ error: '治疗段不存在' });
   const body = Object.assign({}, episodeApi(old), req.body || {});
+  /* 编辑旧段时，历史遗留的无效指南场景/选项不应阻断状态修改；
+     能映射的由 validator 归一，仍无效的在这里清空。 */
+  if (body.guidelineScenario && !optionById(body.guidelineOptionId || '') && body.guidelineScenario) {
+    const known = ['low','favorable_intermediate','unfavorable_intermediate','high','very_high','regional','metastatic','m1'];
+    // 短场景名交给 validator 归一；其他未知值清空，避免旧元数据卡住保存
+    if (!known.includes(body.guidelineScenario) && !/^(localized_|post_op_|bcr_post_|mHSPC_|mCRPC_|nmCRPC|cN1|oligo_|bone_events|subtype_)/.test(body.guidelineScenario)) {
+      body.guidelineScenario = '';
+      body.guidelineOptionId = '';
+    }
+  }
   const v = validateEpisodeInput(body);
   if (!v.ok) return res.status(400).json({ error: v.error });
   const d = v.value;
@@ -5355,6 +5422,7 @@ app.delete('/api/patients/:id/adverse-events/:aid', auth(), (req, res) => {
   if (!requireOwn(req, res, p)) return;
   const old = db.prepare('SELECT * FROM adverse_events WHERE id=? AND patient_id=?').get(req.params.aid, p.id);
   if (!old) return res.status(404).json({ error: '不良事件不存在' });
+  deleteMirrorEvent(p.id, old.event_id);
   db.prepare('DELETE FROM adverse_events WHERE id=?').run(old.id);
   logAudit(req.user.username, 'DELETE_AE', p.id + ' #' + old.id);
   res.json({ ok: true });
@@ -5404,7 +5472,16 @@ app.post('/api/patients/:id/surgery', auth(), (req, res) => {
            d.drainDays, JSON.stringify(d.complications), d.complicationManagement, d.conversion,
            d.bloodLossMl, d.hospitalDays, d.notes, req.user.username, new Date().toISOString());
   }
-  logAudit(req.user.username, 'SAVE_SURGERY', p.id + ' episode#' + ep.id);
+  const saved = db.prepare('SELECT id,event_id,surgery_date,procedure FROM surgery_records WHERE episode_id=?').get(ep.id);
+  const isRp = /RP|根治性前列腺切除/i.test(String(d.procedure || ''));
+  const evType = isRp ? RP_EVENT_TYPE : ('手术：' + String(d.procedure || '手术').slice(0, 60));
+  const evId = upsertMirrorEvent(p.id, saved && saved.event_id, {
+    date: d.surgeryDate, type: evType, isSurgery: isRp,
+    notes: '手术实施记录' + (d.surgeon ? ' · 术者 ' + d.surgeon : '') + (d.notes ? ' · ' + d.notes : '')
+  }, req.user.username);
+  if (evId && saved) db.prepare('UPDATE surgery_records SET event_id=? WHERE id=?').run(evId, saved.id);
+  if (isRp) syncSurgDate(p.id);
+  logAudit(req.user.username, 'SAVE_SURGERY', p.id + ' episode#' + ep.id + ' event#' + (evId || '-'));
   res.json({ ok: true, surgeryRecords: db.prepare('SELECT * FROM surgery_records WHERE patient_id=? ORDER BY surgery_date').all(p.id).map(surgeryApi) });
 });
 
@@ -5426,9 +5503,14 @@ app.post('/api/patients/:id/episodes/:eid/chemo-cycles', auth(), (req, res) => {
            d.bsa, d.plannedDose, d.actualDose, d.doseReductionPct, d.delayDays, d.delayReason,
            d.gcsf, d.ecog, d.nextCycleDate, d.notes, req.user.username, new Date().toISOString());
     const cycleId = r.lastInsertRowid;
+    const evId = upsertMirrorEvent(p.id, null, {
+      date: d.cycleDate, type: '化疗周期 C' + d.cycleNo,
+      notes: [d.regimen, d.actualDose || d.plannedDose, d.notes].filter(Boolean).join(' · ')
+    }, req.user.username);
+    if (evId) db.prepare('UPDATE chemo_cycles SET event_id=? WHERE id=?').run(evId, cycleId);
     (Array.isArray(req.body.adverseEvents) ? req.body.adverseEvents : []).forEach(ae =>
       insertAdverseEvent(p.id, null, null, ep.id, cycleId, ae, req.user.username));
-    logAudit(req.user.username, 'ADD_CHEMO_CYCLE', p.id + ' ep#' + ep.id + ' C' + d.cycleNo);
+    logAudit(req.user.username, 'ADD_CHEMO_CYCLE', p.id + ' ep#' + ep.id + ' C' + d.cycleNo + ' event#' + (evId || '-'));
     res.json({ ok: true, id: cycleId, cycles: db.prepare('SELECT * FROM chemo_cycles WHERE patient_id=? ORDER BY cycle_date,cycle_no').all(p.id).map(chemoApi) });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -5454,7 +5536,12 @@ app.post('/api/patients/:id/medication-administrations', auth(), (req, res) => {
     .run(p.id, medId, ep ? ep.id : null, date, drug, String(b.dose || ''), String(b.route || ''),
          String(b.site || ''), String(b.lot || ''), normDate(b.nextDueDate), String(b.notes || ''),
          req.user.username, new Date().toISOString());
-  logAudit(req.user.username, 'ADD_MED_ADMIN', p.id + ' ' + date + ' ' + drug);
+  const evId = upsertMirrorEvent(p.id, null, {
+    date, type: '给药：' + drug,
+    notes: [String(b.dose || ''), String(b.route || ''), String(b.notes || '')].filter(Boolean).join(' · ')
+  }, req.user.username);
+  if (evId) db.prepare('UPDATE medication_administrations SET event_id=? WHERE id=?').run(evId, r.lastInsertRowid);
+  logAudit(req.user.username, 'ADD_MED_ADMIN', p.id + ' ' + date + ' ' + drug + ' event#' + (evId || '-'));
   res.json({ ok: true, id: r.lastInsertRowid, administrations: db.prepare('SELECT * FROM medication_administrations WHERE patient_id=? ORDER BY admin_date,id').all(p.id).map(adminApi) });
 });
 
@@ -7067,6 +7154,50 @@ app.use((err, req, res, next) => {
    若绑定全部网卡，一旦安全组或 ufw 放开 3000，应用即被明文直连，
    JWT 令牌与登录口令将绕过 HTTPS 裸传。特殊场景可用 HOST 环境变量显式覆盖。 */
 const HOST = process.env.HOST || '127.0.0.1';
+
+/* 一次性补齐：部署前已经存在的真实实施记录没有 event_id 的，
+   启动时按同样规则补一条镜像事件；幂等，已有同日同类型事件会直接复用。 */
+function backfillMirrorEvents() {
+  let n = 0;
+  try {
+    const surgeries = db.prepare('SELECT id,patient_id,event_id,surgery_date,procedure,surgeon,notes FROM surgery_records WHERE event_id IS NULL').all();
+    for (const r of surgeries) {
+      const isRp = /RP|根治性前列腺切除/i.test(String(r.procedure || ''));
+      const type = isRp ? RP_EVENT_TYPE : ('手术：' + String(r.procedure || '手术').slice(0, 60));
+      const ev = upsertMirrorEvent(r.patient_id, null, {
+        date: r.surgery_date, type, isSurgery: isRp,
+        notes: '手术实施记录' + (r.surgeon ? ' · 术者 ' + r.surgeon : '') + (r.notes ? ' · ' + r.notes : '')
+      }, 'system');
+      if (ev) { db.prepare('UPDATE surgery_records SET event_id=? WHERE id=?').run(ev, r.id); n++; }
+      if (isRp) syncSurgDate(r.patient_id);
+    }
+    const cycles = db.prepare('SELECT id,patient_id,event_id,cycle_date,cycle_no,regimen,actual_dose,planned_dose,notes FROM chemo_cycles WHERE event_id IS NULL').all();
+    for (const r of cycles) {
+      const ev = upsertMirrorEvent(r.patient_id, null, {
+        date: r.cycle_date, type: '化疗周期 C' + r.cycle_no,
+        notes: [r.regimen, r.actual_dose || r.planned_dose, r.notes].filter(Boolean).join(' · ')
+      }, 'system');
+      if (ev) { db.prepare('UPDATE chemo_cycles SET event_id=? WHERE id=?').run(ev, r.id); n++; }
+    }
+    const admins = db.prepare('SELECT id,patient_id,event_id,admin_date,drug,dose,route,notes FROM medication_administrations WHERE event_id IS NULL').all();
+    for (const r of admins) {
+      const ev = upsertMirrorEvent(r.patient_id, null, {
+        date: r.admin_date, type: '给药：' + r.drug,
+        notes: [r.dose, r.route, r.notes].filter(Boolean).join(' · ')
+      }, 'system');
+      if (ev) { db.prepare('UPDATE medication_administrations SET event_id=? WHERE id=?').run(ev, r.id); n++; }
+    }
+    const aes = db.prepare('SELECT id,patient_id,event_id,term_label,grade,onset_date,visit_id,chemo_cycle_id,management FROM adverse_events WHERE event_id IS NULL').all();
+    for (const r of aes) {
+      const ev = mirrorAdverseEvent(r.patient_id, r.id, null, r.term_label, r.grade, r.onset_date, r.visit_id, r.chemo_cycle_id, r.management, 'system');
+      if (ev) n++;
+    }
+  } catch (e) {
+    console.error('⚠ 镜像事件回填失败：', e.message);
+  }
+  if (n) console.log('🔧 已补齐 ' + n + ' 条治疗实施镜像事件');
+}
+backfillMirrorEvents();
 
 app.listen(PORT, HOST, () => {
   /* 注意：deploy.sh 用 STARTUP_MARK="服务已启动" 校验启动成功，改动本行文案时必须保留该子串 */

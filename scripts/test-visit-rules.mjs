@@ -15,6 +15,9 @@ test('治疗段校验：模板/类型/日期/场景', () => {
   assert.equal(validateEpisodeInput({ episodeType: 'surgery', templateCode: 'RP', startDate: '2026-02-30' }).ok, false);
   assert.equal(validateEpisodeInput({ episodeType: 'surgery', templateCode: 'RP', startDate: '2099-01-01' }).ok, false);
   assert.equal(validateEpisodeInput({ episodeType: 'surgery', templateCode: 'RP', startDate: '2026-01-02', endDate: '2026-01-01' }).ok, false);
+  const legacyAs = validateEpisodeInput({ episodeType: 'surveillance', templateCode: 'AS', intent: 'surveillance', startDate: '2026-01-01' });
+  assert.equal(legacyAs.ok, true);
+  assert.equal(legacyAs.value.intent, 'active_surveillance');
 });
 
 test('就诊校验：日期/ECOG/疼痛/下次随访', () => {

@@ -304,3 +304,69 @@
 .ws2-plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 18px;margin:4px 0 10px}
 .ws2-plan-grid .ws2-line{margin:0;padding:7px 0;border-bottom:1px dashed #e4efec}
 .ws2-plan-grid .ws2-line:last-child{border-bottom:0}
+
+/* 队列表格：备份面板位于工具栏上方，不能再沿用主题的 -40px 上提，
+   否则折叠的“数据备份与恢复”会和搜索栏/患者列表叠在一起。 */
+#patients .cohort-panel .toolbar { margin-top: 0; }
+
+/* 从总览“指南路径”跳到治疗方案库时，给吸顶导航留出空间 */
+#ws2GuidelineCard{scroll-margin-top:92px}
+
+/* 随访计划：用中性卡片区分条目；红/灰只表示“已到期/缺基线”，不表示肿瘤风险 */
+.ws2-plan-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:6px 0 12px}
+.ws2-plan-grid .ws2-line{display:none}
+.ws2-plan-item{display:flex;flex-direction:column;gap:5px;min-width:0;padding:11px 12px;background:#f7faf9;border:1px solid #dbe7e3;border-radius:8px;box-shadow:0 1px 2px #173f4b0a}
+.ws2-plan-item.missing{background:#f5f7f7;border-color:#dfe6e5}
+.ws2-plan-item.over{background:#fff9f7;border-color:#efd5ce}
+.ws2-plan-h{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-width:0}
+.ws2-plan-h>b{font-size:12px;line-height:1.35;color:#254b57;min-width:0;overflow-wrap:anywhere}
+.ws2-plan-state{flex:0 0 auto;font-size:10px;line-height:1.5;border-radius:999px;padding:1px 7px;white-space:nowrap;background:#eef3f2;color:#60747b;border:1px solid #dce7e4}
+.ws2-plan-state.over{background:#fbe9e5;color:#9e3f34;border-color:#efd1c9}
+.ws2-plan-state.missing{background:#edf1f2;color:#6d7f84;border-color:#dbe4e5}
+.ws2-plan-state.scheduled{background:#eef4f7;color:#476a78;border-color:#dbe8ee}
+.ws2-plan-dates{font-size:11px;color:#6b7f7a;line-height:1.5;display:flex;flex-wrap:wrap;gap:3px;font-variant-numeric:tabular-nums}
+.ws2-plan-dates b{font-weight:600;color:#315b5b}
+.ws2-plan-dates b.over{color:#a3443a}
+.ws2-plan-dates i{font-style:normal;color:#b2c0bb}
+.ws2-plan-basis{font-size:10.5px;line-height:1.55;color:#7b8d88;border-top:1px dashed #e1ebe7;padding-top:5px;margin-top:1px;overflow-wrap:anywhere}
+@media(max-width:1350px){.ws2-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.ws2-plan-grid{grid-template-columns:1fr}}
+
+.ws2-plan-legend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 9px;font-size:10.5px;color:#758984}
+.ws2-plan-legend-t{font-weight:600;color:#60747b}
+.ws2-plan-legend-note{color:#8a9b95;margin-left:4px}
+
+/* 一句话摘要：大字号 + 单一结构主色；绿色/琥珀色只用于风险和到期语义 */
+.ws2-summary-card{background:linear-gradient(135deg,#f7fcfa 0%,#ffffff 60%);border-left:4px solid #2f8f74;padding:18px 22px 14px}
+.ws2-summary{font-size:16.5px;line-height:2;color:#31545d;letter-spacing:.01em;margin:4px 0 10px}
+.ws2-sum-muted{color:#6f8589;font-size:14px}
+.ws2-sum-chip{display:inline-block;font-size:14px;line-height:1.65;color:#2d5f5a;background:#eef7f3;border:1px solid #d6e8e0;border-radius:5px;padding:0 7px;margin:0 1px;white-space:nowrap}
+.ws2-sum-risk.ok{background:#e8f4ec;border-color:#cfe6d7;color:#1f6f4f;font-weight:700}
+.ws2-sum-risk.warn{background:#fff6e4;border-color:#eedcb7;color:#8a6414;font-weight:700}
+.ws2-sum-risk.danger{background:#fbe9e6;border-color:#efd1c9;color:#9e3f34;font-weight:700}
+.ws2-sum-risk.muted{background:#eef2f2;border-color:#dfe7e5;color:#6d7f84}
+.ws2-sum-due{background:#fff5e2;border-color:#eed7ad;color:#986514;font-weight:700}
+.ws2-sum-strong{color:#1d615d;font-weight:700}
+.ws2-sum-lab{color:#204f5b;font-weight:700}
+.ws2-sum-sep{color:#aebfba;margin:0 5px}
+@media(max-width:600px){.ws2-summary-card{padding:14px 14px 10px}.ws2-summary{font-size:15.5px;line-height:1.9}.ws2-sum-muted,.ws2-sum-chip{font-size:12.5px}}
+
+/* 一句话摘要正文再缩小 10%（16.5 → 14.85；14 → 12.6） */
+.ws2-summary{font-size:14.85px}
+.ws2-sum-muted,.ws2-sum-chip{font-size:12.6px}
+@media(max-width:600px){
+  .ws2-summary{font-size:13.95px}
+  .ws2-sum-muted,.ws2-sum-chip{font-size:11.25px}
+}
+
+/* 一句话摘要：去掉左侧绿色装饰条，保留普通卡片边框 */
+.ws2-summary-card{border-left:1px solid #d8e8e2}
+
+/* 一句话摘要：纯白背景 */
+.ws2-summary-card{background:#fff}
+
+/* 总览治疗段：整段可点击进入随访记录册 */
+.ws2-episode-link{cursor:pointer;border-radius:10px;outline:none}
+.ws2-episode-link .ws2-episode{transition:border-color .15s,box-shadow .15s,background .15s}
+.ws2-episode-link:hover .ws2-episode{border-color:#9fcbbb;box-shadow:0 3px 10px #173f4b12;background:#fbfefd}
+.ws2-episode-link:focus-visible .ws2-episode{border-color:#2f8f74;box-shadow:0 0 0 3px #2f8f7420}

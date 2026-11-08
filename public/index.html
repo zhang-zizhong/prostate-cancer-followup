@@ -1362,10 +1362,31 @@ main{padding:22px 28px}
 .guide-diary-empty{font-size:13px;color:var(--text-light);padding:6px 0}
 .guide-diary-more{font-size:11px;color:var(--text-light);padding-top:5px}
 @media(max-width:600px){.gd-item{gap:6px}.gd-when{min-width:0}.gd-group-head{gap:7px}}
+/* ===== 队列表格重排：主行两栏、元信息四点分栏 ===== */
+.patient-card .card-header{grid-template-columns:88px 104px 52px 108px 86px minmax(180px,1fr) 82px 20px;column-gap:10px;align-items:center}
+.patient-card .ch-stage{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.35}
+.patient-card .ch-stage-main{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.patient-card .ch-stage-sub{font-size:10.5px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.patient-card .ch-status{justify-self:end;align-self:center}
+.patient-card .ch-extra{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px 20px;padding:8px 20px 9px;background:#fbfcfb;border-top:1px dashed var(--border);font-size:11px;color:var(--text-light)}
+.patient-card .ch-meta{display:flex;flex-direction:column;gap:1px;min-width:0;line-height:1.3}
+.patient-card .ch-meta b{font-size:9.5px;font-weight:600;color:#7c8f94;letter-spacing:.03em}
+.patient-card .ch-meta i{font-style:normal;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.patient-card .ch-meta.ch-due b,.patient-card .ch-meta.ch-due i{color:var(--primary)}
+.patient-card .ch-meta.ch-due.over b,.patient-card .ch-meta.ch-due.over i{color:var(--red)}
+@media(max-width:1200px){.patient-card .ch-extra{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:860px){
+  .patient-card .card-header{grid-template-columns:72px minmax(0,1fr) 82px 16px;row-gap:7px;padding:12px;column-gap:8px}
+  .patient-card .ch-id{grid-column:1;grid-row:1}.patient-card .ch-name{grid-column:2;grid-row:1}.patient-card .ch-status{grid-column:3;grid-row:1;justify-self:end;display:inline-block}.patient-card .ch-arrow{grid-column:4;grid-row:1}
+  .patient-card .ch-age{grid-column:1;grid-row:2;font-size:11px}.patient-card .ch-date{grid-column:2;grid-row:2;font-size:11px}.patient-card .ch-gleason{grid-column:3;grid-row:2;font-size:11px;text-align:right}.patient-card .ch-stage{grid-column:1/-1;grid-row:3}
+  .patient-card .ch-extra{grid-template-columns:repeat(2,minmax(0,1fr));padding:8px 12px}
+}
+@media(max-width:600px){.patient-card .ch-extra{grid-template-columns:1fr 1fr;gap:6px 10px}.patient-card .ch-meta i{font-size:10.5px}}
+
 </style>
 <link rel="stylesheet" href="/glass-theme.css">
 <link rel="stylesheet" href="/aurora-glass.css?v=20261030-password-eye">
-<link rel="stylesheet" href="/workspace.css?v=20261105-v14">
+<link rel="stylesheet" href="/workspace.css?v=20261108-v23">
 </head>
 <body>
 
@@ -1672,8 +1693,8 @@ main{padding:22px 28px}
 <script src="/record-core.js"></script>
 <script src="/cohort-core.js"></script>
 <script src="/export-core.js"></script>
-<script src="/workbench-labels.js?v=20261105-v5"></script>
-<script src="/workspace.js?v=20261105-v32"></script>
+<script src="/workbench-labels.js?v=20261108-v6"></script>
+<script src="/workspace.js?v=20261108-v41"></script>
 <!-- AI 病历登记界面：IIFE 仅在加载时挂 window.AiUI / renderAiRegistration，
      api()/toast()/reload() 等依赖在用户交互时才解析，故可先于内联脚本加载 -->
 <script src="/ai-intake-ui.js?v=20261029-conflict"></script>
@@ -2381,7 +2402,12 @@ EVENT_PRESETS.forEach(g => g.items.forEach(t => { EVENT_CAT[t] = g.cat; }));
 /* 自定义文本没有预设类别，一律归 other（中性色）。
    不去猜关键词——把「机器人辅助根治术」猜成治疗、把「复诊」猜成随访，
    猜错比不猜更容易误导，中性色如实表达「这条是医生自己写的」。 */
-const eventCat = type => EVENT_CAT[type] || 'other';
+const eventCat = type => {
+  if (EVENT_CAT[type]) return EVENT_CAT[type];
+  /* 手术/化疗/给药是保守镜像产生的事件，归入治疗色；其他自定义文本仍走中性色。 */
+  if (/^(手术|化疗周期|给药)/.test(String(type || ''))) return 'treat';
+  return 'other';
+};
 
 /* 预设里哪些活动天然携带 Gleason / 分期，用于表单的智能提示（不强制） */
 const GLEASON_EVENTS = ['前列腺穿刺活检病理报告', '手术病理报告', '前列腺电切病理报告'];
@@ -2480,6 +2506,8 @@ async function tryResume() {
 
 async function enterApp() {
   document.getElementById('loginScreen').classList.add('hidden');
+  // 登录后把当前入口设为“总览”历史状态；之后切患者/用户时再 push。
+  try { history.replaceState({ pcd: true, tab: 'overview' }, '', location.href); } catch (e) {}
   document.getElementById('userBadge').innerText =
     (currentUser.display || currentUser.username) + (currentUser.role === 'admin' ? ' 🔑' : '');
   document.getElementById('tab-users').classList.toggle('hidden', currentUser.role !== 'admin');
@@ -4973,18 +5001,18 @@ function renderList() {
       '<div class="card-header" onclick="openPatientFromCohort(\'' + p.id + '\')" title="打开该患者工作台">' +
       '<div class="ch-id">' + p.id + '</div><div class="ch-name">' + htmlAttr(p.name) + '</div><div class="ch-age">' + p.age + '岁</div>' +
       '<div class="ch-date">' + p.date + '</div><div class="ch-gleason">' + (p.gleason || '-') + '</div>' +
-      '<div class="ch-stage" title="临床分期 / 病理分期">' + (stageSummary(p) || '-') + ' · ' + (p.treatment || '-') + '</div>' +
+      '<div class="ch-stage" title="临床分期 / 病理分期；当前方案"><span class="ch-stage-main">' + (stageSummary(p) || '-') + '</span>' + (p.treatment ? '<span class="ch-stage-sub">' + htmlAttr(p.treatment) + '</span>' : '') + '</div>' +
       '<div class="ch-status ' + statusClassOf(p) + '">' + statusOf(p) + '</div>' +
       '<div class="ch-arrow">→</div></div>' +
       '<div class="ch-extra">' +
-        '<span>最新 PSA：' + (lastRec ? (fmtPsa(lastRec) + ' ng/mL（' + lastRec.date + '）') : '—') + '</span>' +
-        '<span>最新睾酮：' + (lastTesto
+        '<span class="ch-meta"><b>最新 PSA</b><i>' + (lastRec ? (fmtPsa(lastRec) + ' ng/mL · ' + lastRec.date) : '—') + '</i></span>' +
+        '<span class="ch-meta"><b>最新睾酮</b><i>' + (lastTesto
           ? (lastTesto.unit === 'nmol/L' ? lastTesto.enteredVal + ' nmol/L' : lastTesto.val + ' ng/dl')
-          : '—') + '</span>' +
-        '<span>当前方案：' + htmlAttr(currentRegimen(p)) + '</span>' +
-        '<span class="ch-due' + (over ? ' over' : '') + '">' +
-          (nd ? (nd.missing ? '基线未做：' + htmlAttr(nd.item) : (over ? '已逾期：' + htmlAttr(nd.item) + ' 应于 ' + htmlAttr(nd.due) + ' 完成' : '下次随访：' + htmlAttr(nd.due) + '（' + htmlAttr(nd.item) + '）')) : '下次随访：—') +
-        '</span>' +
+          : '—') + '</i></span>' +
+        '<span class="ch-meta"><b>当前方案</b><i>' + htmlAttr(currentRegimen(p)) + '</i></span>' +
+        '<span class="ch-meta ch-due' + (over ? ' over' : '') + '"><b>' + (nd && nd.missing ? '基线未做' : over ? '随访已逾期' : '下次随访') + '</b><i>' +
+          (nd ? (nd.missing ? htmlAttr(nd.item) : (over ? htmlAttr(nd.item) + ' · 应于 ' + htmlAttr(nd.due) : htmlAttr(nd.due) + ' · ' + htmlAttr(nd.item))) : '—') +
+        '</i></span>' +
       '</div></div>';
   }).join('') + renderListPager(all.length, listPage, totalPages);
 }
@@ -8378,12 +8406,42 @@ async function resetPassword(u) {
 }
 
 /* ============ 标签切换与启动 ============ */
+/* 浏览器返回键：顶层标签各占一条历史记录。
+   总览是初始页，从患者/用户页返回先回总览；总览再返回才离开网页。 */
+let navFromHistory = false;
+function activeTopTab() {
+  const s = document.querySelector('.section.active');
+  return s ? s.id : 'overview';
+}
+function closeTransientForBack() {
+  try { closeDatePicker(); } catch (e) {}
+  try { if (window.Workspace && Workspace.closeModal) Workspace.closeModal(); } catch (e) {}
+  try { if (window.Workspace && Workspace.closeSubModal) Workspace.closeSubModal(); } catch (e) {}
+  try { if (typeof closeNewPatientModal === 'function') closeNewPatientModal(true); } catch (e) {}
+  try { if (typeof closeRecordMenu === 'function') closeRecordMenu(); } catch (e) {}
+}
+function pushTabHistory(id) {
+  if (navFromHistory) return;
+  if (!window.history || !history.pushState) return;
+  if (activeTopTab() === id) return;
+  try {
+    if (id === 'overview') {
+      /* 总览是首页：点回总览时替换当前历史项，不再叠一条，
+         这样从总览按返回会直接离开网页。 */
+      history.replaceState({ pcd: true, tab: 'overview' }, '', location.href);
+    } else {
+      history.pushState({ pcd: true, tab: id }, '', location.href);
+    }
+  } catch (e) {}
+}
 function switchTab(id, el) {
   closeDatePicker();
   /* 旧调用仍可能传 manage；合并后统一落到患者页。 */
   if (id === 'manage') id = 'patients';
   /* el 允许省略：从代码里跳转时拿不到 this，
      此时用 data-tab 反查标签元素，避免高亮丢失或访问 null 报错 */
+  const prev = activeTopTab();
+  if (!navFromHistory && id !== prev) pushTabHistory(id);
   const tab = el || document.querySelector('.nav-tab[data-tab="' + id + '"]');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   if (tab) tab.classList.add('active');
@@ -8399,6 +8457,14 @@ function switchTab(id, el) {
     if (editTabActive && editTabActive.dataset.editTab === 'timeline') initTlViewport('pe');
   }
 }
+window.addEventListener('popstate', e => {
+  const st = e.state;
+  if (!st || !st.pcd || !st.tab) return;   // 回到 app 初始页之前，交给浏览器离开
+  navFromHistory = true;
+  closeTransientForBack();
+  switchTab(st.tab, null);
+  navFromHistory = false;
+});
 
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 

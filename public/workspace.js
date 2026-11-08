@@ -239,7 +239,7 @@
     if (!arr(w.visits).length) out.push(['yellow', '尚无结构化就诊', '历史 PSA/影像仍在“检查检验/全部记录”中，可从这里开始记第一次', 'Workspace.openVisit()']);
     arr(w.grade2plus).slice(0, 3).forEach(x => out.push(['red', '≥2 级毒性：' + (x.termLabel || x.termCode) + ' G' + x.grade, (x.visitDate || x.onsetDate || '') + ' · 尚未恢复', 'Workspace.openAEById(' + x.id + ')']));
     if (a.plan && a.plan.overdue) out.push(['yellow', '随访到期：' + (a.plan.overdue.item || ''), '应于 ' + (a.plan.overdue.due || '—') + ' 前完成', 'Workspace.openVisit()']);
-    if (a.plan && arr(a.plan.missing).length) out.push(['yellow', '基线未做：' + a.plan.missing.map(x => x.item).join('、'), '允许先治疗，建议补做', 'Workspace.tab(\'checks\')']);
+    if (a.plan && arr(a.plan.missing).length) out.push(['yellow', '基线未做：' + a.plan.missing.map(x => x.item).join('、'), '允许先治疗，建议补做', 'Workspace.tab(\'checks\',\'ws2ContentTop\')']);
     if (a.disease && a.disease.code === 'pending') out.push(['yellow', '资料不完整：' + ((a.disease.evidence || '').slice(0, 60)), '补齐后自动评估', 'Workspace.openProfileEditor()']);
     if (!out.length) out.push(['green', '暂无紧急待办', '按随访计划继续', 'Workspace.openVisit()']);
     return '<div class="ws2-alerts">' + out.map(([c, t, d, fn]) =>
@@ -267,6 +267,43 @@
     return parts.join('；') + '。';
   }
 
+  function summaryHtml(p, a, w) {
+    const ep = currentEpisode(w);
+    const sur = arr(w.surgeryRecords)[0];
+    const latestPsa = arr(p.psa).slice(-1)[0];
+    const latestTesto = arr(p.testo).slice(-1)[0];
+    const sep = '<span class="ws2-sum-sep">·</span>';
+    const split = '<span class="ws2-sum-sep">；</span>';
+    let h = '<span class="ws2-sum-muted">' + esc(p.age || '—') + ' 岁</span>' + sep +
+      '<span class="ws2-sum-muted">' + esc(p.date || '诊断日期未录') + ' 诊断前列腺癌</span>' + split +
+      '<span class="ws2-sum-chip">' + esc(stageText(p)) + '</span>' + sep +
+      '<span class="ws2-sum-chip">Gleason ' + esc(p.gleason || '未录') + '（ISUP ' + esc(isupSafe(p.gleason) || '—') + '）</span>' + sep +
+      '<span class="ws2-sum-chip ws2-sum-risk ' + toneRisk(a) + '">CSCO ' + esc(riskLabelSafe(a)) + '</span>' + split;
+    if (sur) {
+      h += '<span>' + esc(sur.surgeryDate || '') + ' 行 <b class="ws2-sum-strong">' + esc(sur.procedure || '手术') + '</b>' +
+        (sur.approach ? '（' + esc(wsl('surgeryApproach', sur.approach)) + '）' : '') +
+        (sur.nerveSparing && sur.nerveSparing !== 'none' ? '，神经保留：' + esc(wsl('nerveSparing', sur.nerveSparing)) : '') + '</span>' + split;
+    }
+    if (ep) {
+      h += '<span class="ws2-sum-muted">当前治疗段：</span><b class="ws2-sum-strong">' + esc(ep.label || ep.templateCode) + '</b>' +
+        '<span class="ws2-sum-muted">（' + esc(ep.startDate || '') + (ep.endDate ? '→' + esc(ep.endDate) : '→至今') + '）</span>' + split;
+    }
+    if (latestPsa) {
+      h += '<span>最近 <b class="ws2-sum-lab">PSA ' + esc(psaText(latestPsa)) + ' ng/mL</b>' +
+        '<span class="ws2-sum-muted">（' + esc(latestPsa.date) + '）</span></span>' + split;
+    }
+    if (latestTesto) {
+      h += '<span><b class="ws2-sum-lab">睾酮 ' + esc(latestTesto.enteredVal != null ? latestTesto.enteredVal : latestTesto.val) + ' ' + esc(latestTesto.unit || 'ng/dl') + '</b></span>' + split;
+    }
+    if (a.plan && a.plan.overdue) {
+      h += '<span class="ws2-sum-chip ws2-sum-due">随访到期：' + esc(a.plan.overdue.item || '') + '</span>';
+    } else {
+      const next = a.plan && arr(a.plan.intervals).filter(x => x.due).sort((x, y) => String(x.due).localeCompare(String(y.due)))[0];
+      if (next) h += '<span class="ws2-sum-muted">下次随访</span> <b class="ws2-sum-strong">' + esc(next.due) + '</b><span class="ws2-sum-muted">（' + esc(next.item) + '）</span>';
+    }
+    return h + '<span class="ws2-sum-muted">。</span>';
+  }
+
   function episodeCardHtml(p, w, ep, compact) {
     const t = templateOf(w, ep);
     const rows = arr(w.rows).filter(r => Number(r.episodeId) === Number(ep.id));
@@ -291,7 +328,7 @@
     if (ep.templateCode === 'CHEMO' && cycles.length) impl.push('化疗 ' + cycles.length + ' 周期 · 最近 ' + cycles[cycles.length - 1].cycleDate);
     if (admins.length) impl.push('给药 ' + admins.length + ' 次 · 最近 ' + admins[admins.length - 1].adminDate);
     if (!impl.length) impl.push('实施细节待补录');
-    return '<div class="ws2-episode ' + statusClass + '">' +
+    return '<div class="ws2-episode ' + statusClass + '"' + (compact ? '' : ' id="ws2EpisodeCard"') + '>' +
       '<div class="ws2-ep-head"><div><b>' + esc(ep.label || ep.templateCode) + '</b>' +
         '<span class="ws2-muted">' + esc(ep.startDate || '') + (ep.endDate ? ' → ' + esc(ep.endDate) : ' → 至今') + ' · ' + esc(wsl('episodeStatus', ep.status)) +
         (ep.intent ? ' · ' + esc(wsl('intent', ep.intent)) : '') + (ep.recommendationLevel ? ' · ' + esc(ep.recommendationLevel) : '') + '</span></div>' +
@@ -357,7 +394,7 @@
   }
 
   function renderOverview(p, a, w) {
-    const eps = followupEpisodes(w);
+    const eps = arr(w.episodes);
     const recent = arr(w.visits).slice(0, 5);
     const chart = (typeof makeChart === 'function' && arr(p.psa).length > 1) ? makeChart(arr(p.psa), 'green') : '<div class="ws2-empty">PSA 记录不足，暂不绘制曲线。</div>';
     const testoArrSorted = arr(p.testo).slice().sort((x, y) => String(x.date).localeCompare(String(y.date)));
@@ -372,21 +409,22 @@
         '<div class="tone-' + toneCastration(a) + '"><b>去势</b><span>' + esc((a.castration && a.castration.label) || (p.castration == null ? '未评估' : (p.castration ? '是' : '否'))) + '</span><i>' + esc((a.castration && a.castration.detail) || '') + '</i></div>' +
         '<div class="tone-' + toneFollowup(p) + '"><b>随访</b><span>' + esc(p.followupStatus || '在访') + '</span><i>末次 ' + esc(p.lastFollowupDate || '—') + '</i></div>' +
       '</div><div class="ws2-tone-legend"><i class="ok"></i>稳定/达标 <i class="warn"></i>需关注 <i class="danger"></i>异常/进展 <i class="muted"></i>未评估/终止</div></section>' +
-      '<section class="ws2-card"><div class="ws2-card-h">一句话摘要 <span>确定性模板，不调用 AI</span></div><p class="ws2-summary">' + esc(summaryText(p, a, w)) + '</p>' +
+      '<section class="ws2-card ws2-summary-card"><div class="ws2-card-h">一句话摘要 <span>确定性模板 · 非 AI 生成</span></div>' +
+        '<div class="ws2-summary">' + summaryHtml(p, a, w) + '</div>' +
         '<div class="ws2-actions"><button class="ws2-link" type="button" onclick="Workspace.openVisit()">登记本次就诊 →</button><button class="ws2-link" type="button" onclick="Workspace.openProfileEditor()">补档案 →</button></div></section>' +
       '</div>' +
-      '<section class="ws2-card"><div class="ws2-card-h">当前/最近治疗段 <span>' + eps.length + ' 段</span></div>' +
-        (eps.length ? eps.map(ep => episodeCardHtml(p, w, ep, true)).join('') : '<div class="ws2-empty">尚未建立治疗段。点右上角“启动/换线”或“登记本次就诊”。</div>') +
+      '<section class="ws2-card"><div class="ws2-card-h">治疗段 <span>共 ' + eps.length + ' 段 · 点击进入随访记录册</span></div>' +
+        (eps.length ? eps.map(ep => '<div class="ws2-episode-link" role="button" tabindex="0" title="点击进入随访记录册" onclick="if(!event.target.closest(\'button\'))Workspace.openEpisodeRecord(' + ep.id + ')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();Workspace.openEpisodeRecord(' + ep.id + ')}">' + episodeCardHtml(p, w, ep, true) + '</div>').join('') : '<div class="ws2-empty">尚未建立治疗段。点右上角“启动/换线”或“登记本次就诊”。</div>') +
       '</section>' +
       (typeof renderTimelineBox === 'function'
         ? renderTimelineBox(arr(p.events), 'ov', { title: '诊疗时间轴', emptyText: '暂无诊疗事件记录' })
         : '') +
       '<div class="ws2-grid2">' +
-        '<section class="ws2-card"><div class="ws2-card-h">PSA 曲线 <span>ng/mL</span></div>' + chart + '</section>' +
+        '<section class="ws2-card"><div class="ws2-card-h">PSA 曲线 <span>ng/mL</span></div>' + chart + '<button class="ws2-link" type="button" onclick="Workspace.tab(\'checks\',\'ws2PsaCard\')">查看/录入 PSA →</button></section>' +
         '<section class="ws2-card"><div class="ws2-card-h">睾酮曲线 <span>ng/dL · 虚线为去势 50 / 深度降酮 20</span></div>' +
           (latestTesto ? '<div class="ws2-muted" style="margin-bottom:4px">最近：' + esc(latestTesto.unit === 'nmol/L' ? (latestTesto.enteredVal + ' nmol/L') : (latestTesto.val + ' ng/dL')) + '（' + esc(latestTesto.date) + '）</div>' : '') +
           testoChart +
-          '<button class="ws2-link" type="button" onclick="Workspace.tab(\'checks\')">查看/录入睾酮 →</button></section>' +
+          '<button class="ws2-link" type="button" onclick="Workspace.tab(\'checks\',\'ws2TestoCard\')">查看/录入睾酮 →</button></section>' +
       '</div>' +
       '<section class="ws2-card"><div class="ws2-card-h">最近就诊</div>' +
         (recent.length ? '<div class="ws2-table-wrap"><table class="ws2-table"><thead><tr><th>日期</th><th>类型</th><th>小结</th><th></th></tr></thead><tbody>' +
@@ -395,7 +433,7 @@
       '</section>' +
       '<section class="ws2-card"><div class="ws2-card-h">指南路径</div>' +
         '<p class="ws2-muted">当前场景：' + esc(scenarioLabel(p, w)) + '。完整 286 节点在“治疗与用药 → 全部方案/指南原图”中查看。</p>' +
-        '<button class="btn btn-outline btn-sm" type="button" onclick="Workspace.tab(\'treatment\')">查看当前场景的指南选项 →</button></section>' +
+        '<div class="ws2-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="button" onclick="Workspace.openTreatmentGuide()">查看当前场景的指南选项 →</button></div></section>' +
         '<section class="ws2-card"><div class="ws2-card-h">患者资料打印</div>' +
         '<p class="ws2-muted">打印该患者的全部随访信息：基本信息、诊断与风险、治疗线/用药、就诊、PSA/睾酮/化验、病理/影像/放疗、结局、AE、合并症、科研数据。</p>' +
         '<div class="ws2-actions"><button class="btn btn-primary btn-sm" type="button" onclick="Workspace.printPatient()">打印患者全部随访信息</button></div></section>';
@@ -405,16 +443,23 @@
     const plan = a && a.plan;
     const items = arr(plan && plan.intervals);
     if (!items.length) return '';
-    const rows = items.map(it => '<div class="ws2-line"><b>' + esc(it.item) + '</b> ' +
-      (it.lastDone ? '上次 ' + esc(it.lastDone) : '尚无记录') +
-      (it.due ? ' · 下次 ' + esc(it.due) : '') +
-      (it.missingBaseline ? ' <span style="color:#b07b76">缺基线</span>' : '') +
-      (it.over ? ' <span style="color:#a3443a">已到期</span>' : '') +
-      '<div class="ws2-muted">' + esc(it.basis || '') + '</div></div>').join('');
-    return '<section class="ws2-card"><div class="ws2-card-h">随访计划 <span>' + items.length + ' 项 · 依据指南与当前治疗段自动生成</span></div>' +
+    const rows = items.map(it => {
+      const state = it.missingBaseline ? 'missing' : it.over ? 'over' : it.due ? 'scheduled' : 'pending';
+      const stateText = it.missingBaseline ? '缺基线' : it.over ? '已到期' : it.due ? '待完成' : '待补计划';
+      const dateBits = [];
+      if (it.lastDone) dateBits.push('上次 <b>' + esc(it.lastDone) + '</b>');
+      if (it.due) dateBits.push('下次 <b class="' + (it.over ? 'over' : '') + '">' + esc(it.due) + '</b>');
+      if (!dateBits.length) dateBits.push('尚无记录');
+      return '<div class="ws2-plan-item ' + state + '">' +
+        '<div class="ws2-plan-h"><b>' + esc(it.item) + '</b><span class="ws2-plan-state ' + state + '">' + stateText + '</span></div>' +
+        '<div class="ws2-plan-dates">' + dateBits.join('<i>·</i>') + '</div>' +
+        '<div class="ws2-plan-basis">' + esc(it.basis || '') + '</div></div>';
+    }).join('');
+    return '<section class="ws2-card"><div class="ws2-card-h">随访计划 <span>' + items.length + ' 项 · 依据指南与当前治疗段自动生成 · 状态只表示完成情况，不参与风险分层</span></div>' +
+      '<div class="ws2-plan-legend"><span class="ws2-plan-legend-t">状态：</span><span class="ws2-plan-state over">已到期</span><span class="ws2-plan-state missing">缺基线</span><span class="ws2-plan-state scheduled">待完成/计划中</span><span class="ws2-plan-legend-note">仅表示完成情况，不代表肿瘤风险</span></div>' +
       '<div class="ws2-plan-grid">' + rows + '</div>' +
       '<div class="ws2-actions"><button class="ws2-link" type="button" onclick="Workspace.openVisit()">＋ 记录本次就诊/完成项目</button>' +
-      '<button class="ws2-link" type="button" onclick="Workspace.tab(\'checks\')">查看检查检验 →</button></div></section>';
+      '<button class="ws2-link" type="button" onclick="Workspace.tab(\'checks\',\'ws2ContentTop\')">查看检查检验 →</button></div></section>';
   }
 
   function renderRecord(p, a, w) {
@@ -422,7 +467,7 @@
     if (!eps.length) return '<div class="ws2-card"><div class="ws2-card-h">随访记录册</div><div class="ws2-empty">尚未建立治疗段。先点“启动/换线”建立 RP/RT/ADT/化疗/AS 等段。</div></div>';
     let ep = episodeById(w, S.episodeId) || currentEpisode(w) || eps[0];
     if (ep) S.episodeId = ep.id;
-    const chips = eps.map(x => '<button type="button" class="ws2-epchip' + (Number(x.id) === Number(ep.id) ? ' active' : '') + ' ' + (x.status || '') + '" onclick="Workspace.episode(' + x.id + ')">' + esc(x.label || x.templateCode) + '</button>').join('');
+    const chips = eps.map(x => '<button type="button" class="ws2-epchip' + (Number(x.id) === Number(ep.id) ? ' active' : '') + '" data-status="' + esc(x.status || '') + '" onclick="Workspace.episode(' + x.id + ')">' + esc(x.label || x.templateCode) + '</button>').join('');
     return followupPlanHtml(p, a) + '<div class="ws2-card"><div class="ws2-card-h">治疗段 <span>记录册骨架：① 实施 → ② 评分卡 → ③ 随访表</span></div>' +
       '<div class="ws2-epchips">' + chips + '<button class="ws2-epchip add" type="button" onclick="Workspace.openTreatment()">＋ 新增治疗段</button></div>' +
       '<div class="ws2-gantt">' + ganttHtml(eps) + '</div>' +
@@ -602,7 +647,7 @@
     const wanted = key === 'localized_very_high' ? ['localized_very_high', 'localized_high'] : [key];
     const options = (S.catalog && S.catalog.treatmentOptions || []).filter(x => wanted.includes(x.scenario));
     const lines = arr(p.treatmentLines);
-    return '<section class="ws2-card"><div class="ws2-card-h">指南方案库 <span>当前场景：' + esc(scenarioLabel(p, w)) + '</span></div>' +
+    return '<section class="ws2-card" id="ws2GuidelineCard"><div class="ws2-card-h">指南方案库 <span>当前场景：' + esc(scenarioLabel(p, w)) + '</span></div>' +
       '<div class="ws2-scenario-row"><label>切换场景（查看全部 286 节点落点）</label><select onchange="Workspace.setScenario(this.value)">' + scenarios + '</select>' +
       '<button class="btn btn-outline btn-sm" type="button" onclick="Workspace.openTreatment()">＋ 自定义治疗段</button></div>' +
       (key === 'mHSPC_burden_unknown' ? '<div class="ws2-empty" style="border-color:#d8b36a;background:#fffaf0;color:#7a5a1f">当前 mHSPC 的瘤负荷未评估：请先补转移灶数量、是否位于盆腔/脊柱外、有无内脏转移；系统不会默认按高瘤负荷处理。</div><div class="ws2-actions"><button class="ws2-link" type="button" onclick="Workspace.openProfileEditor()">补瘤负荷 →</button></div>' : '') + '<div class="ws2-option-grid">' + (options.length ? options.map(op => optionCardHtml(op)).join('') : (key === 'mHSPC_burden_unknown' ? '<div class="ws2-empty">补完负荷后再选择方案。</div>' : '<div class="ws2-empty">该场景暂无目录选项；可自定义治疗段或查看全部方案。</div>')) + '</div>' +
@@ -646,11 +691,11 @@
     const labs = arr(p.labValues).slice().reverse();
     const imgs = arr(p.imagingStudies).slice().reverse();
     return '<div class="ws2-grid2">' +
-      '<section class="ws2-card"><div class="ws2-card-h">PSA <span>' + psa.length + ' 条' + (() => { try { const x = ClinicalCore.psadtMonths(arr(p.psa)); return x != null ? ' · PSADT ' + Number(x).toFixed(1) + ' 月' : ''; } catch (e) { return ''; } })() + '</span></div>' +
+      '<section class="ws2-card" id="ws2PsaCard"><div class="ws2-card-h">PSA <span>' + psa.length + ' 条' + (() => { try { const x = ClinicalCore.psadtMonths(arr(p.psa)); return x != null ? ' · PSADT ' + Number(x).toFixed(1) + ' 月' : ''; } catch (e) { return ''; } })() + '</span></div>' +
         (psa.length ? '<div class="ws2-table-wrap ws2-maxh"><table class="ws2-table"><thead><tr><th>日期</th><th>值</th><th>标记</th><th></th></tr></thead><tbody>' +
           psa.map(x => '<tr><td>' + esc(x.date) + '</td><td><b>' + esc(psaText(x)) + '</b> ng/mL</td><td>' + (x.isInitial ? '初始' : '') + (x.belowLod ? ' · 低于下限' : '') + '</td><td><button class="ws2-link" type="button" onclick="Workspace.openPsaEditor(' + x.id + ')">编辑</button></td></tr>').join('') + '</tbody></table></div>' : '<div class="ws2-empty">暂无 PSA。</div>') +
         '<button class="ws2-link" type="button" onclick="Workspace.openPsaEditor()">＋ 新增 / 编辑 PSA →</button></section>' +
-      '<section class="ws2-card"><div class="ws2-card-h">睾酮 <span>' + testo.length + ' 条' + (() => { try { const c = ClinicalCore.castrationState(p); return c && c.label ? ' · ' + c.label : ''; } catch (e) { return ''; } })() + '</span></div>' +
+      '<section class="ws2-card" id="ws2TestoCard"><div class="ws2-card-h">睾酮 <span>' + testo.length + ' 条' + (() => { try { const c = ClinicalCore.castrationState(p); return c && c.label ? ' · ' + c.label : ''; } catch (e) { return ''; } })() + '</span></div>' +
         (testo.length ? '<div class="ws2-table-wrap ws2-maxh"><table class="ws2-table"><thead><tr><th>日期</th><th>值</th><th>方法/实验室</th><th></th></tr></thead><tbody>' +
           testo.map(x => '<tr><td>' + esc(x.date) + '</td><td><b>' + esc(x.enteredVal != null ? x.enteredVal : x.val) + '</b> ' + esc(x.unit || 'ng/dl') + '</td><td>' + esc([x.assayMethod, x.lab].filter(Boolean).join(' · ') || '—') + '</td><td><button class="ws2-link" type="button" onclick="Workspace.openTestoEditor(' + x.id + ')">编辑</button></td></tr>').join('') + '</tbody></table></div>' : '<div class="ws2-empty">暂无睾酮。</div>') +
         '<button class="ws2-link" type="button" onclick="Workspace.openTestoEditor()">＋ 新增 / 编辑睾酮 →</button></section></div>' +
@@ -781,8 +826,35 @@
     render(np);
   }
 
-  function tab(name) { S.tab = name; const p = getPatient(selectedId); if (p) render(p); }
-  function episode(id) { S.episodeId = Number(id); const p = getPatient(selectedId); if (p) render(p); }
+  function scrollWorkspaceTarget(targetId) {
+    const el = document.getElementById(targetId || 'ws2ContentTop');
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 92;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  }
+  function tab(name, targetId) {
+    S.tab = name;
+    const p = getPatient(selectedId);
+    if (p) render(p);
+    requestAnimationFrame(() => scrollWorkspaceTarget(targetId || 'ws2ContentTop'));
+  }
+  function openTreatmentGuide() {
+    tab('treatment', 'ws2GuidelineCard');
+  }
+  function episode(id) {
+    S.episodeId = Number(id);
+    const p = getPatient(selectedId);
+    if (p) render(p);
+    requestAnimationFrame(() => scrollWorkspaceTarget('ws2EpisodeCard'));
+  }
+  function openEpisodeRecord(id) {
+    S.tab = 'record';
+    S.episodeId = Number(id);
+    const p = getPatient(selectedId);
+    if (!p) return;
+    render(p);
+    requestAnimationFrame(() => scrollWorkspaceTarget('ws2EpisodeCard'));
+  }
   function setScenario(key) { S.scenario = key; const p = getPatient(selectedId); if (p) render(p); }
 
   /* ---------------- 模态框基础 ---------------- */
@@ -2194,7 +2266,7 @@
   }
 
   window.Workspace = {
-    isEnabled, enable, disable, legacy, render, tab, episode, setScenario,
+    isEnabled, enable, disable, legacy, render, tab, openTreatmentGuide, episode, openEpisodeRecord, setScenario,
     openVisit, openVisitDetail, openVisitDetailById, openVisitEditById, attach, openAE, openAEById,
     openVisitItemPicker, openVisitItemEditor, editVisitItem, removeVisitItem, closeSubModal,
     openProfileEditor, openPsaEditor, openTestoEditor, openLabEditor, openClinicalEditor,

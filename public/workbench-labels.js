@@ -15,7 +15,7 @@
     episodeStatus: { active: '进行中', completed: '已完成', stopped: '已停止', planned: '计划中' },
     intent: {
       radical: '根治', adjuvant: '辅助', salvage: '挽救', palliative: '姑息',
-      neoadjuvant: '新辅助', active_surveillance: '主动监测', watchful_waiting: '观察等待'
+      neoadjuvant: '新辅助', active_surveillance: '主动监测', watchful_waiting: '观察等待', surveillance: '监测', observation: '观察'
     },
     stopReason: {
       progression: '疾病进展', toxicity: '毒性/不耐受', completed: '完成计划',
