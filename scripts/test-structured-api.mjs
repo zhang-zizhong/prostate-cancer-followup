@@ -591,6 +591,69 @@ async function main() {
     const filesAfter = await call('/api/patients/' + p2.id + '/files');
     assert.equal(filesAfter.some(x => x.source === 'report' && x.sourceId === reportAsset.sourceId), false);
 
+    /* ---- 2026-11-11 临床穿行测试回归 ---- */
+    /* 备份往返：primary 活检 + primary RP 必须各自保留；初始 PSA 按标记而非数组位置 */
+    const rtP = await call('/api/patients', { method: 'POST', body: JSON.stringify({
+      name: 'API-备份往返', birth: '1955-01-01', date: '2025-01-01', psa: 8, psaDate: '2024-12-20'
+    }) });
+    await call('/api/patients/' + rtP.id + '/events', { method: 'POST', body: JSON.stringify({
+      date: '2025-01-02', type: '前列腺穿刺活检病理报告', structured: { kind: 'pathology', data: {
+        specimenType: 'biopsy', reportDate: '2025-01-02', coresTotal: 12, coresPositive: 4,
+        gleasonPrimary: 3, gleasonSecondary: 4, isPrimary: 1
+      } }
+    }) });
+    await call('/api/patients/' + rtP.id + '/events', { method: 'POST', body: JSON.stringify({
+      date: '2025-01-18', type: '手术病理报告', structured: { kind: 'pathology', data: {
+        specimenType: 'RP', reportDate: '2025-01-18', gleasonPrimary: 3, gleasonSecondary: 4,
+        ptnm: 'pT3aN0M0', marginStatus: 'positive', ece: 1, svi: 0, lnPositive: 0, lnExamined: 12, isPrimary: 1
+      } }
+    }) });
+    await call('/api/patients/' + rtP.id + '/psa', { method: 'POST', body: JSON.stringify({ date: '2025-03-01', val: 0.01, belowLod: true, lod: 0.02 }) });
+    const bakRes = await fetch(BASE + '/api/backup/export', { headers: { Authorization: 'Bearer ' + token } });
+    const bak = await bakRes.json();
+    const impRes = await fetch(BASE + '/api/backup/import', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: bak, mode: 'overwrite' })
+    });
+    assert.equal(impRes.status, 200, '覆盖导入应成功');
+    const rtAfter = await call('/api/patients/' + rtP.id);
+    assert.equal(rtAfter.pathologyReports.filter(x => x.specimenType === 'biopsy' && x.isPrimary).length, 1, '导入后 primary 活检保留');
+    assert.equal(rtAfter.pathologyReports.filter(x => x.specimenType === 'RP' && x.isPrimary).length, 1, '导入后 primary RP 保留');
+    assert.equal(rtAfter.gleason, '3+4=7', '导入后主档 Gleason 保留');
+    assert.equal(rtAfter.pathologicStage, 'pT3aN0M0', '导入后病理分期保留');
+    const rtInit = rtAfter.psa.filter(x => x.isInitial);
+    assert.equal(rtInit.length, 1, '导入后初始 PSA 唯一');
+    assert.equal(rtInit[0].date, '2024-12-20', '导入后初始 PSA 仍是最早记录');
+    /* 乱序 PSA 数组的旧式备份：初始标记按最早日期重建，而不是数组第一条 */
+    const bak2 = JSON.parse(JSON.stringify(bak));
+    const bp2 = bak2.patients.find(x => x.id === rtP.id);
+    bp2.psa = [bp2.psa[1], bp2.psa[0]];
+    bp2.psa.forEach(x => { delete x.isInitial; });
+    const impRes2 = await fetch(BASE + '/api/backup/import', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: bak2, mode: 'overwrite' })
+    });
+    assert.equal(impRes2.status, 200);
+    const rtAfter2 = await call('/api/patients/' + rtP.id);
+    const rtInit2 = rtAfter2.psa.filter(x => x.isInitial);
+    assert.equal(rtInit2.length, 1, '乱序备份导入后初始 PSA 唯一');
+    assert.equal(rtInit2[0].date, '2024-12-20', '乱序备份导入后初始 PSA 是最早日期');
+
+    /* 死亡日期冲突检查必须覆盖 v13 就诊 */
+    const deathVisitP = await call('/api/patients', { method: 'POST', body: JSON.stringify({
+      name: 'API-死亡就诊冲突', birth: '1950-01-01', date: '2024-01-01', psa: 20, psaDate: '2024-01-01'
+    }) });
+    await call('/api/patients/' + deathVisitP.id + '/visits', { method: 'POST', body: JSON.stringify({
+      visitDate: '2025-06-01', visitType: 'outpatient', summary: '死亡前的就诊'
+    }) });
+    const deathConflict = await fetch(BASE + '/api/patients/' + deathVisitP.id + '/events', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: '2025-01-01', type: '终止随访/死亡', structured: { kind: 'outcome', data: {
+        outcomeType: 'death', eventDate: '2025-01-01', deathCause: 'prostate_cancer'
+      } } })
+    });
+    assert.equal(deathConflict.status, 400, '死亡日期早于既有就诊必须拒绝');
+
     console.log('✅ structured API test passed');
   } catch (e) {
     console.error('❌ structured API test failed');

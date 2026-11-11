@@ -39,6 +39,18 @@
   const list = v => String(v || '').split(',').map(x => x.trim()).filter(Boolean);
   const sitesText = v => list(v).map(x => labelOf('MET_SITES', x)).join('/');
 
+  /* 导出列名为 age_at_diag：必须是诊断时年龄，而不是展示用的当前年龄。
+     有出生日期时按诊断日期现算；旧数据无出生日期时回退登记年龄。 */
+  function ageAtDiag(p) {
+    if (!p || !p.birth || !p.date) return p ? n(p.age) : '';
+    const b = new Date(p.birth + 'T00:00:00Z'), on = new Date(p.date + 'T00:00:00Z');
+    if (isNaN(b.getTime()) || isNaN(on.getTime())) return n(p.age);
+    let a = on.getUTCFullYear() - b.getUTCFullYear();
+    const mDiff = on.getUTCMonth() - b.getUTCMonth();
+    if (mDiff < 0 || (mDiff === 0 && on.getUTCDate() < b.getUTCDate())) a--;
+    return a;
+  }
+
   function patientRows(patients, opts) {
     const derived = (opts && opts.derived) || (() => ({}));
     const rows = [['patient_id', 'name', 'birth_date', 'diag_date', 'age_at_diag', 'clinical_stage', 'pathologic_stage',
@@ -53,7 +65,7 @@
       const lastContact = (CC && CC.lastContact) ? CC.lastContact(p) : '';
       const isup = (CC && CC.isupOf) ? CC.isupOf(p.gleason) : '';
       rows.push([
-        p.id, p.name, p.birth, p.date, p.age, p.clinicalStage, p.pathologicStage,
+        p.id, p.name, p.birth, p.date, ageAtDiag(p), p.clinicalStage, p.pathologicStage,
         p.gleason, isup == null ? '' : isup,
         d.risk || '', d.riskBasis || '', p.gleasonSource || '', p.pathologicStageSource || '',
         p.treatment || '', p.followupStatus || '在访', death ? death.eventDate : '', lastContact || '',

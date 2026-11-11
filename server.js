@@ -1838,7 +1838,12 @@ function recordsAfterDate(pid, date, excludeEventId) {
     ['样本', 'specimens', 'collection_date'],
     ['基因检测', 'genomic_tests', 'test_date'],
     ['IHC', 'ihc_results', 'test_date'],
-    ['化验', 'labs_records', 'rec_date']
+    ['化验', 'labs_records', 'rec_date'],
+    /* v13 新表同样参与冲突检查，否则死亡日期可以晚于既有就诊/化疗/给药 */
+    ['结构化化验', 'lab_values', 'rec_date'],
+    ['就诊', 'visits', 'visit_date'],
+    ['化疗周期', 'chemo_cycles', 'cycle_date'],
+    ['给药', 'medication_administrations', 'admin_date']
   ];
   const out = [];
   checks.forEach(([label, table, col]) => {
@@ -3964,7 +3969,7 @@ app.post('/api/patients/:id/testo', auth(), (req, res) => {
   if (sampleTimeRaw && !/^([01]\d|2[0-3]):[0-5]\d$/.test(sampleTimeRaw)) {
     return res.status(400).json({ error: '采血时间格式应为 HH:mm' });
   }
-  /* 规范值统一 ng/dl；同时保留录入值与单位，界面回显“本院 mmol/L”时不失真。 */
+  /* 规范值统一 ng/dl；同时保留录入值与单位，界面回显“本院 nmol/L”时不失真。 */
   const val = unit === 'nmol/L' ? Math.round(entered * 28.84 * 100) / 100 : Math.round(entered * 100) / 100;
   const tIns = db.prepare(`INSERT INTO testosterone_records
       (patient_id,rec_date,value,unit,entered_value,assay_method,lab,sample_time,created_by) VALUES(?,?,?,?,?,?,?,?,?)`)
@@ -6807,11 +6812,19 @@ app.post('/api/backup/import', auth(true), (req, res) => {
          新备份携带 freeVal/freeBelowLod/freeLod 时原样还原（仅接受有限非负数，
          防止坏备份把 NaN/字符串塞进 REAL 列）。 */
       const psaOwner = resolveOwner(p) || req.user.username;
-      (p.psa || []).forEach((x, i) => {
+      /* 初始 PSA 不变量：必须是该患者最早的一条。
+         优先按备份里的 isInitial 标记；标记缺失/错位（旧备份或手工改过的 JSON）
+         时回退到最早日期，而不是照数组顺序把第一条标成初始。 */
+      const psaRows = (p.psa || []).filter(x => normDate(x.date));
+      let initialPsaIdx = psaRows.findIndex(x => x.isInitial === true || x.isInitial === 1);
+      if (initialPsaIdx < 0 && psaRows.length) {
+        initialPsaIdx = psaRows.reduce((best, x, i) => (String(x.date) < String(psaRows[best].date) ? i : best), 0);
+      }
+      psaRows.forEach((x, i) => {
         const fv = (x.freeVal != null && Number.isFinite(Number(x.freeVal)) && Number(x.freeVal) >= 0) ? Number(x.freeVal) : null;
         const fb = fv != null && (x.freeBelowLod === true || x.freeBelowLod === 1) ? 1 : 0;
         const fl = fb && x.freeLod != null && Number.isFinite(Number(x.freeLod)) ? Number(x.freeLod) : null;
-        insPsa.run(p.id, x.date, x.val, i === 0 ? 1 : 0, psaOwner,
+        insPsa.run(p.id, x.date, x.val, i === initialPsaIdx ? 1 : 0, psaOwner,
                x.belowLod ? 1 : 0, x.belowLod && x.lod != null ? x.lod : null,
                fv, fb, fb ? fl : null);
       });
@@ -6930,13 +6943,18 @@ app.post('/api/backup/import', auth(true), (req, res) => {
 
       /* v9 结构化记录：eventId 用旧→新映射；映射不到时置 null，避免指向别人的事件。 */
       const eventOf = x => (x.eventId != null && eventIdMap.get(String(x.eventId))) || null;
-      let primaryPathSeen = 0;
+      /* 主要标记按标本类型组各留一份：活检与 RP/TURP 各自最多一份 primary。
+         旧实现全局只认第一份，备份里「primary 活检 + primary RP」导入后
+         RP 的主要标记会丢，术后复发风险与 pTNM 来源随之失效。 */
+      const primaryPathSeen = new Set();
       (p.pathologyReports || []).forEach(x => {
         const d = normDate(x.reportDate);
         if (!d) return;
         const specimenType = PATH_SPECIMEN_TYPES.includes(String(x.specimenType)) ? String(x.specimenType) : 'unknown';
-        const isPrimary = x.isPrimary && !primaryPathSeen ? 1 : 0;
-        if (isPrimary) primaryPathSeen = 1;
+        const primaryGroup = specimenType === 'biopsy' ? 'biopsy'
+          : (specimenType === 'RP' || specimenType === 'TURP') ? 'resection' : specimenType;
+        const isPrimary = x.isPrimary && !primaryPathSeen.has(primaryGroup) ? 1 : 0;
+        if (isPrimary) primaryPathSeen.add(primaryGroup);
         dbInsertRow('pathology_reports', {
           patient_id: p.id, event_id: eventOf(x), specimen_type: specimenType, report_date: d,
           cores_total: intOrNull(x.coresTotal), cores_positive: intOrNull(x.coresPositive),

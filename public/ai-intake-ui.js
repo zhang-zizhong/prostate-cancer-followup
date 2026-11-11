@@ -1225,6 +1225,4 @@
     decide, mergeDup, keepDup, allAdopt, allNone, edit, editTri, adopt, reject,
     open, resume, del, viewImg, loadHistory, _state: ai
   };
-  /* renderEdit() 通过全局函数名调用 */
-  window.renderAiRegistration = renderAiPane;
 })();

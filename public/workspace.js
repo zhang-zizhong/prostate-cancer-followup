@@ -10,14 +10,12 @@
  * 目标：把“表单堆”换成“先看结论、再看记录、按需登记”。
  * 依赖 index.html 里的全局：patients/selectedId/api/toast/renderEdit/
  * ClinicalCore/RecordCore/makeChart/openSummary 等。
- * 新版工作台直接编辑；旧版代码保留为兼容层，但不再从数据操作跳转。
+ * 本工作台是唯一患者编辑界面；旧版表单工作台已整体删除。
  * ========================================================= */
 (function () {
   'use strict';
 
-  const LS_KEY = 'pca.workspace2';
   const S = {
-    enabled: true,
     tab: 'overview',
     episodeId: null,
     scenario: '',
@@ -37,36 +35,6 @@
   const fmt = v => (v == null || v === '') ? '—' : String(v);
   const pct = v => (v == null || !Number.isFinite(Number(v))) ? '—' : Number(v).toFixed(1) + '%';
   const wsl = (kind, v) => (window.WsLabels ? WsLabels.label(kind, v) : v) || '';
-
-  function isEnabled() {
-    try {
-      /* 合并后默认强制新版；旧版只保留 ?legacy=1 作为开发/应急入口，
-         不再让浏览器里遗留的 pca.workspace2=0 把用户永久留在旧工作台。 */
-      if (new URLSearchParams(location.search).get('legacy') === '1') return false;
-      return true;
-    } catch (e) { return true; }
-  }
-  function enable() {
-    try { localStorage.setItem(LS_KEY, '1'); } catch (e) {}
-    renderEdit();
-  }
-  function clearTitleTone() {
-    const t = $('edit-title');
-    if (!t) return;
-    ['red', 'yellow', 'green', 'gray', 'pending'].forEach(x => t.classList.remove('tone-' + x));
-    delete t.dataset.tone;
-  }
-  function disable() {
-    try { localStorage.setItem(LS_KEY, '0'); } catch (e) {}
-    clearTitleTone();
-    renderEdit();
-  }
-  function legacy(tab) {
-    try { localStorage.setItem(LS_KEY, '0'); } catch (e) {}
-    clearTitleTone();
-    renderEdit();
-    if (tab && typeof switchEditTab === 'function') setTimeout(() => switchEditTab(tab), 30);
-  }
 
   function getPatient(id) {
     return (typeof patients !== 'undefined' ? patients : []).find(x => x.id === id) || null;
@@ -436,7 +404,49 @@
         '<div class="ws2-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="button" onclick="Workspace.openTreatmentGuide()">查看当前场景的指南选项 →</button></div></section>' +
         '<section class="ws2-card"><div class="ws2-card-h">患者资料打印</div>' +
         '<p class="ws2-muted">打印该患者的全部随访信息：基本信息、诊断与风险、治疗线/用药、就诊、PSA/睾酮/化验、病理/影像/放疗、结局、AE、合并症、科研数据。</p>' +
-        '<div class="ws2-actions"><button class="btn btn-primary btn-sm" type="button" onclick="Workspace.printPatient()">打印患者全部随访信息</button></div></section>';
+        '<div class="ws2-actions"><button class="btn btn-primary btn-sm" type="button" onclick="Workspace.printPatient()">打印患者全部随访信息</button></div></section>' +
+      (typeof renderCscoPanel === 'function' ? renderCscoPanel(p, (typeof cscoAssessment === 'function' ? cscoAssessment(p) : a)) : '');
+  }
+
+  /* 患者级资料/报告：不属于某个病程事件的出院小结/报告图片。
+     旧版表单工作台删除后，这里是唯一上传入口。 */
+  function renderReportsCard(p) {
+    const rows = arr(p.reports);
+    return '<section class="ws2-card"><div class="ws2-card-h">资料 / 报告 <span>' + rows.length + ' 份 · 患者级文件</span></div>' +
+      '<p class="ws2-muted">存放不属于某个具体病程事件的报告/出院小结图片；事件相关照片请在病程事件里上传。</p>' +
+      (rows.length ? '<div class="ws2-table-wrap"><table class="ws2-table"><thead><tr><th>上传日期</th><th>文件</th><th></th></tr></thead><tbody>' +
+        rows.map(x => '<tr><td>' + esc(x.date || '—') + '</td><td>' + esc(x.name || '未命名') + '</td><td>' +
+          '<button class="ws2-link" type="button" onclick="openReport(\'' + esc(x.url) + '\')">查看</button> ' +
+          '<button class="ws2-link" type="button" onclick="Workspace.deleteReport(' + x.id + ')">删除</button></td></tr>').join('') +
+        '</tbody></table></div>' : '<div class="ws2-empty">暂无患者级资料。</div>') +
+      '<div class="ws2-actions" style="align-items:center;gap:8px;flex-wrap:wrap">' +
+        '<input id="ws-report-files" type="file" accept="image/*" multiple style="font-size:12px">' +
+        '<button class="btn btn-primary btn-sm" type="button" onclick="Workspace.uploadReports(this)">＋ 上传资料</button></div></section>';
+  }
+  async function uploadReports(btn) {
+    const p = getPatient(selectedId);
+    if (!p) return;
+    const el = $('ws-report-files');
+    const files = Array.from((el && el.files) || []);
+    if (!files.length) return toast('⚠ 请选择图片');
+    const fd = new FormData();
+    files.forEach(f => fd.append('reports', f));
+    if (typeof setBusyButton === 'function') setBusyButton(btn, true, '上传中…');
+    try {
+      await api('/api/patients/' + p.id + '/reports', { method: 'POST', body: fd });
+      await refresh(p);
+      toast('✅ 资料已上传');
+    } catch (e) { toast('⚠ ' + e.message); }
+    finally { if (typeof setBusyButton === 'function') setBusyButton(btn, false); }
+  }
+  async function deleteReport(id) {
+    if (!confirm('删除这份患者级资料？')) return;
+    const p = getPatient(selectedId);
+    try {
+      await api('/api/reports/' + id, { method: 'DELETE' });
+      if (p) await refresh(p);
+      toast('已删除资料');
+    } catch (e) { toast('⚠ ' + e.message); }
   }
 
   function followupPlanHtml(p, a) {
@@ -755,7 +765,8 @@
       '</section></div>' +
       '<section class="ws2-card"><div class="ws2-card-h">基因组 <span>' + arr(p.genomicTests).length + '</span></div>' +
         (arr(p.genomicTests).length ? arr(p.genomicTests).map(x => '<div class="ws2-line"><b>' + esc(x.testType === 'germline' ? '胚系' : '体系') + '</b> ' + esc(x.testDate) + ' · ' + esc(x.genes || '—') + ' · HRR ' + esc(x.hrrStatus ? wsl('hrr', x.hrrStatus) : '未评估') + ' · MSI ' + esc(x.msiStatus ? wsl('msi', x.msiStatus) : '未评估') + ' · TMB ' + fmt(x.tmbValue) + ' <button class="ws2-link" type="button" onclick="Workspace.openGenomicEditor(' + x.id + ')">编辑</button></div>').join('') : '<div class="ws2-empty">暂无基因组检测。</div>') + '<div class="ws2-actions"><button class="ws2-link" type="button" onclick="Workspace.openGenomicEditor()">＋ 新增基因检测</button></div>' +
-        '<div class="ws2-actions"><button class="ws2-link" type="button" onclick="Workspace.openProfileEditor()">编辑患者档案 →</button></div></section>';
+        '<div class="ws2-actions"><button class="ws2-link" type="button" onclick="Workspace.openProfileEditor()">编辑患者档案 →</button></div></section>' +
+      renderReportsCard(p);
   }
 
   function renderRecords(p, w) {
@@ -768,7 +779,8 @@
       '<section class="ws2-card"><div class="ws2-card-h">原始事件 <span>最近 ' + events.length + ' 条</span></div>' +
         (events.length ? '<div class="ws2-table-wrap ws2-maxh"><table class="ws2-table"><thead><tr><th>日期</th><th>类型</th><th>备注</th><th></th></tr></thead><tbody>' +
           events.map(e => '<tr><td>' + esc(e.date) + '</td><td>' + esc(e.type) + '</td><td class="ws2-sum">' + esc((e.notes || (e.details ? '结构化记录' : '')) + '').slice(0, 120) + '</td><td><button class="ws2-link" type="button" onclick="Workspace.openEventEditor(' + e.id + ')">编辑</button></td></tr>').join('') + '</tbody></table></div>' : '<div class="ws2-empty">暂无事件。</div>') +
-      '</section>';
+      '</section>' +
+      (typeof guidedDiaryHtml === 'function' ? guidedDiaryHtml(p) : '');
   }
 
   function renderContent(p, a, w) {
@@ -1227,7 +1239,7 @@
       const list = { pathology: 'pathologyReports', imaging: 'imagingStudies', radiation: 'radiationRecords', outcome: 'outcomes' }[curKind];
       const rec = list ? arr(p[list]).find(x => Number(x.eventId) === Number(cur.id)) : null;
       const body = '<div class="ws2-empty">这是一条结构化记录（' + esc(cur.type) + '），不能在这里只改父事件，否则会和病理/影像/结局子表不一致。</div>' +
-        '<div class="ws2-actions">' + (rec ? '<button class="btn btn-primary btn-sm" type="button" onclick="Workspace.closeModal();Workspace.openStructuredEditor(\'' + curKind + '\',' + rec.id + ')' + ')">打开结构化编辑 →</button>' : '<div class="ws2-empty">找不到对应子记录，请联系管理员。</div>') + '</div>';
+        '<div class="ws2-actions">' + (rec ? '<button class="btn btn-primary btn-sm" type="button" onclick="Workspace.closeModal();Workspace.openStructuredEditor(\'' + curKind + '\',' + rec.id + ')">打开结构化编辑 →</button>' : '<div class="ws2-empty">找不到对应子记录，请联系管理员。</div>') + '</div>';
       modal('结构化事件不能直接编辑', body, null);
       return;
     }
@@ -1290,15 +1302,25 @@
     }, '保存样本');
   }
 
+  /* 枚举下拉：选项来自 RecordCore 规范词表（与服务端校验同源）。
+     历史数据若含词表外的旧值，原样保留为一个可选项，避免一编辑就把旧值清掉。 */
+  function enumSelect(id, list, cur) {
+    const v = cur == null ? '' : String(cur);
+    const known = list.some(x => String(x.v) === v);
+    const extra = (v !== '' && !known) ? '<option value="' + esc(v) + '" selected>' + esc(v) + '（旧值）</option>' : '';
+    return '<select id="' + id + '">' + extra + list.map(x =>
+      '<option value="' + esc(x.v) + '"' + (String(x.v) === v ? ' selected' : '') + '>' + esc(x.l) + '</option>').join('') + '</select>';
+  }
+
   function openIhcEditor(id) {
     const p = getPatient(selectedId); if (!p) return;
     const cur = (p.ihcResults || []).find(x => Number(x.id) === Number(id)) || {};
     const markers = ['PTEN','ERG','AR','PSMA','KI67','SYN','CGA','CD56','P53','RB1','MSH2','MSH6','PMS2','MLH1','PDL1'];
     const body = '<div class="ws2-form-grid">' +
       '<div class="ws2-form-row"><label>标志物</label><select id="wih-marker">' + markers.map(x => '<option value="' + x + '"' + (cur.marker === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div>' +
-      '<div class="ws2-form-row"><label>结果</label><input id="wih-result" value="' + esc(cur.result || '') + '"></div>' +
+      '<div class="ws2-form-row"><label>结果</label>' + enumSelect('wih-result', RecordCore.IHC_RESULTS, cur.result) + '</div>' +
       '<div class="ws2-form-row"><label>阳性%</label><input id="wih-pct" type="number" min="0" max="100" value="' + (cur.percent == null ? '' : esc(cur.percent)) + '"></div>' +
-      '<div class="ws2-form-row"><label>强度</label><input id="wih-intensity" value="' + esc(cur.intensity || '') + '"></div>' +
+      '<div class="ws2-form-row"><label>强度</label>' + enumSelect('wih-intensity', RecordCore.IHC_INTENSITY, cur.intensity) + '</div>' +
       '<div class="ws2-form-row"><label>日期</label><input id="wih-date" type="date" value="' + esc(cur.testDate || '') + '"></div>' +
       '<div class="ws2-form-row"><label>实验室</label><input id="wih-lab" value="' + esc(cur.lab || '') + '"></div>' +
       '</div>' + (cur.id ? '<button type="button" class="btn btn-danger btn-sm" onclick="Workspace.deleteRecord(\'ihc\',' + cur.id + ')">删除这条 IHC</button>' : '');
@@ -1319,8 +1341,8 @@
       '<div class="ws2-form-row"><label>类型</label><select id="wge-type"><option value="germline"' + (cur.testType === 'germline' ? ' selected' : '') + '>胚系</option><option value="somatic"' + (cur.testType === 'somatic' ? ' selected' : '') + '>体系</option></select></div>' +
       '<div class="ws2-form-row"><label>日期</label><input id="wge-date" type="date" value="' + esc(cur.testDate || today()) + '"></div>' +
       '<div class="ws2-form-row" style="grid-column:1/-1"><label>基因</label><input id="wge-genes" value="' + esc(cur.genes || '') + '" placeholder="BRCA2/ATM/HRR panel"></div>' +
-      '<div class="ws2-form-row"><label>HRR</label><input id="wge-hrr" value="' + esc(cur.hrrStatus || '') + '"></div>' +
-      '<div class="ws2-form-row"><label>MSI</label><input id="wge-msi" value="' + esc(cur.msiStatus || '') + '"></div>' +
+      '<div class="ws2-form-row"><label>HRR</label>' + enumSelect('wge-hrr', RecordCore.HRR_STATUS, cur.hrrStatus) + '</div>' +
+      '<div class="ws2-form-row"><label>MSI</label>' + enumSelect('wge-msi', RecordCore.MSI_STATUS, cur.msiStatus) + '</div>' +
       '<div class="ws2-form-row"><label>TMB</label><input id="wge-tmb" type="number" step="0.1" value="' + (cur.tmbValue == null ? '' : esc(cur.tmbValue)) + '"></div>' +
       '<div class="ws2-form-row"><label>实验室</label><input id="wge-lab" value="' + esc(cur.lab || '') + '"></div>' +
       '<div class="ws2-form-row" style="grid-column:1/-1"><label>结果摘要</label><input id="wge-summary" value="' + esc(cur.resultSummary || '') + '"></div>' +
@@ -1464,7 +1486,7 @@
         '<select id="' + pre + '-sn">' + tlOpts(TL_N, st.n) + '</select>' +
         '<select id="' + pre + '-sm">' + tlOpts(TL_M, st.m) + '</select></div></div>';
     } else if (typeof structuredKindOfType === 'function' && structuredKindOfType(type) && typeof structuredFormFields === 'function') {
-      fields = structuredFormFields(pre, type, it.data || {});
+      fields = '<div class="ws2-structured-form">' + structuredFormFields(pre, type, it.data || {}) + '</div>';
     }
     const body = '<div class="ws2-visit-editor">' +
       '<input type="hidden" id="tl-' + pre + '-date" value="' + esc(date) + '">' +
@@ -2266,7 +2288,8 @@
   }
 
   window.Workspace = {
-    isEnabled, enable, disable, legacy, render, tab, openTreatmentGuide, episode, openEpisodeRecord, setScenario,
+    render, tab, openTreatmentGuide, episode, openEpisodeRecord, setScenario,
+    uploadReports, deleteReport,
     openVisit, openVisitDetail, openVisitDetailById, openVisitEditById, attach, openAE, openAEById,
     openVisitItemPicker, openVisitItemEditor, editVisitItem, removeVisitItem, closeSubModal,
     openProfileEditor, openPsaEditor, openTestoEditor, openLabEditor, openClinicalEditor,

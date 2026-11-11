@@ -328,7 +328,10 @@
     return arr.find(x => !!x.isCurrent) || arr.slice().sort(byDateDesc)[0] || null;
   }
   function activeTreatmentLine(p, today) {
-    const d = today || new Date().toISOString().slice(0, 10);
+    const d = today || (function () {
+      const x = new Date();
+      return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    })();
     const arr = ((p && p.treatmentLines) || []).slice().sort((a, b) =>
       (a.lineNo || 0) - (b.lineNo || 0) || String(a.startDate || '').localeCompare(String(b.startDate || '')));
     const active = arr.filter(x => x.startDate <= d && (!x.endDate || x.endDate >= d));

@@ -145,8 +145,12 @@
     const list = ((p && p.psa) || []).filter(x => num(x && x.val) != null).slice().sort(byDate);
     return list.find(x => x && (x.isInitial || x.is_initial)) || list[0] || null;
   }
+  function localToday() {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
   function lastContact(p, today) {
-    const cap = today || new Date().toISOString().slice(0, 10);
+    const cap = today || localToday();
     const dates = [];
     if (p && p.lastFollowupDate) dates.push(p.lastFollowupDate);
     ((p && p.psa) || []).forEach(x => dates.push(x.date));
@@ -159,7 +163,7 @@
   }
   function followupMonths(p, today) {
     if (!p || !p.date || !C.monthsBetween) return null;
-    const cap = today || new Date().toISOString().slice(0, 10);
+    const cap = today || localToday();
     const death = ((p.outcomes || []).find(x => x && x.outcomeType === 'death') || {}).eventDate;
     const lost = ((p.outcomes || []).find(x => x && x.outcomeType === 'lost') || {});
     const end = death || lost.lastContactDate || lost.eventDate || lastContact(p, cap);
@@ -172,7 +176,9 @@
     const s = String(text || '');
     if (!s) return false;
     if (/去势/.test(s) && !/根治|RP|前列腺切除/i.test(s)) return false;
-    return /前列腺癌根治术|根治性前列腺切除术|根治性手术|根治术|前列腺切除|\bRP\b|TURP|手术/i.test(s);
+    /* 与 clinical-core.isSurgeryText 同口径：TURP/电切不是根治术 */
+    if (/TURP|电切/i.test(s) && !/根治/i.test(s)) return false;
+    return /前列腺癌根治术|根治性前列腺切除术|根治性手术|根治术|前列腺切除|\bRP\b|手术/i.test(s);
   }
   function classifyTreatment(text) {
     const s = String(text || '').trim();
@@ -477,7 +483,7 @@
 
   function buildOverview(patients, opts) {
     const list = patients || [];
-    const today = (opts && opts.today) || new Date().toISOString().slice(0, 10);
+    const today = (opts && opts.today) || localToday();
     const cache = new Map();
     const aOf = p => {
       if (cache.has(p.id)) return cache.get(p.id);

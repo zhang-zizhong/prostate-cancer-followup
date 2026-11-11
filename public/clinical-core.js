@@ -28,6 +28,12 @@
   const DEEP_CASTRATE_NGDL = 20;
 
   /* ---------- 日期与展示 ---------- */
+  /* 默认“今天”用本地日历日：toISOString() 是 UTC，东八区凌晨 0–8 点
+     会得到昨天，随访到期/去势时效判断会整体错一天。 */
+  function localToday() {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
   function addMonths(iso, n) {
     const d = new Date(iso + 'T00:00:00Z');
     if (isNaN(d.getTime())) return null;
@@ -226,7 +232,7 @@
   /* 当前生效治疗线：优先取今天仍在用、开始日期最晚的一条；
      没有生效线时退回最近一条历史线，便于查看停药后的 PSA 序列。 */
   function activeTreatmentLine(p, today) {
-    const todayIso = today || new Date().toISOString().slice(0, 10);
+    const todayIso = today || localToday();
     const lines = (p && p.treatmentLines ? p.treatmentLines.slice() : [])
       .sort((a, b) => String(b.startDate).localeCompare(String(a.startDate)) || (b.lineNo || 0) - (a.lineNo || 0));
     const active = lines.filter(l => l.startDate && l.startDate <= todayIso && (!l.endDate || l.endDate >= todayIso));
@@ -239,7 +245,11 @@
     const s = String(text || '');
     if (!s) return false;
     if (/去势/.test(s) && !/根治|RP|前列腺切除/i.test(s)) return false;
-    return /前列腺癌根治术|根治性前列腺切除术|根治性手术|根治术|前列腺切除|\bRP\b|TURP|手术/i.test(s);
+    /* TURP/电切是姑息性经尿道切除，不是根治术：
+       术后 6–12 周 PSA 窗口与 BCR 判定只适用于根治性切除，
+       把 TURP 当根治术会造出错误的 persistence/复发结论。 */
+    if (/TURP|电切/i.test(s) && !/根治/i.test(s)) return false;
+    return /前列腺癌根治术|根治性前列腺切除术|根治性手术|根治术|前列腺切除|\bRP\b|手术/i.test(s);
   }
   function surgeryContext(p) {
     const events = (p && p.events ? p.events : []).slice()
@@ -280,7 +290,7 @@
     if (t.includes('观察')) return { kind: 'ww', since: null };
     /* P1-01：只录“用药”没录治疗线时，ADT/ARPI 仍然是一个治疗情境，
        否则疾病状态和随访计划都会退回“待评估”。 */
-    const todayIso = today || new Date().toISOString().slice(0, 10);
+    const todayIso = today || localToday();
     const meds = (p.medications || [])
       .filter(m => m && ['adt', 'arpi', 'endocrine'].includes(m.category) &&
         m.startDate && m.startDate <= todayIso && (!m.endDate || m.endDate >= todayIso))
@@ -684,11 +694,12 @@
       const d1 = daysBetween(a.date, b.date), d2 = daysBetween(b.date, c.date);
       if (d1 != null && d2 != null && d1 >= 7 && d2 >= 7 &&
           Number(b.val) > Number(a.val) && Number(c.val) > Number(b.val) &&
-          Number(a.val) > 0 && Number(c.val) > Number(a.val) * 1.5) {
-        return { state: 'confirmed', confirmed: true, detail: a.date + '→' + c.date + ' 间隔≥1 周连续 2 次上升且较基础值升高>50%（p154）' };
+          Number(a.val) > 0 && Number(c.val) > Number(a.val) * 1.5 &&
+          Number(c.val) >= 2) {
+        return { state: 'confirmed', confirmed: true, detail: a.date + '→' + c.date + ' 间隔≥1 周连续 2 次上升、较基础值升高>50% 且 PSA≥2 ng/ml（p154；PCWG3 绝对值门槛）' };
       }
     }
-    return { state: 'none', confirmed: false, detail: '去势状态下 PSA 未达进展标准' };
+    return { state: 'none', confirmed: false, detail: '去势状态下 PSA 未达进展标准（需连续 2 次间隔≥1 周上升、较基础值升高>50% 且 PSA≥2 ng/ml）' };
   }
 
   /* ---------- mCRPC PSA 进展（附录 11.3） ---------- */
@@ -1162,7 +1173,7 @@
 
   /* ---------- 总评估 ---------- */
   function assess(p, today) {
-    const todayIso = today || new Date().toISOString().slice(0, 10);
+    const todayIso = today || localToday();
     const ctxSeq = postSeq(p, todayIso);
     const ctx = ctxSeq.ctx, seq = ctxSeq.seq;
     const allPsa = (p.psa || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.id || 0) - (b.id || 0));
@@ -1177,8 +1188,14 @@
     const bcrEvent = hasEvent(p, '生化复发确认');
     const bcrConfirmed = bcr.state === 'recurrence' || bcr.state === 'persistent' || bcrEvent;
     const cure = surgeryCtx ? clinicalCure(p, surgeryCtx, allPsa) : null;
-    const crpc = needsCastration(p) ? nmCrpc(p, seq, castration) : null;
-    const mprog = isM1(p) ? mCrpcProgress(p, seq, castration) : null;
+    /* CRPC 判定用哪个 PSA 序列：
+       有睾酮记录（去势状态可算）时用全序列——去势抵抗的进展常发生在
+       上一线治疗期间，若锚定在最新治疗线开始日，换线前的连续上升会被
+       整段排除，自动判定永远出不来；无睾酮记录时仍按治疗情境序列，
+       避免把 ADT 前的基线 PSA 误当去势期进展。 */
+    const crpcSeq = (castration && castration.source === 'testosterone') ? allPsa : seq;
+    const crpc = needsCastration(p) ? nmCrpc(p, crpcSeq, castration) : null;
+    const mprog = isM1(p) ? mCrpcProgress(p, crpcSeq, castration) : null;
     const metricSeq = surgeryCtx ? bcrSeq : seq;
     const psadt = psadtMonths(metricSeq);
     const psav = psavPerYear(metricSeq);

@@ -100,6 +100,18 @@ test('科研导出：ZIP 是可解压的标准包', () => {
   }
 });
 
+test('科研导出：age_at_diag 是诊断时年龄，不是当前年龄', () => {
+  const p = Object.assign({}, patient, { age: 71 });   /* 展示年龄 71，诊断时 70 */
+  const bundle = E.buildBundle([p], {});
+  const csv = bundle.files.find(f => f.name === 'patients.csv').content;
+  const lines = csv.replace(/^/, '').split(/\r?\n/);
+  const header = lines[0].split(',');
+  const row = lines[1].split(',');
+  const idx = header.indexOf('age_at_diag');
+  assert.ok(idx >= 0, 'age_at_diag 列存在');
+  assert.equal(row[idx], '70', '1955-01-01 出生、2025-01-01 诊断 → 70 岁');
+});
+
 test('科研导出：患者级高瘤负荷字段可重建', () => {
   const p = Object.assign({}, patient, {
     metCount: 5, metExtraPelvis: true, visceralMet: true, oligoType: 'widespread'

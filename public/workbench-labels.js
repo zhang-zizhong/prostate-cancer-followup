@@ -23,6 +23,8 @@
     },
     response: {
       CR: '完全缓解', PR: '部分缓解', SD: '稳定', PD: '进展', NE: '不可评估', NA: '未评估', PSA50: 'PSA 下降≥50%', PSA30: 'PSA 下降≥30%',
+      PSA_PROGRESSION: 'PSA 进展', UNDETECTABLE: '不可测', STABLE: '稳定',
+      improved: '好转', worsened: '加重',
       ongoing: '治疗中', path: '术后病理', none: '未评估'
     },
     complication: {
@@ -36,22 +38,25 @@
     lnDissection: { none: '未清扫', standard: '标准清扫', extended: '扩大清扫' },
     specimenType: {
       biopsy: '穿刺活检', RP: '根治性前列腺切除标本', TURP: 'TURP 标本',
-      metastasis: '转移灶活检', other: '其他'
+      metastasis: '转移灶活检', review: '病理会诊/复核', unknown: '未注明', other: '其他'
     },
-    marginStatus: { negative: '阴性', positive: '阳性', unknown: '未评估' },
+    marginStatus: { negative: '阴性', positive: '阳性', close: '近切缘', unknown: '未评估' },
     histologyType: {
-      acinar: '腺泡腺癌', ductal: '导管腺癌', neuroendocrine: '神经内分泌癌',
+      acinar: '腺泡腺癌', ductal: '导管腺癌', idc_p: '导管内癌 IDC-P', neuroendocrine: '神经内分泌癌',
+      adenosquamous: '腺鳞癌', mucinous: '黏液腺癌', signet: '印戒细胞癌',
       mixed: '混合型', other: '其他'
     },
     rtType: { EBRT: '外照射 EBRT', SBRT: 'SBRT', brachy: '近距离放疗', other: '其他' },
     rtTarget: { prostate: '前列腺', pelvis: '盆腔', prostate_pelvis: '前列腺+盆腔', metastasis: '转移灶', other: '其他' },
     imagingModality: {
       MRI: 'MRI', mpMRI: '多参数 MRI', CT: 'CT', PSMA: 'PSMA PET/CT',
+      PSMA_PET: 'PSMA PET-CT', PSMA_PET_MRI: 'PSMA PET-MRI', choline_pet: '胆碱 PET-CT',
       bone_scan: '骨扫描', PET: 'PET/CT', other: '其他'
     },
     comparison: {
-      improved: '好转', stable: '稳定', progressed: '进展', new_lesion: '新发',
-      mixed: '混合', unknown: '未比较', none: '未比较'
+      improved: '好转', stable: '稳定', progress: '进展', progressed: '进展',
+      new: '新发', new_lesion: '新发', mixed: '混合反应',
+      na: '无可比旧片', unknown: '未比较', none: '未比较'
     },
     outcomeType: {
       BCR: '生化复发', CRPC: '去势抵抗', metastasis: '转移', SRE: '骨相关事件',
@@ -67,7 +72,7 @@
       parpi: 'PARP/靶向', nuc: '核素/免疫', bone: '骨保护', support: '支持治疗', other: '其他'
     },
     comorbidityStatus: { unknown: '未评估', active: '活动/现患', history: '既往', negative: '明确无' },
-    clinicalStatus: { '': '未评估', completed: '已完成', abnormal: '异常', normal: '正常', not_done: '未做', pending: '待复查' },
+    clinicalStatus: { '': '未评估', '未做': '未做', '已完成': '已完成', '异常': '异常', completed: '已完成', abnormal: '异常', normal: '正常', not_done: '未做', pending: '待复查' },
     counselingStatus: { '': '未记录', offered: '已建议', completed: '已完成', declined: '拒绝', unknown: '未知' },
     clinicalCategory: {
       bone: '骨健康', cardio: '心血管代谢', qol: '生活质量', monitor: '药物监测',
@@ -77,7 +82,8 @@
       unknown: '未记录', recovering: '恢复中', recovered: '已恢复', not_recovered: '未恢复'
     },
     diseaseStateStatus: {
-      confirmed: '医生确认', suspected: '疑似', ruled_out: '已排除', historical: '历史'
+      confirmed: '医生确认', suggested: '系统建议', rejected: '已排除',
+      suspected: '疑似', ruled_out: '已排除', historical: '历史'
     },
     setting: {
       '新辅助': '新辅助', '辅助': '辅助', '挽救': '挽救', 'mHSPC': 'mHSPC',

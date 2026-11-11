@@ -212,11 +212,13 @@ test('睾酮 80 时不能诊断 nmCRPC，并提示未达去势', () => {
 });
 
 test('去势水平下 PSA 连续上升可诊断 nmCRPC，状态为去势抵抗', () => {
+  /* 2026-11-11：判定增加 PSA≥2 ng/ml 绝对值门槛（PCWG3），
+     用例数值同步抬高，测试意图（去势+连续上升→确诊）不变。 */
   const p = patient({
     treatment: '内分泌治疗',
     adtStartDate: '2025-01-01',
     testo: [rec('2025-06-01', 30)],
-    psa: [rec('2025-02-01', 0.2), rec('2025-03-01', 0.4), rec('2025-04-01', 0.8)]
+    psa: [rec('2025-02-01', 1.0), rec('2025-03-01', 1.6), rec('2025-04-01', 2.4)]
   });
   const a = C.assess(p, '2025-07-01');
   assert.equal(a.castration.status, 'castrate');
@@ -607,4 +609,53 @@ test('P0-03 追加：错过 6–12 周窗口但后续长期不可测，不再永
   assert.equal(a.disease.code, 'stable');
   assert.equal(a.warning.color, 'yellow');
   assert.equal(a.plan.intervals.some(x => x.item === '术后 6–12 周 PSA'), false);
+});
+
+/* ---------- 2026-11-11 临床穿行测试回归 ---------- */
+test('nmCRPC 需 PSA≥2 ng/ml 绝对值门槛，低值连续上升不确诊', () => {
+  const p = patient({
+    treatment: '内分泌治疗', adtStartDate: '2025-01-01',
+    testo: [rec('2025-06-01', 30)],
+    psa: [rec('2025-02-01', 0.2), rec('2025-03-01', 0.4), rec('2025-04-01', 0.8)]
+  });
+  const a = C.assess(p, '2025-07-01');
+  assert.equal(a.castration.status, 'castrate');
+  assert.notEqual(a.crpc.state, 'confirmed', 'PSA 0.8 未达绝对值门槛，不能确诊 nmCRPC');
+});
+
+test('nmCRPC 达 PSA≥2 且连续上升可确诊', () => {
+  const p = patient({
+    treatment: '内分泌治疗', adtStartDate: '2025-01-01',
+    testo: [rec('2025-06-01', 30)],
+    psa: [rec('2025-02-01', 1.0), rec('2025-03-01', 1.6), rec('2025-04-01', 2.4)]
+  });
+  const a = C.assess(p, '2025-07-01');
+  assert.equal(a.crpc.state, 'confirmed');
+});
+
+test('TURP/电切不被当作根治术，不套用术后 BCR 窗口', () => {
+  assert.equal(C.isSurgeryText('前列腺电切术(TURP)'), false);
+  assert.equal(C.isSurgeryText('TURP'), false);
+  assert.equal(C.isSurgeryText('根治性前列腺切除术(RP)'), true);
+  const p = patient({
+    treatment: '前列腺电切术(TURP)', gleason: '3+3=6',
+    events: [{ id: 1, date: '2025-01-10', type: '前列腺电切术(TURP)' }],
+    psa: [rec('2025-03-01', 0.2)]
+  });
+  assert.equal(C.surgeryContext(p), null, 'TURP 不应产生根治术情境');
+});
+
+test('换线后去势抵抗自动判定不被新治疗线锚点掩盖', () => {
+  const p = patient({
+    stage: 'cT2aN0M0', gleason: '4+4=8', treatment: '',
+    testo: [rec('2026-08-15', 20)],
+    psa: [rec('2026-06-01', 1.0), rec('2026-07-01', 1.4), rec('2026-08-01', 2.0), rec('2026-09-15', 2.2)],
+    treatmentLines: [
+      { lineNo: 1, setting: '其他', regimen: 'ADT（戈舍瑞林）', startDate: '2024-07-01', endDate: '2026-08-31' },
+      { lineNo: 2, setting: 'nmCRPC', regimen: 'ADT+阿比特龙', startDate: '2026-09-01' }
+    ]
+  });
+  const a = C.assess(p, '2026-11-11');
+  assert.equal(a.crpc.state, 'confirmed', '换线前的连续上升应参与判定');
+  assert.equal(a.disease.code, 'crpc');
 });
