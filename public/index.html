@@ -766,8 +766,9 @@ main{padding:22px 28px}
 .med-tl-frame{display:flex;border:1px solid #d9e6e2;border-radius:7px;overflow:hidden;background:#fff;min-height:80px}
 .med-tl-labels{flex:0 0 150px;min-width:0;border-right:1px solid #dce8e4;background:#f7faf9;z-index:2}
 .med-tl-label-head{height:38px;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:700;color:#78908a;letter-spacing:.05em;border-bottom:1px solid #e0ebe7;background:#f1f6f4}
-.med-tl-label-row{height:var(--med-row-h,69px);display:flex;flex-direction:column;justify-content:center;padding:0 10px;border-bottom:1px solid #edf3f1;min-width:0}
+.med-tl-label-row{height:var(--med-row-h,58px);display:grid;grid-template-columns:8px 1fr;grid-template-rows:auto auto;align-content:center;column-gap:7px;padding:0 10px;border-bottom:1px solid #edf3f1;min-width:0}
 .med-tl-label-row:last-child{border-bottom:0}
+.med-tl-label-dot{grid-row:1/3;align-self:center;width:8px;height:8px;border-radius:2px}
 .med-tl-label-row b{font-size:12.5px;color:#315b5b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;line-height:1.35}
 .med-tl-label-row small{font-size:9.5px;color:#879994;line-height:1.2;margin-top:1px}
 .med-tl-scroll{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#b9ccc6 transparent}
@@ -785,19 +786,23 @@ main{padding:22px 28px}
 .med-tl-tick:last-child span{left:-2px;transform:translateX(-100%)}
 .med-tl-body{position:relative}
 .med-tl-gridline{position:absolute;top:0;bottom:0;border-left:1px dashed #e5efec;pointer-events:none;z-index:0}
-.med-tl-cat-row{position:relative;height:var(--med-row-h,69px);border-bottom:1px solid #edf3f1;z-index:1}
+.med-tl-cat-row{position:relative;height:var(--med-row-h,58px);border-bottom:1px solid #edf3f1;z-index:1}
 .med-tl-cat-row:last-child{border-bottom:0}
 .med-tl-cat-row:hover{background:#f7fbfa}
-.med-tl-barline{position:relative;height:30px;margin-top:4px}
-.med-tl-seg{position:absolute;top:11px;height:8px;border-radius:4px;color:#fff;font-size:0;display:block;padding:0;white-space:nowrap;overflow:visible;box-shadow:0 1px 2px #173f4b14;cursor:default;z-index:2}
+.med-tl-barline{position:relative;height:22px;margin-top:3px}
+.med-tl-seg{position:absolute;top:7px;height:9px;border-radius:4px;color:#fff;font-size:0;display:block;padding:0;white-space:nowrap;overflow:visible;box-shadow:0 1px 2px #173f4b14;cursor:default;z-index:2}
+.med-tl-seg.has-note{cursor:pointer}
 .med-tl-seg.open{border-radius:4px 2px 2px 4px}
 .med-tl-seg.open:after{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;background:#ffffff55;border-radius:0 2px 2px 0}
 .med-tl-seg:hover{filter:brightness(1.06);box-shadow:0 2px 5px #173f4b24}
 .med-tl-seg .med-tl-seg-label{overflow:hidden;text-overflow:ellipsis;pointer-events:none;max-width:100%}
-.med-tl-details{position:relative;height:var(--med-detail-h,31px);padding:0 4px;overflow:hidden}
-.med-tl-detail{position:absolute;top:0;min-width:0;overflow:hidden;color:#6b7f7a;line-height:1.22}
-.med-tl-detail b{display:block;font-size:10.5px;color:#315b5b;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.med-tl-detail span{display:block;font-size:10.5px;color:#6b7f7a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+/* 说明区恒定一行：高度不再随段数增长，纵向不会因用药多而变长 */
+.med-tl-details{position:relative;height:30px;padding:0;overflow:hidden}
+.med-tl-detail{position:absolute;top:0;min-width:0;overflow:hidden;color:#6b7f7a;line-height:1.22;padding-right:6px;box-sizing:border-box}
+.med-tl-detail.has-note{cursor:pointer}
+.med-tl-detail.has-note:hover b{color:#00694B;text-decoration:underline}
+.med-tl-detail b{display:block;font-size:11px;color:#315b5b;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.med-tl-detail span{display:block;font-size:10px;color:#6b7f7a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;font-variant-numeric:tabular-nums}
 .med-tl-detail-chip{color:#6b7f7a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .med-tl-detail-chip b{color:#315b5b;font-weight:700}
 .med-tl-mobile-details{display:none}
@@ -840,7 +845,9 @@ main{padding:22px 28px}
   .med-tl-cat-row{height:44px}
   .med-tl-barline{height:38px;margin-top:3px}
   .med-tl-details{display:none}
+  /* 手机端明细：两列紧凑卡片，不再一条一行把页面拉得很长 */
   .med-tl-mobile-details{display:block;border-top:1px dashed #dce8e4;margin-top:8px;padding-top:2px}
+  .med-tl-mobile-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
   .med-tl-legend{font-size:9px;gap:5px}
   .med-item{grid-template-columns:4px minmax(0,1fr);align-items:start}
   .med-item-actions{grid-column:2;justify-content:flex-end;margin-top:3px}
@@ -1387,6 +1394,7 @@ main{padding:22px 28px}
 <link rel="stylesheet" href="/glass-theme.css">
 <link rel="stylesheet" href="/aurora-glass.css?v=20261030-password-eye">
 <link rel="stylesheet" href="/workspace.css?v=20261108-v23">
+<link rel="stylesheet" href="/construct.css?v=20261111-landing-v1">
 </head>
 <body>
 
@@ -1767,8 +1775,13 @@ async function api(p, opts = {}) {
   let r;
   try { r = await fetch(p, { ...opts, headers: h }); }
   catch (e) { throw new Error('无法连接服务器，请检查网络'); }
-  if (r.status === 401) { doLogout(); throw new Error('登录已过期，请重新登录'); }
+  if (r.status === 401 && p !== '/api/auth/login') { doLogout(); throw new Error('登录已过期，请重新登录'); }
   const d = await r.json().catch(() => ({}));
+  if (r.status === 401) {
+    const err = new Error(d.error || '用户名或密码错误');
+    err.status = 401; err.data = d;
+    throw err;
+  }
   if (!r.ok) {
     const err = new Error(d.error || '请求失败');
     err.status = r.status;
@@ -2458,10 +2471,13 @@ function stoppedDrugMonitors(p) {
     .map(m => ({ drug: m.drug, endDate: m.endDate, tpl: monitorTemplateFor(m.drug) }))
     .filter(x => x.tpl);
 }
-/* 监测勾选：clinical_records category=monitor，item 形如“阿比特龙·血压”。 */
+/* 监测勾选：clinical_records category=monitor，item 形如“阿比特龙·血压”。
+   同一天多次修改会追加多条同日期记录，而后端按 rec_date,id 升序返回；
+   只按日期倒序时同日比较为 0，稳定排序会保留原顺序取到当天最早那条，
+   导致改了状态却回显旧值。故日期相同时再按 id 倒序，取最新一条。 */
 function monitorCheckStatus(p, drug, item) {
   const rows = (p.clinicalRecords || []).filter(r => r.category === 'monitor' && r.item === drug + '·' + item)
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)) || (Number(b.id) - Number(a.id)));
   return rows[0] ? rows[0].status : '';
 }
 function interactionWarnings(p) {
@@ -2500,7 +2516,7 @@ function cscoAssessment(p) {
 function getRisk(p) { return cscoAssessment(p).warning.color; }
 
 /* 灰色沿用「随访状态分布」图中死亡既有的 #95a5a6，保持同一语义同一颜色。 */
-const riskColor = r => r === 'red' ? '#e74c3c' : r === 'yellow' ? '#f39c12' : r === 'gray' ? '#95a5a6' : r === 'pending' ? '#758b8f' : '#27ae60';
+const riskColor = r => r === 'red' ? '#A8443C' : r === 'yellow' ? '#8A6A12' : r === 'gray' ? '#5A5A5A' : r === 'pending' ? '#2A4E86' : '#00875A';
 /* 疾病状态（自动）的显示映射；旧 status 只作为历史值展示。 */
 const statusClassByCode = code => ({
   stable: 'st-stable', bcr: 'st-recurrence', persistent: 'st-persistent',
@@ -3407,7 +3423,7 @@ function makeTestoChart(arr) {
   const yOf = v => pad.t + (1 - v / maxV) * (h - pad.t - pad.b);
   const pts = arr.map((x, i) => ({ x: pad.l + i * xs, y: yOf(x.val), d: x.date, v: x.val }));
   const line = pts.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
-  const c = '#8e44ad';
+  const c = '#5A2D8C';
   let grid = '', labels = '', dots = '';
   for (let i = 0; i <= 3; i++) {
     const y = pad.t + i * (h - pad.t - pad.b) / 3;
@@ -3416,12 +3432,12 @@ function makeTestoChart(arr) {
   }
   const ry = yOf(CASTRATE_LINE);
   grid += '<line x1="' + pad.l + '" y1="' + ry.toFixed(1) + '" x2="' + (W - pad.r) + '" y2="' + ry.toFixed(1) +
-          '" stroke="#e67e22" stroke-width="1" stroke-dasharray="4,3"/>' +
-          '<text x="' + (W - pad.r) + '" y="' + (ry - 3).toFixed(1) + '" text-anchor="end" font-size="8.5" fill="#e67e22">去势水平 50ng/dl</text>';
+          '" stroke="#B58900" stroke-width="1" stroke-dasharray="4,3"/>' +
+          '<text x="' + (pad.l + 3) + '" y="' + (ry - 4).toFixed(1) + '" text-anchor="start" font-size="8.5" fill="#B58900">去势水平 50ng/dl</text>';
   const dy = yOf(DEEP_LINE);
   grid += '<line x1="' + pad.l + '" y1="' + dy.toFixed(1) + '" x2="' + (W - pad.r) + '" y2="' + dy.toFixed(1) +
-          '" stroke="#27ae60" stroke-width="1" stroke-dasharray="4,3"/>' +
-          '<text x="' + (W - pad.r) + '" y="' + (dy - 3).toFixed(1) + '" text-anchor="end" font-size="8.5" fill="#27ae60">深度降酮 20ng/dl</text>';
+          '" stroke="#00875A" stroke-width="1" stroke-dasharray="4,3"/>' +
+          '<text x="' + (pad.l + 3) + '" y="' + (dy + 9).toFixed(1) + '" text-anchor="start" font-size="8.5" fill="#00875A">深度降酮 20ng/dl</text>';
   pts.forEach((p, i) => {
     labels += '<text x="' + p.x + '" y="' + (h - 4) + '" text-anchor="middle" font-size="8" fill="#aaa">' + p.d.slice(2) + '</text>';
     dots += '<circle cx="' + p.x + '" cy="' + p.y + '" r="3.5" fill="' + c + '" stroke="#fff" stroke-width="1.5"/>' +
@@ -4396,13 +4412,30 @@ function medPct(iso, range) {
   if (!t0 || !t1 || t1 <= t0) return 0;
   return Math.max(0, Math.min(100, ((medDateMs(iso) - t0) / (t1 - t0)) * 100));
 }
-function medTicks(range) {
+/* 画布宽度：按时间跨度给足横向像素，让药名与起止日期在段内一行读完。
+   宁可横向滚动，也不把说明挤成多行——纵向堆叠会让整条时间轴变得极高。 */
+function medCanvasMetrics(range) {
+  const span = Math.max(1, (medDateMs(range.end) - medDateMs(range.start)) / (30.44 * 86400000));
+  let pxPerMonth = 26;
+  if (span > 240) pxPerMonth = 16;
+  if (span > 480) pxPerMonth = 10;
+  return { months: span, pxPerMonth, width: Math.max(660, Math.round(span * pxPerMonth) + 48) };
+}
+function medTicks(range, pxPerMonth) {
   const s = new Date(range.start + 'T00:00:00Z');
   const e = new Date(range.end + 'T00:00:00Z');
   const totalMonths = (e.getUTCFullYear() - s.getUTCFullYear()) * 12 + (e.getUTCMonth() - s.getUTCMonth());
-  const step = totalMonths <= 18 ? 3 : totalMonths <= 48 ? 6 : totalMonths <= 120 ? 12 : 24;
+  /* 给了像素密度就按「每个刻度至少 100px」选步长，宽画布上刻度不会过稀 */
+  const step = pxPerMonth
+    ? ([1, 2, 3, 6, 12, 24, 60].find(x => x * pxPerMonth >= 100) || 60)
+    : (totalMonths <= 18 ? 3 : totalMonths <= 48 ? 6 : totalMonths <= 120 ? 12 : 24);
   let cur = new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), 1));
   if (cur < s) cur = new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1, 1));
+  /* 对齐自然日历边界，保证 1 月（年份主刻度）一定出现 */
+  const align = step >= 12 ? 12 : step;
+  for (let i = 0; i < 12 && cur.getUTCMonth() % align !== 0; i++) {
+    cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth() + 1, 1));
+  }
   const out = [];
   for (let i = 0; i < 90 && cur.getTime() <= e.getTime(); i++) {
     const iso = cur.toISOString().slice(0, 10);
@@ -4422,6 +4455,27 @@ function medTicks(range) {
   if (!out.length) out.push({ iso: range.start, left: 0, major: true, label: range.start.slice(0, 4) });
   return out;
 }
+/* 按时间轴说明的真实字体量文字宽度。字符数估算在不同字体下偏差可达 15%，
+   会让短程药标注放不下药名而被裁成「复方…」。 */
+let MED_MEASURE_CTX = null;
+function medTextWidth(text) {
+  const s = String(text || '');
+  if (!s) return 0;
+  try {
+    if (!MED_MEASURE_CTX) {
+      MED_MEASURE_CTX = document.createElement('canvas').getContext('2d');
+      const probe = document.querySelector('.med-tl-detail b');
+      const cs = probe ? getComputedStyle(probe) : null;
+      const fam = cs ? cs.fontFamily : '"Futura","Avenir Next","PingFang SC",sans-serif';
+      MED_MEASURE_CTX.font = '700 11px ' + fam;
+    }
+    return MED_MEASURE_CTX.measureText(s).width + s.length * 0.12 + 2;
+  } catch (e) {
+    let px = 0;
+    for (const ch of s) px += /[\x00-\xff]/.test(ch) ? 7 : 12;
+    return px;
+  }
+}
 function medBarGeom(m, range) {
   const t0 = medDateMs(range.start), t1 = medDateMs(range.end);
   if (!t0 || !t1 || t1 <= t0) return { left: 0, width: 0.8 };
@@ -4434,6 +4488,61 @@ function medBarGeom(m, range) {
   width = Math.max(0.8, Math.min(100 - left, width));
   left = Math.max(0, Math.min(99.2, left));
   return { left, width };
+}
+
+/* 窄屏视图切换：整段疗程（压缩到一屏）↔ 放大细看（真实时间密度横向滚动）。
+   只改画布宽度，药物条与说明都是百分比定位，会随之等比缩放，无需重渲染。 */
+function setMedTimelineView(btn, mode) {
+  const box = btn.closest('.med-tl-box');
+  if (!box) return;
+  const canvas = box.querySelector('.med-tl-canvas');
+  const sc = box.querySelector('.med-tl-scroll');
+  if (!canvas || !sc) return;
+  const full = Number(box.dataset.medFull) || 0;
+  const fit = Number(box.dataset.medFit) || 0;
+  const detail = mode === 'detail';
+  const w = detail ? full : fit;
+  canvas.style.width = w + 'px';
+  box.classList.toggle('cx-fitview', !detail);
+  box.querySelectorAll('.cx-medview').forEach(b => b.classList.toggle('on', b.dataset.medview === mode));
+  /* 刻度密度必须跟着画布宽度走：整览用稀疏刻度，细看用真实密度，
+     否则 2776px 画布上只剩两三个年份，医生无法定位时间。 */
+  const range = { start: box.dataset.medStart, end: box.dataset.medEnd };
+  const months = Number(box.dataset.medMonths) || 1;
+  const ppm = detail ? (Number(box.dataset.medPpm) || 26) : (w / months);
+  if (range.start && range.end) {
+    const tk = medTicks(range, ppm);
+    const axis = canvas.querySelector('.med-tl-axis');
+    const body = canvas.querySelector('.med-tl-body');
+    if (axis) {
+      axis.innerHTML = tk.map(t =>
+        '<div class="med-tl-tick' + (t.major ? ' major' : '') + '" style="left:' + t.left.toFixed(3) +
+        '%" title="' + htmlAttr(t.iso) + '"><span>' + htmlAttr(t.label) + '</span></div>').join('');
+    }
+    if (body) {
+      body.querySelectorAll('.med-tl-gridline').forEach(n => n.remove());
+      const frag = document.createDocumentFragment();
+      tk.forEach(t => {
+        const g = document.createElement('div');
+        g.className = 'med-tl-gridline';
+        g.style.left = t.left.toFixed(3) + '%';
+        frag.appendChild(g);
+      });
+      body.insertBefore(frag, body.firstChild);
+    }
+  }
+  if (detail) {
+    const segs = [...sc.querySelectorAll('.med-tl-seg')];
+    const open = segs.filter(s => s.classList.contains('open'));
+    const target = open.length ? open[open.length - 1] : segs[segs.length - 1];
+    if (target) {
+      const sr = sc.getBoundingClientRect(), tr = target.getBoundingClientRect();
+      sc.scrollLeft = Math.max(0, (tr.left - sr.left) + sc.scrollLeft - sc.clientWidth * 0.62);
+    }
+  } else {
+    sc.scrollLeft = 0;
+  }
+  window.dispatchEvent(new Event('cx-medview-change'));
 }
 
 /* 患者详情页/编辑页共用的药物甘特图。
@@ -4450,7 +4559,16 @@ function renderMedTimeline(p, opts) {
       '<div class="med-tl-empty">暂无用药记录。请在「治疗与用药」页点「＋ 新增用药」添加；旧版兼容界面在「用药/治疗线」页添加。</div></div>';
   }
   const range = medTimelineRange(all);
-  const ticks = medTicks(range);
+  const metrics = medCanvasMetrics(range);
+  /* 窄屏默认「整段疗程一屏看全」：手机视窗只有 200px 左右，
+     若沿用桌面画布宽度，打开时只能看到两三个月、泳道几乎全空。
+     这里把画布压到视窗宽度，医生先看清全程用药轮廓，再按需展开细看。 */
+  const narrow = typeof window !== 'undefined' && window.innerWidth <= 600;
+  /* 可用宽 = 屏宽 − 页面留白 − 卡片内边距 − 类别列(112) − 边框余量。
+     实测 430px 屏视窗约 250px，留足余量确保整览真的不横向滚动。 */
+  const fitWidth = narrow ? Math.max(150, Math.round(window.innerWidth - 186)) : metrics.width;
+  const canvasW = narrow ? fitWidth : metrics.width;
+  const ticks = medTicks(range, narrow ? canvasW / Math.max(1, metrics.months) : metrics.pxPerMonth);
   const activeCats = groups.filter(g => g.items.some(m => medIsActive(m))).length;
   const peak = medPeakCategories(groups);
   const tickHtml = ticks.map(t =>
@@ -4473,63 +4591,85 @@ function renderMedTimeline(p, opts) {
       htmlAttr(m.endDate || '至今') + ' · ' + htmlAttr(medDurationText(m)) +
       (note ? ' <span class="med-note-inline">注</span>' : '') + '</span>';
   };
-  /* 桌面端：每个药物段的正下方贴一条说明，位置跟随该段的起点；
-     段太短时给一个最小说明宽度，保证药名和起止日期可读。 */
-  const detailLabel = (g, m, row) => {
-    const geom = medBarGeom(m, range);
-    const MIN_W = 20;
-    let left = geom.left;
-    let width = Math.max(geom.width, MIN_W);
-    if (left + width > 100) left = Math.max(0, 100 - width);
-    width = Math.max(4, Math.min(width, 100 - left));
-    return '<div class="med-tl-detail" style="left:' + left.toFixed(3) + '%;width:' +
-      width.toFixed(3) + '%;top:' + (row * 27) + 'px">' +
-      '<b>' + htmlAttr(m.drug) + '</b><span>' + htmlAttr(m.startDate) + ' → ' +
-      htmlAttr(m.endDate || '至今') + ' · ' + htmlAttr(medDurationText(m)) + '</span></div>';
-  };
-
+  /* 桌面端：每段说明只占一行，横向宽度以「下一段起点」为界。
+     同一大类内用药在时间上互不重叠（录入时已校验），因此只要说明不越过
+     下一段起点，就永远不会压到别的药名——无需再靠换行避让。
+     旧版用「重叠就换行」的贪心排布，8 段 ADT 会被挤成 5 行、单泳道高达 177px；
+     现在每条泳道恒定一行说明，纵向不再随用药数量增长。 */
+  const ROW_H = 58;
   const rowHeights = [];
   const rows = groups.map(g => {
-    const bars = g.items.map(m => {
-      const geom = medBarGeom(m, range);
+    const geoms = g.items.map(m => medBarGeom(m, range));
+    const bars = g.items.map((m, i) => {
+      const geom = geoms[i];
       const note = noteOf(m);
       return '<div class="med-tl-seg' + (m.endDate ? '' : ' open') + (note ? ' has-note' : '') +
         '" style="left:' + geom.left.toFixed(3) + '%;width:' + geom.width.toFixed(3) +
-        '%;background:' + g.cat.color + '"' + noteClick(m) + noteAttrs(m) + '>' +
+        '%;background:' + g.cat.color + '"' + noteClick(m) + noteAttrs(m) +
+        ' title="' + htmlAttr(m.drug + ' · ' + m.startDate + ' → ' + (m.endDate || '至今') + ' · ' + medDurationText(m)) + '">' +
         (note ? '<span class="med-note-badge" aria-hidden="true">注</span>' : '') + '</div>';
     }).join('');
-    /* 先把说明块按最小宽度排好；若相邻段落的说明会重叠，就换到下一行。
-       正常数据通常 1 行；只有同一大类里两个短程药挨得很近时才会变高。 */
-    const items = g.items.map(m => {
-      const geom = medBarGeom(m, range);
-      let left = geom.left;
-      let width = Math.max(geom.width, 20);
-      if (left + width > 100) left = Math.max(0, 100 - width);
-      width = Math.max(4, Math.min(width, 100 - left));
-      return { m, left, right: left + width };
-    });
-    const occupied = [];
-    const placed = items.map(it => {
-      let r = 0;
-      while (occupied[r] && occupied[r].some(x => it.left < x.right && x.left < it.right)) r++;
-      (occupied[r] ||= []).push(it);
-      return { ...it, row: r };
-    });
-    const labelRows = Math.max(1, occupied.length);
-    const detailH = 31 + (labelRows - 1) * 27;
-    const rowH = 69 + (labelRows - 1) * 27;
-    rowHeights.push(rowH);
-    const details = placed.map(it => detailLabel(g, it.m, it.row)).join('');
-    return '<div class="med-tl-cat-row" style="--med-row-h:' + rowH + 'px"><div class="med-tl-barline">' + bars +
-      '</div><div class="med-tl-details" style="--med-detail-h:' + detailH + 'px">' + details + '</div></div>';
+    const details = g.items.map((m, i) => {
+      const geom = geoms[i];
+      /* 说明可用宽度 = 到下一段起点的距离；末段可用到画布右端。
+         留 0.4% 间隙，且最小宽度不得超过这个间距——否则两个挨得很近的
+         短程药（如间隔 40 天的两种支持用药）会各自撑到最小宽度而互相压字。 */
+      const nextLeft = i + 1 < geoms.length ? geoms[i + 1].left : 100;
+      const room = Math.max(0, nextLeft - geom.left - 0.4);
+      const minPct = Math.max(2, (46 / canvasW) * 100);
+      let width = Math.max(geom.width, Math.min(room, minPct));
+      width = Math.min(width, room, 100 - geom.left);
+      const note = noteOf(m);
+      /* 极短程药（如 40 天的抗感染预防）横向空间放不下两行：
+         改为单行紧凑标注，药名完整显示，起止与时长交给悬停提示与备注。
+         仅当「到下一段的实际间距」足以容纳药名时才启用，否则宁可省略也不压字。 */
+      const slotPx = (width / 100) * canvasW;
+      const roomPx = (room / 100) * canvasW;
+      /* 用 canvas 按真实字体量药名宽度：字符数估算会偏小，
+         导致紧凑标注放不下药名而被裁成「复方…」。 */
+      const namePx = Math.ceil(medTextWidth(m.drug)) + 26;
+      const tight = slotPx < 96 && roomPx >= namePx;
+      /* 紧凑标注按像素占满「到下一段起点」的空白：room 已扣安全间隙。
+         用像素而非百分比，避免画布宽度取整后比实际间距少几像素而裁字。 */
+      const tightPx = tight ? Math.max(0, Math.floor((room / 100) * canvasW) - 2) : 0;
+      const widthCss = tight ? tightPx + 'px' : width.toFixed(3) + '%';
+      return '<div class="med-tl-detail' + (note ? ' has-note' : '') + (tight ? ' cx-tight' : '') +
+        '" style="left:' + geom.left.toFixed(3) + '%;width:' + widthCss +
+        (tight ? ';--cx-pin:' + g.cat.color : '') + '"' +
+        noteClick(m) + noteAttrs(m) +
+        ' title="' + htmlAttr(m.drug + ' · ' + m.startDate + ' → ' + (m.endDate || '至今') + ' · ' + medDurationText(m)) + '">' +
+        '<b>' + htmlAttr(m.drug) + '</b>' +
+        '<span>' + htmlAttr(m.startDate) + ' → ' + htmlAttr(m.endDate || '至今') +
+        ' · ' + htmlAttr(medDurationText(m)) + '</span></div>';
+    }).join('');
+    rowHeights.push(ROW_H);
+    return '<div class="med-tl-cat-row" style="--med-row-h:' + ROW_H + 'px">' +
+      '<div class="med-tl-barline">' + bars + '</div>' +
+      '<div class="med-tl-details">' + details + '</div></div>';
   }).join('');
   const labels = groups.map((g, i) =>
-    '<div class="med-tl-label-row" style="--med-row-h:' + rowHeights[i] + 'px"><b>' +
-      htmlAttr(g.cat.label) + '</b></div>').join('');
-  const mobileDetails = groups.map(g =>
-    '<div class="med-tl-mobile-group"><div class="med-tl-mobile-cat">' + htmlAttr(g.cat.label) +
-      '</div><div class="med-tl-mobile-items">' + g.items.map(m => detailChip(g, m)).join('') +
-      '</div></div>').join('');
+    '<div class="med-tl-label-row" style="--med-row-h:' + rowHeights[i] + 'px">' +
+      '<i class="med-tl-label-dot" style="background:' + g.cat.color + '"></i>' +
+      '<b>' + htmlAttr(g.cat.label) + '</b>' +
+      '<small>' + g.items.length + ' 段</small></div>').join('');
+  /* 手机端：默认只列「在用 + 最近 2 段」，其余收进 details。
+     29 段全展开会把页面拉到 1500px 以上，医生要滑很久才看到下一张卡。 */
+  const mobileDetails = groups.map(g => {
+    const sorted = g.items.slice().sort((a, b) => String(b.startDate).localeCompare(String(a.startDate)));
+    const active = sorted.filter(m => medIsActive(m));
+    const recent = sorted.filter(m => !medIsActive(m)).slice(0, 2);
+    const shown = active.concat(recent);
+    const rest = sorted.filter(m => shown.indexOf(m) < 0);
+    const head = '<div class="med-tl-mobile-cat"><i class="med-tl-label-dot" style="background:' +
+      g.cat.color + '"></i>' + htmlAttr(g.cat.label) + '<small>' + g.items.length + ' 段</small></div>';
+    return '<div class="med-tl-mobile-group">' + head +
+      '<div class="med-tl-mobile-items">' + shown.map(m => detailChip(g, m)).join('') + '</div>' +
+      (rest.length
+        ? '<details class="med-tl-mobile-more"><summary>展开其余 ' + rest.length + ' 段历史用药</summary>' +
+          '<div class="med-tl-mobile-items">' + rest.map(m => detailChip(g, m)).join('') + '</div></details>'
+        : '') +
+      '</div>';
+  }).join('');
   const todayPct = medPct(range.today, range);
   const todayHtml = range.anyCurrent && todayPct >= 0 && todayPct <= 100
     ? '<div class="med-tl-today' + (todayPct > 80 ? ' edge-right' : '') +
@@ -4537,20 +4677,36 @@ function renderMedTimeline(p, opts) {
     : '';
   const legend = groups.map(g =>
     '<span><i class="med-tl-dot" style="background:' + g.cat.color + '"></i>' + htmlAttr(g.cat.label) + '</span>').join('');
-  return '<div class="med-tl-box">' +
+  /* 窄屏两种视图：整览（全程压到一屏）/ 细看（按真实时间密度横向滚动）。
+     默认整览，避免打开只看到两三个月的空白泳道。 */
+  const viewToggle = narrow
+    ? '<div class="med-tl-view" role="group" aria-label="时间轴视图">' +
+        '<button type="button" class="cx-medview on" data-medview="fit" onclick="setMedTimelineView(this,\'fit\')">整段疗程</button>' +
+        '<button type="button" class="cx-medview" data-medview="detail" onclick="setMedTimelineView(this,\'detail\')">放大细看</button>' +
+      '</div>'
+    : '';
+  return '<div class="med-tl-box' + (narrow ? ' cx-fitview' : '') + '" data-med-full="' + metrics.width +
+    '" data-med-fit="' + fitWidth + '" data-med-start="' + range.start + '" data-med-end="' + range.end +
+    '" data-med-ppm="' + metrics.pxPerMonth + '" data-med-months="' + metrics.months.toFixed(2) + '">' +
     '<div class="med-tl-top"><div class="med-tl-title">' + title +
       '<span>' + groups.length + ' 类 · ' + all.length + ' 段 · 当前 ' + activeCats + ' 类 · 峰值 ' + peak + ' 类同期</span></div>' +
+      viewToggle +
       '<div class="med-tl-legend">' + legend + '</div></div>' +
     '<div class="med-tl-frame">' +
       '<div class="med-tl-labels"><div class="med-tl-label-head">治疗大类</div>' + labels + '</div>' +
-      '<div class="med-tl-scroll"><div class="med-tl-canvas">' +
+      '<div class="med-tl-scroll"><div class="med-tl-canvas" style="width:' + canvasW + 'px">' +
         '<div class="med-tl-axis">' + tickHtml + '</div>' +
         '<div class="med-tl-body">' + gridHtml + rows + '</div>' +
         todayHtml +
       '</div></div>' +
     '</div>' +
-    '<div class="med-tl-mobile-details">' + mobileDetails + '</div>' +
-    '<div class="med-tl-foot">一条泳道 = 一个治疗大类；同一大类内按停药/换药顺序显示。每段下方列出药物、起止日期和使用时长。开放条（右端浅色）表示仍在用；带「注」标记的药物点击可查看备注；手机上可左右滑动查看完整时间轴。</div>' +
+    '<details class="med-tl-mobile-details"><summary>按类别查看用药清单（' +
+      groups.length + ' 类 · ' + all.length + ' 段）</summary>' +
+      '<div class="med-tl-mobile-body">' + mobileDetails + '</div></details>' +
+    '<div class="med-tl-foot">' +
+      '<span class="cx-foot-fit">整段疗程已压缩到一屏：一条泳道 = 一个治疗大类，色块长度代表用药时长，空白代表该期间未用此类药。点「放大细看」可按真实时间密度左右滑动，查看每段药名与起止日期。</span>' +
+      '<span class="cx-foot-detail">一条泳道 = 一个治疗大类，每段说明只占一行，用药再多也不会把时间轴撑高。横向可左右滑动查看完整疗程（拖动下方滚动条、滚轮或在空白处拖动）；开放条（右端浅色）表示仍在用；带「注」标记的药物点击可查看备注。</span>' +
+    '</div>' +
     '</div>';
 }
 
@@ -4969,7 +5125,29 @@ function closeSummary() {
   const m = document.getElementById('summaryModal');
   if (m) m.classList.remove('show');
 }
-function printSummary() { window.print(); }
+/* 打印前把所有折叠明细展开：<details> 未 open 时浏览器会隐藏内容，
+   单靠 @media print 的 CSS 覆盖不了，化疗周期等明细会在 PDF 里整段丢失。
+   打印结束（含取消）后还原用户原本的折叠状态。 */
+let printFoldSnapshot = null;
+function expandFoldsForPrint() {
+  if (printFoldSnapshot) return;
+  printFoldSnapshot = [...document.querySelectorAll('details')].map(d => ({ el: d, open: d.open }));
+  printFoldSnapshot.forEach(x => { if (!x.open) x.el.open = true; });
+}
+function restoreFoldsAfterPrint() {
+  if (!printFoldSnapshot) return;
+  printFoldSnapshot.forEach(x => { if (x.el && x.el.isConnected) x.el.open = x.open; });
+  printFoldSnapshot = null;
+}
+window.addEventListener('beforeprint', expandFoldsForPrint);
+window.addEventListener('afterprint', restoreFoldsAfterPrint);
+function printSummary() {
+  expandFoldsForPrint();
+  /* 让展开后的布局先完成一次绘制，再进打印预览 */
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    try { window.print(); } finally { restoreFoldsAfterPrint(); }
+  }));
+}
 
 async function exportResearchZip() {
   if (!window.ExportCore) return toast('⚠ 导出模块未加载，请刷新页面后重试');
@@ -5191,5 +5369,6 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideMedNote(); hidePsaDot(); } });
 window.addEventListener('resize', () => { hideMedNote(); hidePsaDot(); });
 </script>
+<script src="/construct.js?v=20261111-landing-v1"></script>
 </body>
 </html>

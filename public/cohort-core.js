@@ -24,9 +24,9 @@
   const GLEASONS = ['3+3=6', '3+4=7', '4+3=7', '4+4=8', '3+5=8', '5+3=8', '4+5=9', '5+4=9', '5+5=10'];
 
   const COLOR = {
-    blue: '#2f6f9f', teal: '#2a9d8f', green: '#4f9d69', lightGreen: '#7fb685',
-    amber: '#d99b2b', orange: '#d9772b', red: '#c0504d', darkRed: '#9e2f2f',
-    purple: '#7b5ea7', gray: '#8b969b', lightGray: '#b8c2c6', brown: '#a06a4a'
+    blue: '#2A4E86', teal: '#2A7480', green: '#00875A', lightGreen: '#7FBFA5',
+    amber: '#E0AE33', orange: '#C2662D', red: '#A8443C', darkRed: '#7A2E28',
+    purple: '#5A4A87', gray: '#5A5A5A', lightGray: '#C9C9C9', brown: '#8A5A2B'
   };
 
   const PIE = {

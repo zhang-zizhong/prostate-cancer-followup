@@ -316,8 +316,20 @@
           }).join('') : '<span>无专用评分卡</span>') +
           '<button type="button" class="ws2-term" onclick="Workspace.openResponseInfo()">疗效 CR/PR/SD/PD（按 PSA/影像）</button></div></div>') +
       (compact ? '' : '<div class="ws2-layer"><div class="ws2-layer-h">③ 连续随访表 <span>' + rows.length + ' 行</span></div>' + visitTableHtml(p, w, ep, rows) + '</div>') +
-      (ep.templateCode === 'CHEMO' && cycles.length ? '<div class="ws2-layer"><div class="ws2-layer-h">化疗周期 <span>' + cycles.length + '</span></div>' + chemoTableHtml(cycles) + '</div>' : '') +
-      (admins.length ? '<div class="ws2-layer"><div class="ws2-layer-h">给药日志 <span>' + admins.length + '</span></div>' + adminTableHtml(admins) + '</div>' : '') +
+      /* 化疗周期：总览（compact）折叠省空间；随访记录册是逐周期核对的工作台，
+         必须始终展开完整表格，不再套折叠。 */
+      (ep.templateCode === 'CHEMO' && cycles.length
+        ? (compact
+            ? chemoLayerHtml(cycles, ep.id)
+            : '<div class="ws2-layer"><div class="ws2-layer-h">化疗周期 <span>' + cycles.length + '</span></div>' + chemoTableHtml(cycles) + '</div>')
+        : '') +
+      /* 总览（compact）只给一行给药摘要：次数/最近/下次到期是时间轴没有的“执行与到期”信息；
+         完整给药日志表只在随访记录册展示，避免与用药时间轴在总览重复。 */
+      (compact
+        ? (admins.length ? '<div class="ws2-layer"><div class="ws2-layer-b"><span>给药 ' + admins.length + ' 次 · 最近 ' + esc(admins[admins.length - 1].adminDate) +
+            (admins[admins.length - 1].nextDueDate ? ' · 下次到期 ' + esc(admins[admins.length - 1].nextDueDate) : '') +
+            '（完整日志见随访记录册）</span></div></div>' : '')
+        : (admins.length ? '<div class="ws2-layer"><div class="ws2-layer-h">给药日志 <span>' + admins.length + '</span></div>' + adminTableHtml(admins) + '</div>' : '')) +
     '</div>';
   }
 
@@ -344,8 +356,18 @@
       }).join('') + '</tbody></table></div>';
   }
   function chemoTableHtml(cycles) {
-    return '<div class="ws2-table-wrap"><table class="ws2-table"><thead><tr><th>周期</th><th>日期</th><th>方案</th><th>减量%</th><th>延迟d</th><th>ECOG</th><th>下次</th></tr></thead><tbody>' +
-      cycles.map(c => '<tr><td>C' + c.cycleNo + '</td><td>' + esc(c.cycleDate) + '</td><td>' + esc(c.regimen || '—') + '</td><td>' + fmt(c.doseReductionPct) + '</td><td>' + fmt(c.delayDays) + '</td><td>' + fmt(c.ecog) + '</td><td>' + fmt(c.nextCycleDate) + '</td></tr>').join('') +
+    /* 减量/延迟非零的格子加高亮：与折叠标题上的「减量 n 次 / 延迟 n 次」呼应，
+       展开后能直接定位到是哪几个周期出了问题。 */
+    const warn = (v) => Number(v) > 0 ? ' class="cx-num-warn"' : '';
+    return '<div class="ws2-table-wrap cx-chemo-tbl"><table class="ws2-table">' +
+      /* 列宽写内联：外部主题在窄屏会重置 col 的 class 宽度，导致七等分 */
+      '<colgroup><col style="width:56px"><col style="width:100px"><col>' +
+      '<col style="width:66px"><col style="width:66px"><col style="width:66px"><col style="width:100px"></colgroup>' +
+      '<thead><tr><th>周期</th><th>日期</th><th>方案</th><th>减量%</th><th>延迟d</th><th>ECOG</th><th>下次</th></tr></thead><tbody>' +
+      cycles.map(c => '<tr><td>C' + c.cycleNo + '</td><td>' + esc(c.cycleDate) + '</td><td>' + esc(c.regimen || '—') + '</td>' +
+        '<td' + warn(c.doseReductionPct) + '>' + fmt(c.doseReductionPct) + '</td>' +
+        '<td' + warn(c.delayDays) + '>' + fmt(c.delayDays) + '</td>' +
+        '<td>' + fmt(c.ecog) + '</td><td>' + fmt(c.nextCycleDate) + '</td></tr>').join('') +
       '</tbody></table></div>';
   }
   function adminTableHtml(admins) {
@@ -353,6 +375,45 @@
       admins.map((a, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(a.adminDate) + '</td><td>' + esc(a.drug) + '</td><td>' + esc(a.dose || '—') + '</td><td>' + fmt(a.nextDueDate) + '</td></tr>').join('') +
       '</tbody></table></div>';
   }
+
+  /* 化疗周期默认折叠：10 个周期的表格占掉近一屏，把后面的给药日志推得很远。
+     折叠标题保留「周期数 / 起止 / 减量 / 延迟」摘要，收起时也能掌握执行情况；
+     需要逐周期核对时再展开。展开状态按治疗段记忆，切页签回来不会被强制收起。 */
+  const chemoOpen = {};
+  function chemoLayerHtml(cycles, episodeId) {
+    const first = cycles[0], last = cycles[cycles.length - 1];
+    const reduced = cycles.filter(c => Number(c.doseReductionPct) > 0).length;
+    const delayed = cycles.filter(c => Number(c.delayDays) > 0).length;
+    const bits = ['<b>' + cycles.length + '</b> 周期', esc(first.cycleDate) + ' → ' + esc(last.cycleDate)];
+    if (reduced) bits.push('<i class="cx-chemo-warn">减量 ' + reduced + ' 次</i>');
+    if (delayed) bits.push('<i class="cx-chemo-warn">延迟 ' + delayed + ' 次</i>');
+    if (!reduced && !delayed) bits.push('<i class="cx-chemo-ok">无减量/延迟</i>');
+    /* 用治疗段 id 作键：周期数相同的两个化疗段不会互相串展开状态 */
+    const key = String(episodeId || first.episodeId || first.episode_id || first.id || cycles.length);
+    return '<details class="ws2-layer cx-chemo-fold"' + (chemoOpen[key] ? ' open' : '') +
+      ' data-chemo-key="' + esc(key) + '">' +
+      '<summary><span class="cx-fold-t">化疗周期</span>' +
+      '<span class="cx-fold-meta">' + bits.join('<em>·</em>') + '</span>' +
+      '<span class="cx-fold-cue"></span></summary>' +
+      '<div class="cx-fold-body">' + chemoTableHtml(cycles) + '</div></details>';
+  }
+  /* 事件委托：卡片由 innerHTML 重建，逐个绑定监听会随重渲染丢失。 */
+  document.addEventListener('toggle', (e) => {
+    const d = e.target;
+    if (!d || !d.classList || !d.classList.contains('cx-chemo-fold')) return;
+    const k = d.getAttribute('data-chemo-key');
+    if (k) chemoOpen[k] = d.open;
+  }, true);
+  /* 总览的治疗段卡片整体可点击跳转。折叠区必须自己吃掉点击与 Enter/空格，
+     否则会连带触发外层跳转，医生一点就被弹到随访记录册、看不到展开效果。 */
+  ['click', 'keydown'].forEach((type) => {
+    document.addEventListener(type, (e) => {
+      const fold = e.target && e.target.closest && e.target.closest('.cx-chemo-fold');
+      if (!fold) return;
+      if (type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+      e.stopPropagation();
+    }, false);
+  });
 
   function tabHtml() {
     const tabs = [['overview', '总览'], ['record', '随访记录册'], ['diagnosis', '诊断'], ['treatment', '治疗与用药'],
@@ -382,7 +443,13 @@
         '<div class="ws2-actions"><button class="ws2-link" type="button" onclick="Workspace.openVisit()">登记本次就诊 →</button><button class="ws2-link" type="button" onclick="Workspace.openProfileEditor()">补档案 →</button></div></section>' +
       '</div>' +
       '<section class="ws2-card"><div class="ws2-card-h">治疗段 <span>共 ' + eps.length + ' 段 · 点击进入随访记录册</span></div>' +
-        (eps.length ? eps.map(ep => '<div class="ws2-episode-link" role="button" tabindex="0" title="点击进入随访记录册" onclick="if(!event.target.closest(\'button\'))Workspace.openEpisodeRecord(' + ep.id + ')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();Workspace.openEpisodeRecord(' + ep.id + ')}">' + episodeCardHtml(p, w, ep, true) + '</div>').join('') : '<div class="ws2-empty">尚未建立治疗段。点右上角“启动/换线”或“登记本次就诊”。</div>') +
+        /* 卡片整体点击进随访记录册，但折叠区（化疗周期）与表格内部除外：
+           点折叠标题要就地展开，不能把医生弹走；表格内文字要能选中复制。 */
+        (eps.length ? eps.map(ep => '<div class="ws2-episode-link" role="button" tabindex="0" title="点击进入随访记录册（化疗周期标题除外）" onclick="if(!event.target.closest(\'button,details,summary,table,a,input,select\'))Workspace.openEpisodeRecord(' + ep.id + ')" onkeydown="if((event.key===\'Enter\'||event.key===\' \')&&!event.target.closest(\'details,summary\')){event.preventDefault();Workspace.openEpisodeRecord(' + ep.id + ')}">' + episodeCardHtml(p, w, ep, true) + '</div>').join('') : '<div class="ws2-empty">尚未建立治疗段。点右上角“启动/换线”或“登记本次就诊”。</div>') +
+      '</section>' +
+      /* 用药时间轴在总览同步展示一份，方便不切页查看；「治疗与用药」页原位保留。 */
+      '<section class="ws2-card"><div class="ws2-card-h">用药时间轴 <span>按治疗大类</span></div>' +
+        (typeof renderMedTimeline === 'function' ? renderMedTimeline(p, { title: '' }) : '<div class="ws2-empty">用药时间轴模块未加载。</div>') +
       '</section>' +
       (typeof renderTimelineBox === 'function'
         ? renderTimelineBox(arr(p.events), 'ov', { title: '诊疗时间轴', emptyText: '暂无诊疗事件记录' })
