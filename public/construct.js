@@ -457,14 +457,7 @@
       const ratio = Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height));
       body.scrollTop = ratio * (body.scrollHeight - body.clientHeight);
     };
-    bar.addEventListener('pointerdown', (ev) => {
-      ev.preventDefault();
-      jump(ev);
-      const move = (e2) => jump(e2);
-      const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-    });
+    bindBarDrag(bar, jump);
     body.addEventListener('scroll', () => paintScroll(body, bar), { passive: true });
   }
   function syncModalScroll() {
@@ -505,6 +498,34 @@
     thumb.style.width = w + 'px';
     thumb.style.transform = 'translateX(' + (isFinite(left) ? left : 0) + 'px)';
   }
+  /* ---- 自绘滚动条的统一拖拽绑定 ----
+   * 四处滚动条（弹窗纵向、诊疗时间轴、用药时间轴、概览缩略图）此前各自
+   * 在 window 上挂 pointermove/pointerup，且从不处理 pointercancel：
+   * 触摸被系统接管（例如判定为页面滚动）后监听残留，下一次拖动会叠加，
+   * 表现为滑块乱跳。统一改为捕获到控件自身 + 按 pointerId 过滤 +
+   * 三事件全解绑，保证一次拖动只有一路生效。 */
+  function bindBarDrag(bar, jump) {
+    if (bar.dataset.cxDrag) return;
+    bar.dataset.cxDrag = '1';
+    bar.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      jump(ev);
+      const id = ev.pointerId;
+      try { bar.setPointerCapture(id); } catch (e) { /* 不支持则退化 */ }
+      const move = (e2) => { if (e2.pointerId === id) jump(e2); };
+      const up = (e2) => {
+        if (e2 && e2.pointerId !== id) return;
+        bar.removeEventListener('pointermove', move);
+        bar.removeEventListener('pointerup', up);
+        bar.removeEventListener('pointercancel', up);
+        try { bar.releasePointerCapture(id); } catch (e) { /* 已释放 */ }
+      };
+      bar.addEventListener('pointermove', move);
+      bar.addEventListener('pointerup', up);
+      bar.addEventListener('pointercancel', up);
+    });
+  }
+
   function syncTimelineScroll() {
     document.querySelectorAll('.tl-viewport').forEach((vp) => {
       const wrap = vp.querySelector('.tl-track-wrap');
@@ -520,14 +541,7 @@
           const ratio = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
           wrap.scrollLeft = ratio * (wrap.scrollWidth - wrap.clientWidth);
         };
-        bar.addEventListener('pointerdown', (ev) => {
-          ev.preventDefault();
-          jump(ev);
-          const move = (e2) => jump(e2);
-          const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-          window.addEventListener('pointermove', move);
-          window.addEventListener('pointerup', up);
-        });
+        bindBarDrag(bar, jump);
         wrap.addEventListener('scroll', () => paintHScroll(wrap, bar), { passive: true });
       }
       paintHScroll(wrap, bar);
@@ -791,14 +805,7 @@
       const ratio = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
       sc.scrollLeft = ratio * sc.scrollWidth - sc.clientWidth / 2;
     };
-    track.addEventListener('pointerdown', (ev) => {
-      ev.preventDefault();
-      jump(ev);
-      const move = (e2) => jump(e2);
-      const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-    });
+    bindBarDrag(track, jump);
     sc.addEventListener('scroll', () => paintMedMini(sc, mini), { passive: true });
     return mini;
   }
@@ -842,14 +849,7 @@
           const ratio = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
           sc.scrollLeft = ratio * (sc.scrollWidth - sc.clientWidth);
         };
-        bar.addEventListener('pointerdown', (ev) => {
-          ev.preventDefault();
-          jump(ev);
-          const move = (e2) => jump(e2);
-          const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-          window.addEventListener('pointermove', move);
-          window.addEventListener('pointerup', up);
-        });
+        bindBarDrag(bar, jump);
         /* 每帧只更新一次：原生横向滚动每帧都派发 scroll，直接同步执行会
            在同一帧内多次「改类→量测→改回」，表现为刻度高频频闪。 */
         sc.addEventListener('scroll', () => scheduleMedPaint(sc, bar), { passive: true });
@@ -894,25 +894,37 @@
       let drag = null;
       sc.addEventListener('pointerdown', (ev) => {
         if (ev.button !== 0) return;
+        /* 触摸交给浏览器原生横向滚动（touch-action:pan-x 已限定手势轴）。
+           JS 拖动只服务鼠标：此前对触摸也 setPointerCapture，会把纵向
+           滑动一并捕获，手指落在时间轴上就整页滑不动。 */
+        if (ev.pointerType === 'touch') return;
         /* 药物条与说明有自己的点击行为，不参与拖动 */
         if (ev.target.closest('.med-tl-seg, .med-tl-detail, .med-tl-today')) return;
-        drag = { x: ev.clientX, left: sc.scrollLeft, moved: false };
-        sc.setPointerCapture(ev.pointerId);
+        drag = { x: ev.clientX, y: ev.clientY, left: sc.scrollLeft, moved: false, id: ev.pointerId };
       });
       sc.addEventListener('pointermove', (ev) => {
-        if (!drag) return;
-        const dx = ev.clientX - drag.x;
-        if (Math.abs(dx) > 3) { drag.moved = true; sc.classList.add('cx-grabbing'); }
-        if (drag.moved) sc.scrollLeft = drag.left - dx;
+        if (!drag || ev.pointerId !== drag.id) return;
+        const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+        /* 鼠标也做轴向判定：明显纵向意图时放弃拖动，不抢页面滚动 */
+        if (!drag.moved) {
+          if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+          if (Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
+          drag.moved = true;
+          sc.classList.add('cx-grabbing');
+          try { sc.setPointerCapture(ev.pointerId); } catch (e) { /* 不支持则退化为普通拖动 */ }
+        }
+        sc.scrollLeft = drag.left - dx;
       });
       const end = (ev) => {
-        if (!drag) return;
+        if (!drag || ev.pointerId !== drag.id) return;
+        const id = drag.id;
         drag = null;
         sc.classList.remove('cx-grabbing');
-        try { sc.releasePointerCapture(ev.pointerId); } catch (e) { /* 已释放 */ }
+        try { sc.releasePointerCapture(id); } catch (e) { /* 已释放 */ }
       };
       sc.addEventListener('pointerup', end);
       sc.addEventListener('pointercancel', end);
+      sc.addEventListener('pointerleave', end);
     });
   }
 
@@ -1015,48 +1027,134 @@
     });
   });
 
-  /* ---- 手机端工作台表头：滚动后收起为紧凑条 ----
-   * 完整表头（返回 + 姓名 + 9 枚徽章 + 4 个操作按钮）约 240px，常驻吸顶会
-   * 吃掉窄屏近三分之一高度。这里在浮层滚动超过阈值时给 #edit-title 打
-   * cx-compact，只留返回按钮与姓名；回到顶部附近恢复完整表头。
-   * 阈值 88 / 回落 64 形成 24px 回差，避免在边界上来回抖动。
-   * 监听绑在浮层自身（它才是滚动容器，不是 window），用 dataset 去重，
-   * 卡片 innerHTML 重建也不丢绑定；写入前比对，保证幂等不触发观察器重跑。 */
+  /* ---- 手机端工作台表头：固定高度吸顶区 + 手势结束后才切换形态 ----
+   *
+   * 上一版把「滚动超过 88px 就收起表头」直接做成改变文档高度的 sticky：
+   * 表头 248px → 66px 会让 scrollHeight 缩短 182px，浏览器随即钳制 scrollTop，
+   * 而钳制后的值又落回阈值以下 → 表头展开 → 高度涨回 → 再次越过阈值……
+   * 真机触摸实测单次上滑 scrollTop 在 0↔88 之间来回弹、紧凑态翻转 14 次，
+   * 表现就是「往下翻不停跳、根本滑不动」。桌面用滚轮/脚本滚动不易触发，
+   * 所以只在真机触摸下暴露。
+   *
+   * 新方案彻底断开这条反馈链：
+   *   1. 表头改为 position:absolute 的固定高度区（--cx-head-h 由实测写入），
+   *      内容区用等值 padding-top 让位。表头形态变化只改自身内部，
+   *      绝不改变 scrollHeight，滚动位置因此不会被钳制。
+   *   2. 形态切换只在手势结束且惯性停稳后做一次（touchend/pointercancel +
+   *      120ms 静默判定），滑动过程中表头完全静止，不参与任何布局计算。
+   *   3. 阈值 160 / 回落 40 拉开到 120px 回差，远大于任何单帧位移。
+   * 监听绑在浮层自身（它才是滚动容器），dataset 去重，写入前比对保持幂等。 */
   function syncCompactHead() {
     const panel = document.getElementById('editPanel');
     if (!panel) return;
     const title = document.getElementById('edit-title');
     if (!title) return;
+    const isMobile = () => panel.classList.contains('mobile-open') && window.innerWidth <= 860;
+    /* 紧凑条高度：与 CSS 中的视觉高度保持一致 */
+    const COMPACT_H = 56;
+
+    /* 实测完整表头高度：临时解除紧凑态与固定高度再量，量完立即恢复。
+       只在患者切换/视口变化时做一次，不在滚动中测量。 */
+    const measure = () => {
+      if (!isMobile()) {
+        panel.style.removeProperty('--cx-head-h');
+        panel.style.removeProperty('--cx-head-now');
+        return;
+      }
+      const wasCompact = title.classList.contains('cx-compact');
+      const prevH = panel.style.getPropertyValue('--cx-head-h');
+      title.classList.remove('cx-compact');
+      panel.style.removeProperty('--cx-head-h');
+      panel.style.removeProperty('--cx-head-now');
+      /* 清变量不足以拿到自然高度：height 带 !important，内联 auto 压不过，
+         但 removeProperty 后同一帧内 computed height 仍可能是旧解析值。
+         scrollHeight 反映内容真实高度（实测 rect 66 / scrollHeight 284），
+         用它加上上下 padding 与下边框，得到完整表头应有的高度。 */
+      const cs = getComputedStyle(title);
+      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const bd = parseFloat(cs.borderBottomWidth) || 0;
+      const head = title.querySelector('.ws2-head');
+      const inner = head ? Math.ceil(head.getBoundingClientRect().height) : 0;
+      /* 内容尚未渲染时（inner=0，表头只有返回按钮或为空）测出的高度是错的，
+         会把完整表头锁成 66px。此时不写值，保留上一次的正确高度，并安排
+         重试；工作台是异步渲染，通常一两帧后就位。 */
+      if (inner < 40) {
+        if (prevH) panel.style.setProperty('--cx-head-h', prevH);
+        if (wasCompact) title.classList.add('cx-compact');
+        if ((panel.dataset.cxCRetry | 0) < 12) {
+          panel.dataset.cxCRetry = String((panel.dataset.cxCRetry | 0) + 1);
+          setTimeout(() => { delete panel.dataset.cxCFor; syncCompactHead(); }, 90);
+        }
+        return;
+      }
+      panel.dataset.cxCRetry = '0';
+      const h = Math.ceil(Math.max(title.scrollHeight + bd, inner + pad + bd));
+      panel.style.setProperty('--cx-head-h', h + 'px');
+      panel.style.setProperty('--cx-head-now', (wasCompact ? COMPACT_H : h) + 'px');
+      if (wasCompact) title.classList.add('cx-compact');
+    };
+
+    /* 表头高度与内容让位量共用 --cx-head-now，必须同帧切换 */
+    const setForm = (on) => {
+      if (title.classList.contains('cx-compact') !== on) title.classList.toggle('cx-compact', on);
+      const full = panel.style.getPropertyValue('--cx-head-h');
+      const want = on ? COMPACT_H + 'px' : (full || '');
+      if (want) {
+        if (panel.style.getPropertyValue('--cx-head-now') !== want) panel.style.setProperty('--cx-head-now', want);
+      } else if (panel.style.getPropertyValue('--cx-head-now')) {
+        panel.style.removeProperty('--cx-head-now');
+      }
+    };
+    const settle = () => {
+      if (!isMobile()) { setForm(false); return; }
+      const y = panel.scrollTop || 0;
+      setForm(title.classList.contains('cx-compact') ? y > 40 : y > 160);
+    };
+
     if (!panel.dataset.cxCHead) {
       panel.dataset.cxCHead = '1';
-      let pending = false;
-      const apply = () => {
-        pending = false;
-        const t = document.getElementById('edit-title');
-        const pn = document.getElementById('editPanel');
-        if (!t || !pn) return;
-        /* 桌面端浮层不成立，直接清除紧凑态，避免残留影响宽屏布局 */
-        const mobile = pn.classList.contains('mobile-open') && window.innerWidth <= 860;
-        const y = pn.scrollTop || 0;
-        const on = mobile && (t.classList.contains('cx-compact') ? y > 64 : y > 88);
-        if (t.classList.contains('cx-compact') !== on) t.classList.toggle('cx-compact', on);
+      let quiet = 0, touching = false, idle = 0;
+      const scheduleSettle = () => {
+        clearTimeout(quiet);
+        /* 手指还在屏幕上时绝不切形态：避免滑动过程中任何布局变化 */
+        if (touching) return;
+        quiet = setTimeout(settle, 120);
       };
+      /* 滑动期间给浮层打 cx-scrolling：CSS 据此关掉卡片过渡与悬停抬升，
+         减少每帧合成开销；停稳 160ms 后移除。 */
       panel.addEventListener('scroll', () => {
-        if (pending) return;
-        pending = true;
-        requestAnimationFrame(apply);
+        if (!panel.classList.contains('cx-scrolling')) panel.classList.add('cx-scrolling');
+        clearTimeout(idle);
+        idle = setTimeout(() => panel.classList.remove('cx-scrolling'), 160);
+        scheduleSettle();
       }, { passive: true });
-      window.addEventListener('resize', () => {
-        if (pending) return;
-        pending = true;
-        requestAnimationFrame(apply);
-      }, { passive: true });
+      panel.addEventListener('touchstart', () => { touching = true; clearTimeout(quiet); }, { passive: true });
+      const lift = () => { touching = false; scheduleSettle(); };
+      panel.addEventListener('touchend', lift, { passive: true });
+      panel.addEventListener('touchcancel', lift, { passive: true });
+      /* 鼠标/触控板路径（桌面缩小到窄屏宽度）：同样等停稳再切 */
+      panel.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') { touching = true; clearTimeout(quiet); } }, { passive: true });
+      panel.addEventListener('pointerup', (e) => { if (e.pointerType === 'touch') lift(); }, { passive: true });
+      panel.addEventListener('pointercancel', (e) => { if (e.pointerType === 'touch') lift(); }, { passive: true });
+      window.addEventListener('resize', () => { measure(); scheduleSettle(); }, { passive: true });
+      panel.dataset.cxCMeasure = '1';
     }
-    /* 每次同步都按当前状态校正一次：切换患者、切页签、关闭浮层后都要复位 */
-    const mobile = panel.classList.contains('mobile-open') && window.innerWidth <= 860;
-    const on = mobile && (panel.scrollTop || 0) > 88;
-    if (title.classList.contains('cx-compact') !== on) title.classList.toggle('cx-compact', on);
+    /* 患者切换 / 页签重绘 / 浮层开合都会走到这里：重新量高度并复位形态 */
+    const pid = panel.dataset.cxPid || '';
+    if (panel.dataset.cxCFor !== pid + '|' + window.innerWidth) {
+      panel.dataset.cxCFor = pid + '|' + window.innerWidth;
+      title.classList.remove('cx-compact');
+      measure();
+      setForm(false);
+    }
+    if (!isMobile()) setForm(false);
   }
+
+  /* 浮层打开后由业务侧派发：此时 mobile-open 与徽章/按钮都已就位，
+     测量才能拿到真实的完整表头高度。 */
+  document.addEventListener('cx-head-remeasure', () => {
+    requestAnimationFrame(syncCompactHead);
+  });
 
   let raf = 0;
   function run() {
@@ -1090,7 +1188,7 @@
      滚动时会给刻度/说明打上 cx-pinned、cx-edge-*、cx-offview 等类并改 style，
      这些也必须算装饰——否则每帧都触发整层重跑，实测 24 次滚动产生 9447 次
      class 改写，表现为图标高频频闪。 */
-  const DECO_CLASS = /cx-(in|deco|ripple|tilt|bg|mark|tape|reg|scroll|hscroll|medscroll|medmini|meddate|mini-[a-z]+|c-[a-z]+|a\d|s-[a-z]+|g-[a-z]+|csco|pinned|tucked|tight|offview|edge-[lr]|grabbing|fitview|num-warn|chemo|fold|mon-todo|mon-done|mon-abn|mon-cell-[a-z]+|compact)/;
+  const DECO_CLASS = /cx-(in|deco|ripple|tilt|bg|mark|tape|reg|scroll|hscroll|medscroll|medmini|meddate|mini-[a-z]+|c-[a-z]+|a\d|s-[a-z]+|g-[a-z]+|csco|pinned|tucked|tight|offview|edge-[lr]|grabbing|fitview|num-warn|chemo|fold|mon-todo|mon-done|mon-abn|mon-cell-[a-z]+|compact|scrolling)/;
   const isDeco = (n) => {
     if (!n || n.nodeType !== 1) return false;
     const c = n.className && n.className.toString ? n.className.toString() : '';

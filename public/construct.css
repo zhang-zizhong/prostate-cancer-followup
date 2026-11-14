@@ -3572,52 +3572,52 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
     border-width:0!important;transform:none!important;
     box-shadow:none!important;filter:none!important;
   }
-  /* 表头吸顶在浮层自身顶部（顶栏已隐藏，不再需要让位偏移） */
+  /* ---------- 表头：固定高度绝对定位区，绝不参与文档高度 ----------
+     旧版用 sticky + 滚动中改高度，收起 182px 会缩短 scrollHeight，浏览器
+     钳制 scrollTop 后又跌回阈值以下 → 展开 → 再越过阈值，真机触摸下滑
+     变成 0↔88 反复弹跳。现在表头脱离文档流（absolute），高度由实测的
+     --cx-head-h 锁定，内容区用等值 padding-top 让位；形态切换只改表头
+     内部呈现，scrollHeight 恒定，滚动位置不再被钳制。 */
   #editPanel.mobile-open #edit-title{
-    position:sticky!important;top:0!important;z-index:8!important;
-    margin:0!important;padding:10px 14px 11px!important;
+    position:absolute!important;top:0!important;left:0!important;right:0!important;
+    z-index:8!important;margin:0!important;
+    height:var(--cx-head-now,var(--cx-head-h,auto))!important;
+    padding:10px 14px 11px!important;
     border-bottom:2px solid rgba(0,0,0,.18)!important;
+    overflow:hidden!important;
+    /* 表头自身不滚动、不拦截纵向手势：手指落在表头上也能带动内容 */
+    touch-action:pan-y!important;overscroll-behavior:contain!important;
   }
-  #editPanel.mobile-open #edit-content{padding:12px 14px 28px!important}
-
-  /* 滚动后收起为紧凑条：完整表头约 240px，常驻会吃掉近三分之一屏幕。
-     由 construct.js 在浮层滚动时切换 cx-compact（阈值 88px，带 24px 回差
-     防抖动），只保留返回按钮 + 姓名，徽章与操作按钮暂时收起；回到顶部即
-     恢复完整表头。用 max-height + opacity 过渡，不改 display 以免跳版。 */
-  #editPanel.mobile-open #edit-title.cx-compact{padding:7px 12px!important}
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-chips,
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-actions{
-    max-height:0!important;opacity:0!important;overflow:hidden!important;
-    margin:0!important;padding:0!important;pointer-events:none!important;
-    border-width:0!important;
+  /* 内容让位量与表头高度共用 --cx-head-now，由 JS 在手势停稳后一次性
+     同步切换；两者同帧变化，收起后不会露出空白带，也不会在滑动中途
+     改变文档高度。不做高度过渡：过渡期间表头与内容不同步会短暂重叠。 */
+  #editPanel.mobile-open #edit-content{
+    padding:calc(var(--cx-head-now,var(--cx-head-h,248px)) + 12px) 14px 28px!important;
   }
-  /* 徽章行与 .ws2-name 同为 .ws2-head-main 的 flex 子项（主轴是横向）。
-     只压 max-height 会让它高度归零却仍占 288px 宽度，把姓名挤到 23px
-     显示成「赵..」。必须同时把宽度收掉并退出弹性分配。 */
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-chips{
-    flex:0 0 0!important;width:0!important;max-width:0!important;min-width:0!important;
+  /* 紧凑态：只留返回 + 姓名，内部垂直居中；高度由 --cx-head-now 锁定。 */
+  #editPanel.mobile-open #edit-title.cx-compact{
+    padding:0 12px!important;
+    display:flex!important;align-items:center!important;
   }
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-actions{
-    flex:0 0 0!important;width:0!important;max-width:0!important;min-width:0!important;
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-head{
+    width:100%;gap:0!important;align-items:center!important;flex-wrap:nowrap!important;
   }
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-head{gap:0!important}
   #editPanel.mobile-open #edit-title.cx-compact .ws2-head-main{
     display:flex!important;align-items:center!important;gap:10px!important;
-    flex:1 1 100%!important;
+    flex:1 1 auto!important;min-width:0!important;
+  }
+  /* 徽章行与操作按钮整块移出视觉与命中区。它们与 .ws2-name 同为 flex
+     子项，只压高度会仍占主轴宽度把姓名挤成「赵..」，故宽高一起归零。 */
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-chips,
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-actions{
+    display:none!important;
   }
   #editPanel.mobile-open #edit-title.cx-compact .ws2-back{margin:0!important;flex:0 0 auto}
-  /* 姓名必须显式吃掉剩余宽度：只写 min-width:0 时它仍是 flex:0 1 auto，
-     在 nowrap + ellipsis 下会收缩到最小内容宽，实测被截成「赵..」。 */
   #editPanel.mobile-open #edit-title.cx-compact .ws2-name{
-    flex:1 1 auto!important;font-size:14px!important;min-width:0;overflow:hidden;
+    flex:1 1 auto!important;font-size:14.5px!important;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;
   }
   #editPanel.mobile-open #edit-title.cx-compact .ws2-name span{font-size:11.5px!important}
-  #editPanel.mobile-open #edit-title .ws2-chips,
-  #editPanel.mobile-open #edit-title .ws2-head-actions{
-    transition:max-height .2s ease,opacity .18s ease;
-  }
-  #editPanel.mobile-open #edit-title .ws2-head-main{transition:gap .2s ease}
 
   /* 返回按钮：与工作台头部同一构成主义语言（直角、硬边、方箭头） */
   .ws2-back{
@@ -3657,7 +3657,11 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
 
 @media(max-width:600px){
   #editPanel.mobile-open #edit-title{padding:9px 12px 10px!important}
-  #editPanel.mobile-open #edit-content{padding:11px 12px 26px!important}
+  /* 让位量必须继续跟随表头高度：此前这里写死 11px，把 860px 断点的
+     calc(var(--cx-head-now)+12px) 覆盖掉，表头直接压住内容首屏。 */
+  #editPanel.mobile-open #edit-content{
+    padding:calc(var(--cx-head-now,var(--cx-head-h,248px)) + 11px) 12px 26px!important;
+  }
   .ws2-back{font-size:12px;padding:6px 11px 6px 9px;margin-bottom:8px}
   #editPanel.mobile-open .ws2-name{font-size:16px}
   /* 紧凑条在窄屏略微收紧返回按钮的内边距即可：徽章行收起后主轴已有充足
@@ -3675,4 +3679,111 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
 /* 打印不需要返回按钮 */
 @media print{
   .ws2-back{display:none!important}
+}
+
+/* =========================================================================
+ * V22 · 移动端滑动体验统一治理
+ * -------------------------------------------------------------------------
+ * 真机触摸下滑不动的根因见 V21 重写说明（表头改高度 → scrollHeight 缩短
+ * → scrollTop 被钳制 → 跌回阈值 → 展开 → 再越过，形成弹跳）。除断开那条
+ * 反馈链外，这里统一处理触摸滚动的其余体验问题：
+ *   · 惯性：所有纵向滚动容器开启原生 momentum，并允许手势穿透到父级
+ *   · 手势归属：横向容器只吃 pan-x，纵向手势留给页面，不再被 JS 拖动劫持
+ *   · 边界： overscroll-behavior 收敛，避免浮层内滑到底带动 body 橡皮筋
+ *   · 触感：去掉点击高亮与长按选中，滑过按钮不再闪灰块
+ *   · 滚动条：全部用主题色自绘，宽度与滑块取自松绿构成色板
+ * ========================================================================= */
+@media(max-width:860px){
+  /* ---- A. 纵向滚动容器：原生惯性 + 手势穿透 ---- */
+  #editPanel.mobile-open,
+  .ws2-modal-b,#summaryModal .summary-body,.np-body,
+  .mgmt-list,.ws2-maxh,.cx-chemo-tbl,.cx-fold-body .ws2-table-wrap{
+    -webkit-overflow-scrolling:touch!important;
+    scroll-behavior:auto!important;      /* 触摸下禁用平滑滚动，避免与惯性打架 */
+    overscroll-behavior-y:contain!important;
+  }
+  /* 浮层内滑到边界不要把整页拖动（body 已 overflow:hidden，但 iOS 仍会橡皮筋）。
+     注意：touch-action 不能写在 body 上——它是继承性约束，会把弹窗、
+     横向时间轴等后代的合法手势一并禁掉，导致临床摘要弹窗滑不动。
+     只约束浮层自身即可。 */
+  #editPanel.mobile-open{overscroll-behavior:none!important}
+  body.editor-open{overscroll-behavior:none!important}
+  /* 弹窗正文是独立滚动容器，必须显式放开纵向手势与惯性 */
+  #summaryModal .summary-body,.ws2-modal-b,.np-body{
+    touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:contain!important;
+  }
+
+  /* ---- B. 横向容器：只认横向手势，纵向留给页面 ---- */
+  .med-tl-scroll,.tl-track-wrap,.chart-scroll,.ws2-table-wrap,.pt-table-wrap,
+  .ws2-tabs,.edit-tabs,.cx-chemo-tbl,.cx-fold-body .ws2-table-wrap{
+    touch-action:pan-x pan-y!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-x:contain!important;
+    scroll-behavior:auto!important;
+  }
+  /* 关键：横向容器绝不能写成 pan-x。pan-x 会让浏览器把纵向手势直接
+     丢弃（不是冒泡给父级），手指落在时间轴或页签上就整页滑不动——
+     这正是「手机端滑动体验糟糕」的主因之一。必须保留 pan-y，
+     让浏览器按手势主轴自行分派：横向滚自己，纵向滚外层浮层。 */
+  .med-tl-scroll,.ws2-tabs,.edit-tabs{touch-action:pan-x pan-y!important}
+  /* 自绘滚动条与概览缩略图是拖拽控件，需要独占手势 */
+  .cx-scroll,.cx-hscroll,.cx-medscroll,.cx-medmini .cx-mini-track{touch-action:none!important}
+
+  /* ---- C. 触感：滑动经过按钮不闪灰块、不误选文字 ---- */
+  #editPanel.mobile-open,#editPanel.mobile-open *,
+  .ws2-modal,.ws2-modal *{
+    -webkit-tap-highlight-color:transparent;
+  }
+  #editPanel.mobile-open .ws2-card,#editPanel.mobile-open .ws2-head,
+  #editPanel.mobile-open .ws2-tabs,#editPanel.mobile-open .ws2-episode,
+  #editPanel.mobile-open .med-tl-box,#editPanel.mobile-open .ws2-table{
+    -webkit-user-select:none;user-select:none;
+  }
+  /* 正文与数据仍可选中复制 */
+  #editPanel.mobile-open .ws2-kv,#editPanel.mobile-open .ws2-layer-b,
+  #editPanel.mobile-open .ws2-sum,#editPanel.mobile-open td{
+    -webkit-user-select:text;user-select:text;
+  }
+
+  /* ---- D. 触摸目标：主要操作至少 44px 高，避免误触 ---- */
+  #editPanel.mobile-open .ws2-head-actions .btn{min-height:44px}
+  #editPanel.mobile-open .ws2-tab{padding:12px 13px;min-height:44px}
+  #editPanel.mobile-open .ws2-link{padding:6px 2px;display:inline-block}
+  .ws2-back{min-height:38px}
+
+  /* ---- E. 滚动条：主题自绘，替代系统默认 ---- */
+  #editPanel.mobile-open::-webkit-scrollbar,
+  .ws2-modal-b::-webkit-scrollbar,#summaryModal .summary-body::-webkit-scrollbar,
+  .mgmt-list::-webkit-scrollbar{width:5px}
+  #editPanel.mobile-open::-webkit-scrollbar-track,
+  .ws2-modal-b::-webkit-scrollbar-track,#summaryModal .summary-body::-webkit-scrollbar-track,
+  .mgmt-list::-webkit-scrollbar-track{background:rgba(0,105,75,.07);border:0}
+  #editPanel.mobile-open::-webkit-scrollbar-thumb,
+  .ws2-modal-b::-webkit-scrollbar-thumb,#summaryModal .summary-body::-webkit-scrollbar-thumb,
+  .mgmt-list::-webkit-scrollbar-thumb{background:rgba(0,105,75,.42);border:0;border-radius:0}
+  .med-tl-scroll::-webkit-scrollbar,.tl-track-wrap::-webkit-scrollbar,
+  .ws2-table-wrap::-webkit-scrollbar,.chart-scroll::-webkit-scrollbar{height:5px}
+  .med-tl-scroll::-webkit-scrollbar-thumb,.tl-track-wrap::-webkit-scrollbar-thumb,
+  .ws2-table-wrap::-webkit-scrollbar-thumb,.chart-scroll::-webkit-scrollbar-thumb{
+    background:rgba(42,116,128,.45);border:0;border-radius:0;
+  }
+  .med-tl-scroll::-webkit-scrollbar-track,.tl-track-wrap::-webkit-scrollbar-track,
+  .ws2-table-wrap::-webkit-scrollbar-track,.chart-scroll::-webkit-scrollbar-track{
+    background:rgba(42,116,128,.08);
+  }
+
+  /* ---- F. 滑动期间抑制装饰动画，减少每帧合成开销 ---- */
+  #editPanel.mobile-open.cx-scrolling .ws2-card,
+  #editPanel.mobile-open.cx-scrolling .ws2-episode,
+  #editPanel.mobile-open.cx-scrolling .med-tl-seg{
+    transition:none!important;animation:none!important;
+  }
+  #editPanel.mobile-open.cx-scrolling .ws2-card:hover,
+  #editPanel.mobile-open.cx-scrolling .ws2-episode:hover{
+    transform:none!important;box-shadow:none!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #editPanel.mobile-open #edit-title{transition:none!important}
 }

@@ -1394,7 +1394,7 @@ main{padding:22px 28px}
 <link rel="stylesheet" href="/glass-theme.css">
 <link rel="stylesheet" href="/aurora-glass.css?v=20261030-password-eye">
 <link rel="stylesheet" href="/workspace.css?v=20261108-v23">
-<link rel="stylesheet" href="/construct.css?v=20261111-landing-v1">
+<link rel="stylesheet" href="/construct.css?v=20261114-touch-v22">
 </head>
 <body>
 
@@ -4188,8 +4188,18 @@ function openEditorOnMobile() {
       panel.scrollTop = 0;
       const t = document.getElementById('edit-title');
       if (t) t.classList.remove('cx-compact');
+      panel.style.removeProperty('--cx-head-h');
+      panel.style.removeProperty('--cx-head-now');
     }
     panel.dataset.cxPid = String(selectedId);
+    /* 表头高度必须在浮层真正打开、且徽章与按钮都已渲染后测量：
+       装饰层的同步早于本函数，那时 mobile-open 还没加上，量到的是
+       桌面态或上一轮的残留值。这里清掉测量指纹并在下一帧重测。 */
+    delete panel.dataset.cxCFor;
+    requestAnimationFrame(() => {
+      if (window.Workspace && typeof Workspace.syncHead === 'function') Workspace.syncHead();
+      else document.dispatchEvent(new CustomEvent('cx-head-remeasure'));
+    });
   }
 }
 
@@ -5405,6 +5415,6 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideMedNote(); hidePsaDot(); } });
 window.addEventListener('resize', () => { hideMedNote(); hidePsaDot(); });
 </script>
-<script src="/construct.js?v=20261111-landing-v1"></script>
+<script src="/construct.js?v=20261114-touch-v22"></script>
 </body>
 </html>
