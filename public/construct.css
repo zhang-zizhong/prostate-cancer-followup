@@ -3547,6 +3547,10 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
 
 /* ---------- A. 返回按钮：桌面不显示，窄屏才出现 ---------- */
 .ws2-back{display:none}
+/* 常驻紧凑条只在窄屏浮层态存在。必须用 display:none 而非仅靠 opacity：
+   visibility:hidden / opacity:0 的元素仍会被 innerText 采集到，桌面端
+   会凭空多出一段「患者列表」文字，破坏与基准页的文字一致性。 */
+.cx-headbar{display:none}
 
 @media(max-width:860px){
   /* 浮层打开时：顶栏让位，祖先链不再压制浮层 */
@@ -3572,52 +3576,77 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
     border-width:0!important;transform:none!important;
     box-shadow:none!important;filter:none!important;
   }
-  /* ---------- 表头：固定高度绝对定位区，绝不参与文档高度 ----------
-     旧版用 sticky + 滚动中改高度，收起 182px 会缩短 scrollHeight，浏览器
-     钳制 scrollTop 后又跌回阈值以下 → 展开 → 再越过阈值，真机触摸下滑
-     变成 0↔88 反复弹跳。现在表头脱离文档流（absolute），高度由实测的
-     --cx-head-h 锁定，内容区用等值 padding-top 让位；形态切换只改表头
-     内部呈现，scrollHeight 恒定，滚动位置不再被钳制。 */
+  /* ---------- 表头：完整表头随内容滚走 + 独立常驻紧凑条 ----------
+     两次失败的教训都指向同一条铁律：**滑动期间与停手时都不能改变文档
+     高度**。
+       · sticky + 改高度 → scrollHeight 缩短 → scrollTop 被钳制 → 跌回
+         阈值 → 展开 → 再越过，滑动中反复弹跳。
+       · absolute + 同步改内容 padding-top → 滑动中不跳，但停手那一刻
+         让位量 297→67、文档高 7060→6830，位置被钳制，用户看到「停下来
+         又往前窜一段」。
+     现在彻底不动布局：完整表头留在正常文档流里，跟内容一起自然滚走；
+     另建 .cx-headbar（position:absolute，脱离文档流）作为常驻紧凑条，
+     只切换 opacity/visibility/transform，文档高度恒定，滚动位置永远
+     精确等于手指停下的位置。 */
   #editPanel.mobile-open #edit-title{
-    position:absolute!important;top:0!important;left:0!important;right:0!important;
-    z-index:8!important;margin:0!important;
-    height:var(--cx-head-now,var(--cx-head-h,auto))!important;
-    padding:10px 14px 11px!important;
+    position:static!important;height:auto!important;
+    margin:0!important;padding:10px 14px 11px!important;
     border-bottom:2px solid rgba(0,0,0,.18)!important;
-    overflow:hidden!important;
-    /* 表头自身不滚动、不拦截纵向手势：手指落在表头上也能带动内容 */
-    touch-action:pan-y!important;overscroll-behavior:contain!important;
   }
-  /* 内容让位量与表头高度共用 --cx-head-now，由 JS 在手势停稳后一次性
-     同步切换；两者同帧变化，收起后不会露出空白带，也不会在滑动中途
-     改变文档高度。不做高度过渡：过渡期间表头与内容不同步会短暂重叠。 */
-  #editPanel.mobile-open #edit-content{
-    padding:calc(var(--cx-head-now,var(--cx-head-h,248px)) + 12px) 14px 28px!important;
+  #editPanel.mobile-open #edit-content{padding:0!important}
+  /* 紧凑条固定在视口顶部。注意不能用 absolute：浮层自身是滚动容器，
+     absolute 会相对它的**滚动内容**定位，实测 top 变成 -691 跟着内容
+     一起滚走、返回按钮点不到。fixed 相对视口，且仍脱离文档流、
+     不影响 scrollHeight。z-index 高于浮层 1800、低于弹窗 2400。 */
+  .cx-headbar{
+    position:fixed;top:0;left:0;right:0;z-index:1850;
+    display:flex;align-items:center;gap:10px;
+    box-sizing:border-box;
+    height:52px;padding:0 12px;
+    background:var(--brand);color:#fff;
+    border-bottom:2px solid rgba(0,0,0,.2);
+    opacity:0;visibility:hidden;transform:translateY(-100%);
+    transition:opacity .16s linear,transform .18s var(--ease-out),visibility .18s;
+    pointer-events:none;
+    /* 只允许纵向手势穿透给下方滚动容器，自身不滚动 */
+    touch-action:pan-y;
   }
-  /* 紧凑态：只留返回 + 姓名，内部垂直居中；高度由 --cx-head-now 锁定。 */
-  #editPanel.mobile-open #edit-title.cx-compact{
-    padding:0 12px!important;
-    display:flex!important;align-items:center!important;
+  /* 只有浮层真正打开时才渲染紧凑条：未选患者的列表页不该出现它，
+     否则 innerText 会多采一段「患者列表」，与基准页文字不一致。 */
+  #editPanel.mobile-open .cx-headbar.cx-on{
+    opacity:1;visibility:visible;transform:none;pointer-events:auto;
   }
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-head{
-    width:100%;gap:0!important;align-items:center!important;flex-wrap:nowrap!important;
+  #editPanel:not(.mobile-open) .cx-headbar{display:none!important}
+  .cx-headbar .cx-hb-back{
+    flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+    min-height:36px;padding:6px 11px;
+    background:rgba(255,255,255,.95);color:var(--brand-deep);
+    border:2px solid rgba(255,255,255,.9);border-radius:0;
+    font-family:var(--disp);font-size:12px;font-weight:700;letter-spacing:.03em;
+    line-height:1.2;white-space:nowrap;cursor:pointer;
+    box-shadow:2px 2px 0 rgba(0,0,0,.22);
   }
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-main{
-    display:flex!important;align-items:center!important;gap:10px!important;
-    flex:1 1 auto!important;min-width:0!important;
+  .cx-headbar .cx-hb-back i{font-style:normal;font-size:14px;line-height:1}
+  .cx-headbar .cx-hb-back:active{background:#fff;transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,.22)}
+  .cx-headbar .cx-hb-name{
+    flex:1 1 auto;min-width:0;
+    font-family:var(--disp);font-size:14px;font-weight:700;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  /* 徽章行与操作按钮整块移出视觉与命中区。它们与 .ws2-name 同为 flex
-     子项，只压高度会仍占主轴宽度把姓名挤成「赵..」，故宽高一起归零。 */
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-chips,
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-actions{
-    display:none!important;
+  .cx-headbar .cx-hb-name em{
+    font-style:normal;font-family:var(--num);font-size:11.5px;font-weight:600;
+    opacity:.9;margin-left:8px;letter-spacing:.04em;
   }
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-back{margin:0!important;flex:0 0 auto}
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-name{
-    flex:1 1 auto!important;font-size:14.5px!important;min-width:0;overflow:hidden;
-    text-overflow:ellipsis;white-space:nowrap;
+  .cx-headbar .cx-hb-risk{
+    flex:0 0 auto;font-family:var(--num);font-size:10.5px;font-weight:700;
+    letter-spacing:.06em;padding:3px 7px;background:rgba(0,0,0,.22);color:#fff;
   }
-  #editPanel.mobile-open #edit-title.cx-compact .ws2-name span{font-size:11.5px!important}
+  /* 风险语义色：与患者头部 tone-* 同源 */
+  .cx-headbar.cx-tone-red{background:var(--red)}
+  .cx-headbar.cx-tone-yellow{background:var(--yellow);color:var(--ink)}
+  .cx-headbar.cx-tone-yellow .cx-hb-back{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .cx-headbar.cx-tone-yellow .cx-hb-risk{background:rgba(0,0,0,.16);color:var(--ink)}
+  .cx-headbar.cx-tone-gray,.cx-headbar.cx-tone-pending{background:#5A5A5A}
 
   /* 返回按钮：与工作台头部同一构成主义语言（直角、硬边、方箭头） */
   .ws2-back{
@@ -3786,4 +3815,207 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
 }
 @media(prefers-reduced-motion:reduce){
   #editPanel.mobile-open #edit-title{transition:none!important}
+  .cx-headbar{transition:none!important}
+}
+
+/* =========================================================================
+ * V23 · 移动端系统性修复：曲线可滑 + 停手不跳 + 触达与遮挡
+ * -------------------------------------------------------------------------
+ * 一、PSA / 睾酮曲线在手机上滑不动
+ *   index.html:579 的窄屏规则把 .chart-main 设成 overflow:hidden，并把内部
+ *   SVG 强制 min-width:0 + width:100%，同时 display:none 掉所有 text 与
+ *   circle。结果是：曲线被横向压扁成一条无刻度的缩略线，容器根本不可滚动，
+ *   真实数值只能去展开「查看数值与日期」折叠。用户感知就是「曲线无法滑动」。
+ *   现在窄屏直接呈现可横滑的完整曲线：保留 SVG 原生宽度、放开 overflow-x、
+ *   显示刻度与数据点，并把折叠明细降为可选的补充入口。
+ *
+ * 二、停手后位置跳一段（本轮新增反馈）
+ *   V22 用 absolute 表头 + 同步改内容 padding-top，滑动中确实不跳，但停手
+ *   那一刻让位量 297→67、scrollHeight 7060→6830，浏览器钳制 scrollTop，
+ *   用户看到「停下来又往前窜一段」。V23 改为完整表头随内容滚走 + 独立
+ *   .cx-headbar（absolute，仅切 opacity/transform），文档高度全程恒定。
+ *
+ * 三、其余移动端问题（子代理审计 + 实测确认）一并处理。
+ * ========================================================================= */
+@media(max-width:860px){
+  /* ---------- A. 曲线：恢复原生宽度与横向滚动 ----------
+     真正的根因不在曲线本身，而在祖先链：.ws2-grid2 是 grid，其子项
+     .ws2-card 默认 min-width:auto，于是网格轨道被 SVG 的原生宽度
+     （PSA 508px / 睾酮 420px）反向撑开到 540px，卡片与 .chart-main 跟着
+     变成 508px 宽 —— 容器和内容一样宽，scrollWidth-clientWidth 恒为 0，
+     当然「滑不动」，同时整块还超出了 430px 视口。
+     修法：把整条链的 min-width 钉成 0，让轨道回到容器宽度，SVG 保持原生
+     宽度，滚动余量自然出现。 */
+  .ws2-grid2,.ws2-grid2>*{min-width:0!important;max-width:100%!important}
+  #edit-content .ws2-card{min-width:0!important;max-width:100%!important}
+  #edit-content .psa-chart-box,#edit-content .charts-col{min-width:0!important;max-width:100%!important}
+  .chart-main,.chart-desktop,.mobile-chart-detail .chart-scroll{
+    overflow-x:auto!important;overflow-y:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    touch-action:pan-x pan-y!important;
+    overscroll-behavior-x:contain!important;
+    scrollbar-width:thin;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  /* 撤掉「完整趋势」缩略标签：现在它本身就是完整曲线 */
+  .chart-main::before{content:none!important;display:none!important}
+  .chart-main .chart-svg{
+    min-width:var(--chart-native-width,560px)!important;
+    width:var(--chart-native-width,560px)!important;
+    height:170px!important;
+  }
+  /* 刻度、数值、数据点全部恢复显示，否则滑过去也读不到数 */
+  .chart-main .chart-svg text{display:inline!important}
+  .chart-main .chart-svg circle{display:inline!important}
+  /* 数据点热区在触摸下放大到手指可点 */
+  .chart-main .chart-svg circle[r="10"]{r:14}
+  /* 折叠明细仍可用作纯数值对照，但不再是唯一入口 */
+  .mobile-chart-detail{display:block;border-top:1px solid var(--bar-line)!important;margin-top:6px}
+  .mobile-chart-detail>summary{
+    min-height:42px;display:flex;align-items:center;
+    font-size:12px;color:#4A554C!important;padding:8px 2px;
+  }
+  .mobile-chart-detail .chart-scroll{
+    overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;
+    touch-action:pan-x pan-y!important;padding-bottom:6px;
+  }
+  .mobile-chart-detail .chart-svg{height:170px!important}
+  /* 可发现性：曲线现在真的能横滑，但屏幕上没有任何提示，医生会以为
+     只有眼前这一段。标题右侧常驻一行滑动提示，并给曲线画出主题色
+     滚动条（系统覆盖式滚动条静止时不可见，等于没有提示）。 */
+  .psa-chart-box,.chart-card{min-width:0}
+  /* 工作台里曲线卡的标题是 .ws2-card-h（不是 .psa-chart-title，后者只在
+     患者列表展开详情里用），两个入口都要给提示。 */
+  .psa-chart-title,.ws2-card:has(.chart-main)>.ws2-card-h{
+    display:flex!important;align-items:center;justify-content:flex-start;
+    gap:8px;flex-wrap:wrap;
+  }
+  .psa-chart-title::after,.ws2-card:has(.chart-main)>.ws2-card-h::after{
+    content:'← 左右滑动 →';
+    flex:0 0 auto;margin-left:auto;
+    font-family:var(--disp);font-size:10px;font-weight:700;letter-spacing:.08em;
+    color:#3E6B72;background:rgba(42,116,128,.12);
+    border:1px solid rgba(42,116,128,.3);
+    padding:2px 7px;white-space:nowrap;
+  }
+  /* 常驻可见的横向滚动条：轨道 + 松绿滑块，宽度取自主题色板 */
+  .chart-main,.mobile-chart-detail .chart-scroll{
+    scrollbar-width:thin;scrollbar-color:var(--s-teal) rgba(42,116,128,.12);
+    padding-bottom:4px;
+  }
+  .chart-main::-webkit-scrollbar,.mobile-chart-detail .chart-scroll::-webkit-scrollbar{
+    height:7px!important;display:block!important;
+  }
+  .chart-main::-webkit-scrollbar-track,.mobile-chart-detail .chart-scroll::-webkit-scrollbar-track{
+    background:rgba(42,116,128,.12)!important;border:0!important;
+  }
+  .chart-main::-webkit-scrollbar-thumb,.mobile-chart-detail .chart-scroll::-webkit-scrollbar-thumb{
+    background:var(--s-teal)!important;border:0!important;border-radius:0!important;
+  }
+  /* 首尾刻度贴边会被裁：给 SVG 左右各留一点呼吸，滑动到端点仍读得全 */
+  .chart-main .chart-svg,.mobile-chart-detail .chart-svg{margin:0 2px}
+
+  /* ---------- B. 患者列表：不再打断整页滚动 ---------- */
+  /* .mgmt-list 有 max-height:600px，在手机上占近全屏；V22 给它加了
+     overscroll-behavior-y:contain，滑到底后手势不链到页面，整页像卡住。
+     它是页面内嵌列表而非浮层，必须允许手势继续传给页面。 */
+  .mgmt-list{
+    max-height:none!important;overflow:visible!important;
+    overscroll-behavior:auto!important;
+  }
+
+  /* ---------- C. 表格：单一滚动容器，表头吸顶生效 ---------- */
+  /* index.html:533 把 table 自身设成 display:block + overflow-x:auto，
+     于是 th 的 sticky 相对 table 计算，而纵向滚动在外层 .ws2-maxh，
+     长表表头不吸顶。恢复原生 table 显示，横滚统一交给外层 wrap。 */
+  #edit-content table{display:table!important;overflow:visible!important}
+  #edit-content .ws2-table-wrap,#edit-content .pt-table-wrap{
+    overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;
+    touch-action:pan-x pan-y!important;overscroll-behavior-x:contain!important;
+  }
+  #edit-content .ws2-maxh{
+    overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:contain!important;
+  }
+
+  /* ---------- D. 触摸触达：高频小目标扩到可点 ---------- */
+  /* 不改视觉尺寸，用透明伪元素扩命中区，避免破坏既有排版密度 */
+  .ws2-term,.ws2-plan-state,.ws2-epchip,.med-mini-btn,.ws2-mini-btn,
+  .tl-node,.ev-photo-del,.record-menu-btn,.pager-btn,.pager-num{
+    position:relative;
+  }
+  .ws2-epchip{min-height:40px;display:inline-flex;align-items:center}
+  .ws2-term{min-height:38px}
+  .med-mini-btn,.ws2-mini-btn{min-height:36px;min-width:44px}
+  .pager-btn,.pager-num{min-height:40px}
+  /* 表格行内「编辑/详情/处理 →」实测只有 28px，手指容易点偏到相邻行。
+     用纵向 padding 撑到 40px，不改字号与表格行密度观感。 */
+  .ws2-link{min-height:40px;display:inline-flex;align-items:center;padding:8px 4px!important}
+  td .ws2-link{margin:-4px 0}
+  .ws2-modal-x,.np-x,.record-menu-btn{min-height:40px}
+  /* 药物条只有 9-13px 高，靠它弹备注在手机上几乎点不中：
+     用透明上下 padding 扩到 32px，视觉高度不变。 */
+  .med-tl-seg::after,.med-tl-detail::after{
+    content:'';position:absolute;left:0;right:0;top:-11px;bottom:-11px;
+  }
+  .med-tl-seg,.med-tl-detail{position:relative}
+  /* 自绘拖拽控件：触摸下扩命中区，但不禁纵向手势 */
+  .cx-scroll,.cx-hscroll,.cx-medscroll{touch-action:none!important}
+  .cx-hscroll,.cx-medscroll{padding:8px 0!important;background-clip:content-box}
+  .cx-scroll{padding:0 7px!important;background-clip:content-box}
+
+  /* ---------- E. 弹窗：底部操作不被遮挡，正文不被自绘条压住 ---------- */
+  .ws2-modal-b,.np-body,#summaryModal .summary-body{
+    padding-right:22px!important;   /* 给 9px 自绘滚动条留出通道 */
+  }
+  .ws2-modal-f,.np-foot{
+    position:sticky!important;bottom:0!important;z-index:3;
+    padding-bottom:max(12px,env(safe-area-inset-bottom))!important;
+  }
+  .ws2-modal-x,.np-x{min-width:40px;min-height:40px}
+  /* 摘要弹窗改用弹性剩余高度，矮视口/横屏不再被底部按钮盖住内容。
+     注意真正的滚动容器是 .np-body（summary-body 是它内部的内容块）：
+     只放开 summary-body 会让它长到 2089px 而自身不滚，滚动落在 np-body
+     上却没有 overscroll 收敛。这里让 np-body 承担滚动并收敛边界，
+     summary-body 恢复自然高度。 */
+  #summaryModal .summary-dialog{
+    display:flex!important;flex-direction:column!important;
+    max-height:100dvh!important;height:100dvh!important;min-height:0!important;
+  }
+  #summaryModal .np-body{
+    flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+    overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;
+    touch-action:pan-y!important;overscroll-behavior-y:contain!important;
+  }
+  #summaryModal .summary-body{
+    flex:0 0 auto!important;max-height:none!important;height:auto!important;
+    overflow:visible!important;
+  }
+
+  /* ---------- F. 登录页：键盘弹出后表单可达 ---------- */
+  /* 登录锁此前给 body 写 touch-action:none，且 login-box overflow:hidden，
+     矮屏 + 键盘时密码框与登录按钮滚不到。改为只锁页面滚动，
+     登录卡自身可纵向滚动。 */
+  html.pcd-login-lock body{touch-action:auto!important}
+  html.pcd-login-lock #loginScreen{
+    overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;
+    align-items:flex-start!important;
+  }
+  html.pcd-login-lock .login-box{
+    overflow:visible!important;margin:auto!important;
+  }
+
+  /* ---------- G. 安全区：底部内容不被 Home 指示条压住 ---------- */
+  #editPanel.mobile-open{
+    padding-bottom:env(safe-area-inset-bottom)!important;
+  }
+  .cx-headbar{padding-top:env(safe-area-inset-top)}
+}
+
+@media(max-width:600px){
+  .chart-main .chart-svg{height:160px!important}
+  .mobile-chart-detail .chart-svg{height:160px!important}
+  .cx-headbar{height:48px;padding:0 10px}
+  .cx-headbar .cx-hb-name{font-size:13px}
+  .cx-headbar .cx-hb-risk{display:none}
 }

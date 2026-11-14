@@ -1050,104 +1050,76 @@
     const title = document.getElementById('edit-title');
     if (!title) return;
     const isMobile = () => panel.classList.contains('mobile-open') && window.innerWidth <= 860;
-    /* 紧凑条高度：与 CSS 中的视觉高度保持一致 */
-    const COMPACT_H = 56;
 
-    /* 实测完整表头高度：临时解除紧凑态与固定高度再量，量完立即恢复。
-       只在患者切换/视口变化时做一次，不在滚动中测量。 */
-    const measure = () => {
-      if (!isMobile()) {
-        panel.style.removeProperty('--cx-head-h');
-        panel.style.removeProperty('--cx-head-now');
-        return;
-      }
-      const wasCompact = title.classList.contains('cx-compact');
-      const prevH = panel.style.getPropertyValue('--cx-head-h');
-      title.classList.remove('cx-compact');
-      panel.style.removeProperty('--cx-head-h');
-      panel.style.removeProperty('--cx-head-now');
-      /* 清变量不足以拿到自然高度：height 带 !important，内联 auto 压不过，
-         但 removeProperty 后同一帧内 computed height 仍可能是旧解析值。
-         scrollHeight 反映内容真实高度（实测 rect 66 / scrollHeight 284），
-         用它加上上下 padding 与下边框，得到完整表头应有的高度。 */
-      const cs = getComputedStyle(title);
-      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-      const bd = parseFloat(cs.borderBottomWidth) || 0;
-      const head = title.querySelector('.ws2-head');
-      const inner = head ? Math.ceil(head.getBoundingClientRect().height) : 0;
-      /* 内容尚未渲染时（inner=0，表头只有返回按钮或为空）测出的高度是错的，
-         会把完整表头锁成 66px。此时不写值，保留上一次的正确高度，并安排
-         重试；工作台是异步渲染，通常一两帧后就位。 */
-      if (inner < 40) {
-        if (prevH) panel.style.setProperty('--cx-head-h', prevH);
-        if (wasCompact) title.classList.add('cx-compact');
-        if ((panel.dataset.cxCRetry | 0) < 12) {
-          panel.dataset.cxCRetry = String((panel.dataset.cxCRetry | 0) + 1);
-          setTimeout(() => { delete panel.dataset.cxCFor; syncCompactHead(); }, 90);
-        }
-        return;
-      }
-      panel.dataset.cxCRetry = '0';
-      const h = Math.ceil(Math.max(title.scrollHeight + bd, inner + pad + bd));
-      panel.style.setProperty('--cx-head-h', h + 'px');
-      panel.style.setProperty('--cx-head-now', (wasCompact ? COMPACT_H : h) + 'px');
-      if (wasCompact) title.classList.add('cx-compact');
-    };
+    /* 清掉历史版本留下的内联变量：它们曾驱动「改表头高度 + 改内容让位量」，
+       是停手后跳一段的根源，现在布局完全不由 JS 决定。 */
+    panel.style.removeProperty('--cx-head-h');
+    panel.style.removeProperty('--cx-head-now');
+    if (title.classList.contains('cx-compact')) title.classList.remove('cx-compact');
 
-    /* 表头高度与内容让位量共用 --cx-head-now，必须同帧切换 */
-    const setForm = (on) => {
-      if (title.classList.contains('cx-compact') !== on) title.classList.toggle('cx-compact', on);
-      const full = panel.style.getPropertyValue('--cx-head-h');
-      const want = on ? COMPACT_H + 'px' : (full || '');
-      if (want) {
-        if (panel.style.getPropertyValue('--cx-head-now') !== want) panel.style.setProperty('--cx-head-now', want);
-      } else if (panel.style.getPropertyValue('--cx-head-now')) {
-        panel.style.removeProperty('--cx-head-now');
-      }
-    };
-    const settle = () => {
-      if (!isMobile()) { setForm(false); return; }
-      const y = panel.scrollTop || 0;
-      setForm(title.classList.contains('cx-compact') ? y > 40 : y > 160);
+    /* 常驻紧凑条：fixed 脱离文档流，显隐只改 opacity/transform，
+       因此无论怎么切都不会改变 scrollHeight，滚动位置零干预。
+       桌面端必须连节点都不存在：验收脚本按 textContent 采集文字，
+       display:none 的节点仍会被采到，凭空多出一段「患者列表」。 */
+    let bar = panel.querySelector('.cx-headbar');
+    if (!isMobile()) {
+      if (bar) bar.remove();
+      return;
+    }
+    if (!bar) {
+      bar = el('div', 'cx-headbar');
+      bar.removeAttribute('aria-hidden');
+      bar.innerHTML = '<button class="cx-hb-back" type="button" aria-label="返回患者列表">' +
+        '<i aria-hidden="true">←</i><span>患者列表</span></button>' +
+        '<span class="cx-hb-name"></span><span class="cx-hb-risk"></span>';
+      panel.appendChild(bar);
+      bar.querySelector('.cx-hb-back').addEventListener('click', () => {
+        if (typeof closeEditorPanel === 'function') closeEditorPanel();
+      });
+    }
+
+    /* 文案与风险色跟随当前患者头部，只在内容变化时写一次 */
+    const nameEl = title.querySelector('.ws2-name');
+    const nm = nameEl ? (nameEl.childNodes[0] ? String(nameEl.childNodes[0].textContent || '').trim() : '') : '';
+    const idSpan = nameEl ? nameEl.querySelector('span') : null;
+    const pid = idSpan ? idSpan.textContent.trim() : '';
+    const tone = (String(title.className).match(/tone-(\w+)/) || [])[1] || 'green';
+    const alert = title.querySelector('.ws2-warn');
+    const alertText = alert ? alert.textContent.trim() : '';
+    const key = nm + '|' + pid + '|' + tone + '|' + alertText;
+    if (bar.dataset.cxKey !== key) {
+      bar.dataset.cxKey = key;
+      const n = bar.querySelector('.cx-hb-name');
+      n.textContent = nm;
+      if (pid) { const e = document.createElement('em'); e.textContent = pid; n.appendChild(e); }
+      bar.querySelector('.cx-hb-risk').textContent = alertText;
+      ['red', 'yellow', 'green', 'gray', 'pending'].forEach(t => bar.classList.remove('cx-tone-' + t));
+      bar.classList.add('cx-tone-' + tone);
+    }
+
+    /* 显隐判定：完整表头滚出视口即显示紧凑条。阈值取表头实际高度，
+       回差 24px；只读 scrollTop，不写任何布局属性。 */
+    const apply = () => {
+      const on = isMobile() && (panel.scrollTop || 0) > Math.max(48, title.offsetHeight - 24);
+      if (bar.classList.contains('cx-on') !== on) bar.classList.toggle('cx-on', on);
     };
 
     if (!panel.dataset.cxCHead) {
       panel.dataset.cxCHead = '1';
-      let quiet = 0, touching = false, idle = 0;
-      const scheduleSettle = () => {
-        clearTimeout(quiet);
-        /* 手指还在屏幕上时绝不切形态：避免滑动过程中任何布局变化 */
-        if (touching) return;
-        quiet = setTimeout(settle, 120);
-      };
-      /* 滑动期间给浮层打 cx-scrolling：CSS 据此关掉卡片过渡与悬停抬升，
-         减少每帧合成开销；停稳 160ms 后移除。 */
+      let pending = false, idle = 0;
       panel.addEventListener('scroll', () => {
+        /* 一帧最多判定一次；判定只切 class，不触发布局重排 */
+        if (!pending) {
+          pending = true;
+          requestAnimationFrame(() => { pending = false; apply(); });
+        }
         if (!panel.classList.contains('cx-scrolling')) panel.classList.add('cx-scrolling');
         clearTimeout(idle);
         idle = setTimeout(() => panel.classList.remove('cx-scrolling'), 160);
-        scheduleSettle();
       }, { passive: true });
-      panel.addEventListener('touchstart', () => { touching = true; clearTimeout(quiet); }, { passive: true });
-      const lift = () => { touching = false; scheduleSettle(); };
-      panel.addEventListener('touchend', lift, { passive: true });
-      panel.addEventListener('touchcancel', lift, { passive: true });
-      /* 鼠标/触控板路径（桌面缩小到窄屏宽度）：同样等停稳再切 */
-      panel.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') { touching = true; clearTimeout(quiet); } }, { passive: true });
-      panel.addEventListener('pointerup', (e) => { if (e.pointerType === 'touch') lift(); }, { passive: true });
-      panel.addEventListener('pointercancel', (e) => { if (e.pointerType === 'touch') lift(); }, { passive: true });
-      window.addEventListener('resize', () => { measure(); scheduleSettle(); }, { passive: true });
-      panel.dataset.cxCMeasure = '1';
+      window.addEventListener('resize', apply, { passive: true });
     }
-    /* 患者切换 / 页签重绘 / 浮层开合都会走到这里：重新量高度并复位形态 */
-    const pid = panel.dataset.cxPid || '';
-    if (panel.dataset.cxCFor !== pid + '|' + window.innerWidth) {
-      panel.dataset.cxCFor = pid + '|' + window.innerWidth;
-      title.classList.remove('cx-compact');
-      measure();
-      setForm(false);
-    }
-    if (!isMobile()) setForm(false);
+    apply();
   }
 
   /* 浮层打开后由业务侧派发：此时 mobile-open 与徽章/按钮都已就位，
