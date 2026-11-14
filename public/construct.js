@@ -1015,6 +1015,49 @@
     });
   });
 
+  /* ---- 手机端工作台表头：滚动后收起为紧凑条 ----
+   * 完整表头（返回 + 姓名 + 9 枚徽章 + 4 个操作按钮）约 240px，常驻吸顶会
+   * 吃掉窄屏近三分之一高度。这里在浮层滚动超过阈值时给 #edit-title 打
+   * cx-compact，只留返回按钮与姓名；回到顶部附近恢复完整表头。
+   * 阈值 88 / 回落 64 形成 24px 回差，避免在边界上来回抖动。
+   * 监听绑在浮层自身（它才是滚动容器，不是 window），用 dataset 去重，
+   * 卡片 innerHTML 重建也不丢绑定；写入前比对，保证幂等不触发观察器重跑。 */
+  function syncCompactHead() {
+    const panel = document.getElementById('editPanel');
+    if (!panel) return;
+    const title = document.getElementById('edit-title');
+    if (!title) return;
+    if (!panel.dataset.cxCHead) {
+      panel.dataset.cxCHead = '1';
+      let pending = false;
+      const apply = () => {
+        pending = false;
+        const t = document.getElementById('edit-title');
+        const pn = document.getElementById('editPanel');
+        if (!t || !pn) return;
+        /* 桌面端浮层不成立，直接清除紧凑态，避免残留影响宽屏布局 */
+        const mobile = pn.classList.contains('mobile-open') && window.innerWidth <= 860;
+        const y = pn.scrollTop || 0;
+        const on = mobile && (t.classList.contains('cx-compact') ? y > 64 : y > 88);
+        if (t.classList.contains('cx-compact') !== on) t.classList.toggle('cx-compact', on);
+      };
+      panel.addEventListener('scroll', () => {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(apply);
+      }, { passive: true });
+      window.addEventListener('resize', () => {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(apply);
+      }, { passive: true });
+    }
+    /* 每次同步都按当前状态校正一次：切换患者、切页签、关闭浮层后都要复位 */
+    const mobile = panel.classList.contains('mobile-open') && window.innerWidth <= 860;
+    const on = mobile && (panel.scrollTop || 0) > 88;
+    if (title.classList.contains('cx-compact') !== on) title.classList.toggle('cx-compact', on);
+  }
+
   let raf = 0;
   function run() {
     buildLogin();
@@ -1035,6 +1078,7 @@
     syncTimelineScroll();
     enhanceMedScroll();
     syncMedBar();
+    syncCompactHead();
   }
   function schedule() {
     cancelAnimationFrame(raf);
@@ -1046,7 +1090,7 @@
      滚动时会给刻度/说明打上 cx-pinned、cx-edge-*、cx-offview 等类并改 style，
      这些也必须算装饰——否则每帧都触发整层重跑，实测 24 次滚动产生 9447 次
      class 改写，表现为图标高频频闪。 */
-  const DECO_CLASS = /cx-(in|deco|ripple|tilt|bg|mark|tape|reg|scroll|hscroll|medscroll|medmini|meddate|mini-[a-z]+|c-[a-z]+|a\d|s-[a-z]+|g-[a-z]+|csco|pinned|tucked|tight|offview|edge-[lr]|grabbing|fitview|num-warn|chemo|fold|mon-todo|mon-done|mon-abn|mon-cell-[a-z]+)/;
+  const DECO_CLASS = /cx-(in|deco|ripple|tilt|bg|mark|tape|reg|scroll|hscroll|medscroll|medmini|meddate|mini-[a-z]+|c-[a-z]+|a\d|s-[a-z]+|g-[a-z]+|csco|pinned|tucked|tight|offview|edge-[lr]|grabbing|fitview|num-warn|chemo|fold|mon-todo|mon-done|mon-abn|mon-cell-[a-z]+|compact)/;
   const isDeco = (n) => {
     if (!n || n.nodeType !== 1) return false;
     const c = n.className && n.className.toString ? n.className.toString() : '';

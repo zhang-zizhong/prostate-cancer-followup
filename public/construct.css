@@ -3525,3 +3525,154 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
   .mgmt-row .mr-name span,.ws2-path-node.done i,.cx-fold-meta em{color:#000!important}
   .ws2-alert.red>span,.ws2-alert.yellow>span,.ws2-alert.green>span{color:#000!important}
 }
+
+/* =========================================================================
+ * V21 · 手机端工作台：表头被顶栏遮挡 + 无退出入口
+ * -------------------------------------------------------------------------
+ * 两个独立根因（实测 iPhone15/13、Android 360 均复现）：
+ *
+ * ① 层叠上下文困住浮层。窄屏 #editPanel.mobile-open 是 position:fixed +
+ *    z-index:1800 的全屏浮层，但它是 main 的后代，而本主题给 main>* 设了
+ *    position:relative + z-index:1，于是浮层的 1800 只在这个「1」的内部
+ *    排序；header 是 main 的兄弟、z-index:60，在更外层比较 → 顶栏盖住浮层。
+ *    实测姓名中心点 elementFromPoint 命中的是 header 里的 h1。
+ *    修复：浮层打开时把承载它的整条祖先链提到顶栏之上（而不是给浮层狂加
+ *    z-index，那在层叠上下文内部无效），同时隐藏顶栏避免视觉重叠。
+ *
+ * ② 返回按钮不存在。.edit-back 只剩 CSS，旧版表单工作台删除时把渲染它的
+ *    DOM 一并移除了，新版 workspace.js 从未渲染 → 实测按钮数 0。
+ *    修复：workspace.js 的 headerHtml 重建 .ws2-back（桌面隐藏、窄屏显示），
+ *    调用既有 closeEditorPanel()；Esc 关闭逻辑本来就在，无需改。
+ * ========================================================================= */
+
+/* ---------- A. 返回按钮：桌面不显示，窄屏才出现 ---------- */
+.ws2-back{display:none}
+
+@media(max-width:860px){
+  /* 浮层打开时：顶栏让位，祖先链不再压制浮层 */
+  body.editor-open>header{display:none!important}
+  body.editor-open main{z-index:auto!important}
+  body.editor-open main>*{z-index:auto!important}
+  body.editor-open #patients{position:static!important;z-index:auto!important}
+  body.editor-open .mgmt-layout{position:static!important;z-index:auto!important}
+
+  #editPanel.mobile-open{
+    position:fixed!important;inset:0!important;z-index:1800!important;
+    margin:0!important;border:0!important;border-width:0!important;
+    border-radius:0!important;box-shadow:none!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    padding:0!important;background:var(--paper)!important;
+    -webkit-overflow-scrolling:touch;
+  }
+  /* 通用 .panel:hover 会给卡片加 translate(-3px,-3px) 抬升 + 7px 硬投影。
+     浮层也是 .panel，鼠标/触点落在它上面就整体偏移 3px，实测 inset:0 的
+     浮层 rect 变成 top:-3/left:-3，表头随之露出 3px 缝隙。全屏浮层不该有
+     卡片抬升语义，这里连同投影一并禁用。 */
+  #editPanel.mobile-open,#editPanel.mobile-open:hover{
+    border-width:0!important;transform:none!important;
+    box-shadow:none!important;filter:none!important;
+  }
+  /* 表头吸顶在浮层自身顶部（顶栏已隐藏，不再需要让位偏移） */
+  #editPanel.mobile-open #edit-title{
+    position:sticky!important;top:0!important;z-index:8!important;
+    margin:0!important;padding:10px 14px 11px!important;
+    border-bottom:2px solid rgba(0,0,0,.18)!important;
+  }
+  #editPanel.mobile-open #edit-content{padding:12px 14px 28px!important}
+
+  /* 滚动后收起为紧凑条：完整表头约 240px，常驻会吃掉近三分之一屏幕。
+     由 construct.js 在浮层滚动时切换 cx-compact（阈值 88px，带 24px 回差
+     防抖动），只保留返回按钮 + 姓名，徽章与操作按钮暂时收起；回到顶部即
+     恢复完整表头。用 max-height + opacity 过渡，不改 display 以免跳版。 */
+  #editPanel.mobile-open #edit-title.cx-compact{padding:7px 12px!important}
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-chips,
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-actions{
+    max-height:0!important;opacity:0!important;overflow:hidden!important;
+    margin:0!important;padding:0!important;pointer-events:none!important;
+    border-width:0!important;
+  }
+  /* 徽章行与 .ws2-name 同为 .ws2-head-main 的 flex 子项（主轴是横向）。
+     只压 max-height 会让它高度归零却仍占 288px 宽度，把姓名挤到 23px
+     显示成「赵..」。必须同时把宽度收掉并退出弹性分配。 */
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-chips{
+    flex:0 0 0!important;width:0!important;max-width:0!important;min-width:0!important;
+  }
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-actions{
+    flex:0 0 0!important;width:0!important;max-width:0!important;min-width:0!important;
+  }
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-head{gap:0!important}
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-head-main{
+    display:flex!important;align-items:center!important;gap:10px!important;
+    flex:1 1 100%!important;
+  }
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-back{margin:0!important;flex:0 0 auto}
+  /* 姓名必须显式吃掉剩余宽度：只写 min-width:0 时它仍是 flex:0 1 auto，
+     在 nowrap + ellipsis 下会收缩到最小内容宽，实测被截成「赵..」。 */
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-name{
+    flex:1 1 auto!important;font-size:14px!important;min-width:0;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;
+  }
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-name span{font-size:11.5px!important}
+  #editPanel.mobile-open #edit-title .ws2-chips,
+  #editPanel.mobile-open #edit-title .ws2-head-actions{
+    transition:max-height .2s ease,opacity .18s ease;
+  }
+  #editPanel.mobile-open #edit-title .ws2-head-main{transition:gap .2s ease}
+
+  /* 返回按钮：与工作台头部同一构成主义语言（直角、硬边、方箭头） */
+  .ws2-back{
+    display:inline-flex!important;align-items:center;gap:7px;
+    margin:0 0 9px;padding:7px 12px 7px 10px;
+    background:rgba(255,255,255,.94);color:var(--brand-deep);
+    border:2px solid rgba(255,255,255,.9);border-radius:0;
+    font-family:var(--disp);font-size:12.5px;font-weight:700;letter-spacing:.04em;
+    line-height:1.2;cursor:pointer;white-space:nowrap;
+    box-shadow:3px 3px 0 rgba(0,0,0,.22);
+    transition:background-color .15s,box-shadow .15s,transform .15s;
+  }
+  .ws2-back i{font-style:normal;font-size:14px;line-height:1}
+  .ws2-back:hover,.ws2-back:active{
+    background:#fff;color:var(--brand-deep);
+    box-shadow:4px 4px 0 rgba(0,0,0,.28);transform:translate(-1px,-1px);
+  }
+  .ws2-back:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+  /* 浅色头部（待评估灰/黄）上保证对比：改用深墨底反白 */
+  #edit-title.tone-yellow .ws2-back,#edit-title.tone-gray .ws2-back,
+  #edit-title.tone-pending .ws2-back{
+    background:var(--ink);color:#fff;border-color:var(--ink);
+    box-shadow:3px 3px 0 rgba(0,0,0,.3);
+  }
+  #edit-title.tone-yellow .ws2-back:hover,#edit-title.tone-gray .ws2-back:hover,
+  #edit-title.tone-pending .ws2-back:hover{background:#000;color:#fff}
+
+  /* 姓名与徽章在窄屏留出呼吸，操作按钮整行铺开 */
+  #editPanel.mobile-open .ws2-head{gap:10px}
+  #editPanel.mobile-open .ws2-head-main{min-width:0;flex:1 1 100%}
+  #editPanel.mobile-open .ws2-name{font-size:17px}
+  #editPanel.mobile-open .ws2-head-actions{
+    width:100%;justify-content:flex-start;gap:6px;
+  }
+  #editPanel.mobile-open .ws2-head-actions .btn{flex:1 1 auto;min-width:0}
+}
+
+@media(max-width:600px){
+  #editPanel.mobile-open #edit-title{padding:9px 12px 10px!important}
+  #editPanel.mobile-open #edit-content{padding:11px 12px 26px!important}
+  .ws2-back{font-size:12px;padding:6px 11px 6px 9px;margin-bottom:8px}
+  #editPanel.mobile-open .ws2-name{font-size:16px}
+  /* 紧凑条在窄屏略微收紧返回按钮的内边距即可：徽章行收起后主轴已有充足
+     空间（容器 398px，按钮约 89px + 姓名约 72px），不要再限制标签宽度，
+     否则「患者列表」会被截成「患者」。 */
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-back{
+    padding:5px 10px!important;gap:6px!important;font-size:11.5px!important;
+    box-shadow:2px 2px 0 rgba(0,0,0,.22)!important;
+  }
+  #editPanel.mobile-open #edit-title.cx-compact .ws2-back span{white-space:nowrap}
+  /* 四个操作按钮两行两列，避免挤成一条细缝 */
+  #editPanel.mobile-open .ws2-head-actions .btn{flex:1 1 calc(50% - 3px);font-size:12px}
+}
+
+/* 打印不需要返回按钮 */
+@media print{
+  .ws2-back{display:none!important}
+}

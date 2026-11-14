@@ -162,6 +162,11 @@
     const warnTone = (a.warning && a.warning.color) || 'pending';
     return '<div class="ws2-head">' +
       '<div class="ws2-head-main">' +
+        /* 窄屏工作台是全屏浮层，必须有明确的退出入口。旧版表单工作台删除时
+           连带移除了 .edit-back，导致手机端进去后无法返回列表。这里在工作台
+           头部重建返回按钮：桌面隐藏（左侧列表常驻），窄屏由 CSS 显示。 */
+        '<button class="ws2-back" type="button" onclick="closeEditorPanel()" aria-label="返回患者列表">' +
+          '<i aria-hidden="true">←</i><span>患者列表</span></button>' +
         '<div class="ws2-name">' + esc(p.name) + ' <span>' + esc(p.id) + '</span></div>' +
         '<div class="ws2-chips">' +
           badge(p.age + ' 岁') + badge(stageText(p)) + badge('活检 Gleason ' + (() => { try { const x = ClinicalCore.pickBiopsyPathology(p); return x && x.gleasonTotal != null ? (x.gleasonPrimary + '+' + x.gleasonSecondary + '=' + x.gleasonTotal) : '未录'; } catch (e) { return '未录'; } })()) +

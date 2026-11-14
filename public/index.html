@@ -4179,8 +4179,17 @@ function openEditorOnMobile() {
   const panel = document.getElementById('editPanel');
   if (!panel) return;
   if (window.innerWidth <= 860 && selectedId) {
+    const wasOpen = panel.classList.contains('mobile-open');
     panel.classList.add('mobile-open');
     document.body.classList.add('editor-open');
+    /* 换患者时必须回到顶部：否则会沿用上一位的滚动位置，新患者一进来就是
+       半截内容 + 紧凑表头，看不到姓名与徽章。同一患者重绘则保留原位。 */
+    if (!wasOpen || panel.dataset.cxPid !== String(selectedId)) {
+      panel.scrollTop = 0;
+      const t = document.getElementById('edit-title');
+      if (t) t.classList.remove('cx-compact');
+    }
+    panel.dataset.cxPid = String(selectedId);
   }
 }
 
@@ -5324,6 +5333,33 @@ function initAppEvents() {
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    /* 关闭顺序必须从最上层往下：日期弹层 → 工作台内弹窗（登记就诊/治疗/
+       临床摘要等）→ 新增患者弹窗 → 手机端工作台浮层。此前只判断新增患者
+       弹窗，导致在临床摘要上按 Esc 会连带把工作台一起关掉。 */
+    const visible = el => {
+      if (!el) return false;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    };
+    const dp = document.querySelector('.date-picker-popup');
+    if (visible(dp) && typeof closeDatePicker === 'function') { closeDatePicker(); return; }
+    /* 工作台弹窗必须走它自己的关闭函数（会清理 host、恢复滚动锁与焦点），
+       直接 remove 遮罩会留下空 host。另注意 fixed 元素的 offsetParent 为
+       null，不能用它判断可见性。子弹窗优先于父弹窗。 */
+    if (window.Workspace) {
+      const sub = [...document.querySelectorAll('.ws2-modal-mask.ws2-submask')].filter(visible).pop();
+      if (sub && Workspace.closeSubModal) { Workspace.closeSubModal(); return; }
+      const main = [...document.querySelectorAll('.ws2-modal-mask')].filter(visible).pop();
+      if (main && Workspace.closeModal) { Workspace.closeModal(); return; }
+    }
+    const sumMask = [...document.querySelectorAll('.modal-mask.show')].filter(visible).pop();
+    if (sumMask && sumMask.id !== 'newPatientModal') {
+      const btn = sumMask.querySelector('[onclick*="close"],[onclick*="hide"],.np-x');
+      if (btn) { btn.click(); return; }
+      sumMask.classList.remove('show'); return;
+    }
     if (document.getElementById('newPatientModal').classList.contains('show')) closeNewPatientModal();
     else if (document.getElementById('editPanel').classList.contains('mobile-open')) closeEditorPanel();
   });
