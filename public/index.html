@@ -5261,8 +5261,12 @@ async function exportBackup() {
     const b = await r.blob(), a = document.createElement('a');
     a.href = URL.createObjectURL(b);
     a.download = '前列腺癌数据库备份_' + new Date().toISOString().slice(0, 10) + '.json';
+    /* Safari 等浏览器异步启动下载：链接须挂在页面上且延迟撤销，
+       点击后立刻 revoke 会让下载静默失败（与科研导出同一模式）。 */
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     toast('⬇ 备份文件已导出');
   } catch (e) { toast('⚠ ' + e.message); }
 }
