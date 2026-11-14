@@ -25,7 +25,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test scripts/test-clinical-logic.mjs scripts/test-record-core.mjs scripts/test-export-core.mjs scripts/test-cohort-core.mjs scripts/test-ai-warnings.mjs scripts/test-guideline-catalog.mjs scripts/test-visit-rules.mjs && node scripts/test-structured-api.mjs && node scripts/test-ai-intake-fixes.mjs"
+    "test": "node --test scripts/test-clinical-logic.mjs scripts/test-record-core.mjs scripts/test-export-core.mjs scripts/test-cohort-core.mjs scripts/test-ai-warnings.mjs scripts/test-guideline-catalog.mjs scripts/test-visit-rules.mjs && node scripts/test-structured-api.mjs && node scripts/test-ai-intake-fixes.mjs && node scripts/test-ai-new-patient.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

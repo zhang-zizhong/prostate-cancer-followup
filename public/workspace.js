@@ -1486,6 +1486,16 @@
     modal('AI 登记', AiUI.renderAiPane(p), null);
   }
 
+  /* AI新增患者：不依赖已选患者，材料上传后由后端在采纳时建档。
+     入口在「新增患者」弹窗；这里只负责弹窗容器，面板由 AiUI 渲染。 */
+  function openAiNew(name) {
+    if (!window.AiUI || typeof AiUI.renderAiPane !== 'function') return toast('⚠ AI 登记模块未加载');
+    modal('AI 新增患者', AiUI.renderAiPane({ newPatient: true, name: name || '' }), null);
+    const el = document.getElementById('ws2Modal');
+    /* AI 审核卡片字段较多，放宽到与病历弹窗一致的宽度 */
+    if (el) { const dlg = el.querySelector('.ws2-modal'); if (dlg) dlg.style.setProperty('width', 'min(1080px,96vw)', 'important'); }
+  }
+
   function openVisitItemPicker(cat) {
     const p = getPatient(selectedId);
     if (!p) return;
@@ -2367,7 +2377,7 @@
     openProfileEditor, openPsaEditor, openTestoEditor, openLabEditor, openClinicalEditor,
     openStructuredEditor, deleteStructured, openToxicityInfo, openResponseInfo,
     openTreatmentLineEditor, openMedicationEditor, openEventEditor, deleteRecord,
-    openSpecimenEditor, openIhcEditor, openGenomicEditor, openDiseaseStateEditor, openConsentEditor, openAi,
+    openSpecimenEditor, openIhcEditor, openGenomicEditor, openDiseaseStateEditor, openConsentEditor, openAi, openAiNew,
     openTreatment, openBaseline, openComorbidity, openSurgery, openChemo, openAdministration, openEpisodeEdit, backfillVisits, printEpisode, printPatient, closeModal,
     state: S,
     loadCatalog

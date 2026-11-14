@@ -1650,7 +1650,7 @@ main{padding:22px 28px}
       <button class="btn btn-outline" type="button" onclick="closeNewPatientModal()">取消</button>
       <button class="btn btn-primary" id="np-submit" type="button" onclick="addPatient(this)">建立档案</button>
       <button class="btn btn-outline" type="button" onclick="addPatient(this, false, true)">建立并补基线</button>
-      <button class="btn btn-outline" type="button" onclick="addPatient(this, true)">建立并进入 AI 登记</button>
+      <button class="btn btn-outline" type="button" onclick="startAiNewPatient()">AI新增患者</button>
     </div>
   </div>
 </div>
@@ -4151,6 +4151,16 @@ function restoreSelectionContext() {
 }
 
 /* 切换患者：先拦截未保存内容，再切换；移动端打开全屏编辑层。 */
+/* AI新增患者采纳建档后调用：reload 已刷新患者列表，这里直接切到
+   新档案的工作台视图（与 addPatient 建档后的跳转保持同一套顺序）。 */
+async function enterPatientById(id) {
+  selectedId = id;
+  patientView = 'workbench';
+  switchTab('patients');
+  await selectPatient(id, true);
+  renderPatientPage();
+}
+
 async function selectPatient(id, skipGuard) {
   if (id !== selectedId && !skipGuard && !confirmDiscardCurrentEdit()) {
     restoreSelectionContext();
@@ -4982,6 +4992,19 @@ function toggleNewPatientFreeLod() {
 function setNewPatientError(msg) {
   const box = document.getElementById('np-err');
   if (box) box.innerText = msg || '';
+}
+
+/* AI新增患者：不先手工建档，直接上传材料由 AI 抽取，
+   医生在审核界面采纳「姓名/出生日期/诊断日期/初始PSA」后才真正建档
+   （四项校验在后端 lib/ai-intake.mjs，与常规建档同一套不变量）。
+   表单已填的姓名作为提示传给后端；未采纳前数据库不会产生患者记录。 */
+function startAiNewPatient() {
+  if (npSubmitting) return;
+  if (!window.Workspace || typeof Workspace.openAiNew !== 'function') return toast('⚠ AI 登记模块未加载');
+  const name = (document.getElementById('np-name').value || '').trim();
+  hideNewPatientModal(true);
+  resetNewPatientForm();
+  Workspace.openAiNew(name);
 }
 
 async function addPatient(btn, openAi, openBaseline) {

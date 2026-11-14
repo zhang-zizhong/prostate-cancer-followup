@@ -34,7 +34,11 @@
     /* 当前正在查看的患者 ID。历史列表按它过滤（患者隔离），
        切换患者时用它判断旧的审核/轮询状态是否该清掉——
        不清的话会把 A 患者的识别结果留在 B 患者的界面上。 */
-    currentPid: null
+    currentPid: null,
+    /* 新建患者模式：p.newPatient=true 时进入，此时 currentPid 为 null，
+       会话不绑定患者，采纳时由后端按四项不变量建档 */
+    newPatient: false,
+    newName: ''
   };
 
   /* 图片压缩参数：长边 2000px / JPEG 0.85。
@@ -54,6 +58,49 @@
   }
   const say = m => { if (typeof window.toast === 'function') window.toast(m); else console.log(m); };
   const call = (p, o) => window.api(p, o);
+
+  /* 应用内确认弹窗：原生 confirm/alert 在部分浏览器环境（嵌入式预览、
+     自动化浏览器、用户勾选"阻止此页面创建更多对话框"）会被静默拦截，
+     confirm 直接返回 false，医生看到的就是"点了没反应"。
+     采纳是写入病历的关键确认，必须用页面内弹窗保证可见、可点。 */
+  function uiConfirm(title, message, okText, danger) {
+    injectCss();
+    return new Promise(resolve => {
+      const old = document.getElementById('ai-confirm-mask');
+      if (old) old.remove();
+      const mask = document.createElement('div');
+      mask.id = 'ai-confirm-mask';
+      mask.className = 'ai-confirm-mask';
+      mask.innerHTML = '<div class="ai-confirm" role="alertdialog" aria-modal="true">' +
+        '<h4>' + esc(title) + '</h4>' +
+        '<div class="ai-confirm-body">' + esc(message) + '</div>' +
+        '<div class="ai-confirm-acts">' +
+        '<button type="button" class="btn btn-outline" id="ai-confirm-cancel">取消</button>' +
+        '<button type="button" class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" id="ai-confirm-ok">' + esc(okText || '确定') + '</button>' +
+        '</div></div>';
+      const done = v => {
+        document.removeEventListener('keydown', onKey, true);
+        mask.remove();
+        resolve(v);
+      };
+      /* 捕获阶段拦截 Esc：全局 Esc 处理器在冒泡阶段关工作台弹窗，
+         不先拦下会把确认弹窗底下的整个 AI 面板一起关掉 */
+      const onKey = e => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+      };
+      mask.addEventListener('click', e => { if (e.target === mask) done(false); });
+      mask.querySelector('#ai-confirm-cancel').onclick = () => done(false);
+      mask.querySelector('#ai-confirm-ok').onclick = () => done(true);
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(mask);
+      mask.querySelector('#ai-confirm-ok').focus();
+    });
+  }
+
+  /* 采纳结果明细（未写入项）：同理不用原生 alert，保证医生一定看得到 */
+  function uiAlert(title, message) {
+    return uiConfirm(title, message, '知道了', false);
+  }
 
   function fmtBytes(n) {
     if (!n) return '0 B';
@@ -155,6 +202,11 @@
 .ai-sum{display:flex;gap:14px;flex-wrap:wrap;padding:9px 12px;background:#f4f8f9;border-radius:8px;font-size:12.5px;color:#1c4f5c;margin-bottom:10px}
 .ai-sum b{font-size:15px}
 .ai-empty{text-align:center;color:var(--text-light,#58747c);font-size:13px;padding:22px}
+.ai-confirm-mask{position:fixed;inset:0;background:rgba(17,26,24,.55);z-index:3600;display:flex;align-items:center;justify-content:center;padding:20px}
+.ai-confirm{background:#fff;border:1px solid var(--border,rgba(102,146,155,.35));border-radius:12px;max-width:540px;width:100%;box-shadow:0 18px 60px rgba(10,30,35,.35);padding:18px 20px}
+.ai-confirm h4{margin:0 0 10px;font-size:15px;color:var(--primary,#123f4c)}
+.ai-confirm-body{font-size:13px;line-height:1.7;color:var(--text,#183842);white-space:pre-wrap;max-height:52vh;overflow:auto;margin-bottom:14px}
+.ai-confirm-acts{display:flex;gap:8px;justify-content:flex-end}
 `;
     const st = document.createElement('style');
     st.id = 'ai-intake-css';
@@ -218,10 +270,14 @@
      因此这里同步产出外壳，状态/词表通过 aiInit() 异步补齐后重渲染内层。 */
   function renderAiPane(p) {
     injectCss();
+    const isNew = !!(p && p.newPatient);
+    const pid = isNew ? null : p.id;
     /* 患者隔离：切换患者时必须丢弃上一个患者的在途状态。
        审核结果、采纳决策、待上传文件、轮询任务都属于具体某位患者，
-       不清掉就会把 A 患者的识别卡片留在 B 患者的界面上。 */
-    if (ai.currentPid && ai.currentPid !== p.id) {
+       不清掉就会把 A 患者的识别卡片留在 B 患者的界面上。
+       新建患者模式同样参与隔离（pid=null 与任何患者 id 都不同）。 */
+    const modeChanged = isNew !== ai.newPatient;
+    if (modeChanged || (ai.currentPid && ai.currentPid !== pid) || (isNew && ai.currentPid)) {
       stopPoll();
       ai.session = null;
       ai.decisions = {};
@@ -229,19 +285,23 @@
       ai.force = {};
       clearFilesSilent();
     }
-    ai.currentPid = p.id;
+    ai.newPatient = isNew;
+    if (isNew) ai.newName = String(p.name || '').trim();
+    ai.currentPid = pid;
+    /* 异步重绘前核对上下文是否仍是本次渲染：患者 id 与模式都要一致 */
+    const sameCtx = () => ai.currentPid === pid && ai.newPatient === isNew;
     if (!ai.status) {
       /* 首次进入：先渲染「加载中」，拿到状态后重绘内层并拉历史 */
       aiInit().then(() => {
-        /* 异步回来时可能已切走：只在仍停留在同一患者时重绘，
+        /* 异步回来时可能已切走：只在仍停留在同一上下文时重绘，
            否则会把旧患者的内容画到新患者的界面上 */
-        if (ai.currentPid !== p.id) return;
+        if (!sameCtx()) return;
         const root = document.getElementById('ai-pane-inner');
         if (root) root.innerHTML = buildAiInner(p);
         loadHistory();
       }).catch(() => { /* 保持加载中提示 */ });
     } else {
-      setTimeout(() => { if (ai.currentPid === p.id) loadHistory(); }, 30);
+      setTimeout(() => { if (sameCtx()) loadHistory(); }, 30);
     }
     return '<div class="ai-wrap"><div id="ai-pane-inner">' + buildAiInner(p) + '</div></div>';
   }
@@ -266,6 +326,16 @@
         esc((s.promptBudget || {}).maxImages) + ' 张图　·　图片自动压缩至长边 ' + MAX_EDGE + 'px 后上传</div>';
     }
 
+    /* 新建患者模式：姓名提示 + 建档规则说明 */
+    if (p.newPatient) {
+      h += '<div class="ai-banner info"><b>AI 新增患者</b>：无需先手工建档。上传材料后由模型抽取，' +
+        '审核时采纳<b>姓名、出生日期、诊断日期、至少一条初始 PSA</b> 四项才会建立档案（与常规建档同一套校验）；' +
+        '材料缺项时请先用常规界面建档。未采纳前不会在数据库产生任何患者记录。</div>' +
+        '<div class="ai-panel"><div class="form-item"><label>患者姓名（可选；留空则由模型从材料中识别）</label>' +
+        '<input id="ai-new-name" type="text" maxlength="60" value="' + esc(ai.newName || '') + '" placeholder="患者姓名" ' +
+        'style="width:100%;max-width:320px;padding:7px 9px;border:1px solid var(--border,rgba(102,146,155,.35));border-radius:7px;font-size:13px"></div></div>';
+    }
+
     /* 上传区 */
     h += '<div class="ai-panel"><h4>① 上传病历 / 化验单 / 病理报告</h4>' +
       '<div class="ai-drop" id="ai-drop" onclick="document.getElementById(\'ai-file\').click()" ' +
@@ -285,7 +355,7 @@
         .map(o => { const [v, l] = o.split('|'); return '<option value="' + v + '">' + l + '</option>'; }).join('') +
       '</select></div>' +
       '<div style="display:flex;gap:8px;margin-top:11px;align-items:center;flex-wrap:wrap">' +
-      '<button type="button" class="btn btn-primary" id="ai-submit" onclick="AiUI.submit(\'' + esc(p.id) + '\',this)">开始识别</button>' +
+      '<button type="button" class="btn btn-primary" id="ai-submit" onclick="AiUI.submit(\'' + esc(p.id || '') + '\',this)">开始识别</button>' +
       '<button type="button" class="btn btn-outline" onclick="AiUI.clearFiles()">清空</button>' +
       '<span id="ai-hint" style="font-size:12px;color:var(--text-light,#58747c)"></span></div>' +
       '<div id="ai-progress"></div>' +
@@ -380,7 +450,16 @@
       fd.append('w' + i, String(f.w || 0));
       fd.append('h' + i, String(f.h || 0));
     });
-    fd.append('patientId', pid);
+    if (pid) {
+      fd.append('patientId', pid);
+    } else {
+      /* 新建患者模式：姓名仅作提示（后端优先采纳医生确认的姓名项），
+         无姓名时必须含图片材料，由模型从材料中识别 */
+      const nameEl = document.getElementById('ai-new-name');
+      const nm = nameEl ? nameEl.value.trim() : (ai.newName || '');
+      if (nm) fd.append('newPatientName', nm);
+      else if (!ai.files.length) { say('⚠ 请填写患者姓名，或上传含患者姓名的材料'); return; }
+    }
     if (text.trim()) fd.append('text', text.trim());
     fd.append('docType', (document.getElementById('ai-doctype') || {}).value || 'mixed');
 
@@ -533,6 +612,12 @@
 
     let h = '<div class="ai-panel"><h4>② 审核识别结果（共 ' + items.length + ' 项）</h4>';
 
+    if (!d.patientId) {
+      h += '<div class="ai-banner info" style="margin-bottom:10px"><b>新建患者</b>' +
+        (d.newPatientName ? '（' + esc(d.newPatientName) + '）' : '') +
+        '：采纳时将建立新档案。必须采纳<b>姓名、出生日期、诊断日期、至少一条初始 PSA</b>，' +
+        '缺任一项后端会拒绝建档；同名同生日的已有患者会被拦截，请改从患者列表选择该患者上传。</div>';
+    }
     if (d.offline) {
       h += '<div class="ai-banner offline" style="margin-bottom:10px"><b>⚠ 离线演练数据</b>：以下内容为演示数据，采纳会写入演示值。请仅在测试环境使用。</div>';
     }
@@ -1114,11 +1199,13 @@
 
     const nDanger = (d.items || []).filter(it => ai.decisions[it.id] === 'adopt' && it.risk === 'danger').length;
     const nOverwrite = decisions.filter(x => x.decision === 'adopt' && x.overwrite).length;
-    let msg = '将写入 ' + nAdopt + ' 项到 ' + (d.patientId || '新建患者') + ' 的病历。\n\n';
+    let msg = d.patientId
+      ? '将写入 ' + nAdopt + ' 项到患者 ' + d.patientId + ' 的病历。\n\n'
+      : '将建立新患者档案' + (d.newPatientName ? '（' + d.newPatientName + '）' : '') + ' 并写入 ' + nAdopt + ' 项。\n须包含姓名、出生日期、诊断日期与至少一条初始 PSA，否则不会建档。\n\n';
     if (nOverwrite) msg += '⚠ 其中 ' + nOverwrite + ' 项与现有档案冲突，将用材料值覆盖现有档案值。\n\n';
     if (nDanger) msg += '⚠ 其中 ' + nDanger + ' 项被标记为「必须确认」，请确保已逐条核对原文依据。\n\n';
     msg += '写入后不可一键撤销（需逐条删除）。确认继续？';
-    if (!confirm(msg)) return;
+    if (!(await uiConfirm(d.patientId ? '采纳并写入病历' : '采纳并建立新患者档案', msg, '确认写入', true))) return;
 
     if (btn) { btn.disabled = true; btn.textContent = '写入中…'; }
     let r;
@@ -1135,20 +1222,34 @@
     if ((r.skipped || []).length) m += '，跳过 ' + r.skipped.length + ' 项';
     if ((r.errors || []).length) m += '，失败 ' + r.errors.length + ' 项';
     say(m);
-    if ((r.errors || []).length || (r.skipped || []).length) {
-      const detail = (r.errors || []).map(e => '✗ ' + (e.drug || e.type || e.kind) + '：' + e.reason)
-        .concat((r.skipped || []).map(s => '⊘ ' + s.field + '：' + s.reason)).join('\n');
-      setTimeout(() => alert('以下项未写入：\n\n' + detail), 300);
-    }
+    const pendingDetail = ((r.errors || []).length || (r.skipped || []).length)
+      ? (r.errors || []).map(e => '✗ ' + (e.drug || e.type || e.kind) + '：' + e.reason)
+          .concat((r.skipped || []).map(s => '⊘ ' + s.field + '：' + s.reason)).join('\n')
+      : null;
 
     /* 刷新患者数据，让时间轴/PSA 曲线立即反映新记录 */
+    const createdPid = !d.patientId && r.patientId ? r.patientId : null;
     ai.session = null;
     const box = document.getElementById('ai-review');
-    if (box) box.innerHTML = '<div class="ai-panel"><div class="ai-banner info">已完成写入，可在「档案」「病程」「PSA/睾酮」等页签查看结果。</div></div>';
+    if (box) box.innerHTML = '<div class="ai-panel"><div class="ai-banner info">' +
+      (createdPid ? '已建立新患者档案 ' + esc(createdPid) + '，正在进入该患者工作台…'
+                  : '已完成写入，可在「档案」「病程」「PSA/睾酮」等页签查看结果。') + '</div></div>';
     clearFiles();
     if (typeof window.reload === 'function') {
       try { await window.reload(); } catch (e) { console.warn('[ai-intake] reload 失败', e); }
     }
+    if (createdPid) {
+      /* 新建患者：先让医生看完未写入明细（如有），再进入新档案的工作台。
+         不能用延时弹窗——跳转后工作台已切换，明细会盖在新患者界面上。 */
+      if (pendingDetail) await uiAlert('以下项未写入', pendingDetail);
+      say('✅ 已建立患者档案 ' + createdPid);
+      if (typeof window.Workspace !== 'undefined') Workspace.closeModal();
+      if (typeof window.enterPatientById === 'function') {
+        try { await window.enterPatientById(createdPid); } catch (e) { console.warn('[ai-intake] 进入新患者失败', e); }
+      }
+      return;
+    }
+    if (pendingDetail) setTimeout(() => uiAlert('以下项未写入', pendingDetail), 300);
     loadHistory();
   }
 
@@ -1175,13 +1276,24 @@
        不带的话后端会回退到「按创建人」或「admin 看全部」，
        界面上就会出现其他患者的识别记录。 */
     const pid = ai.currentPid;
-    if (!pid) { box.innerHTML = '<div class="ai-empty">请先选择患者</div>'; return; }
+    const isNew = ai.newPatient;
+    if (!pid && !isNew) { box.innerHTML = '<div class="ai-empty">请先选择患者</div>'; return; }
     let list;
-    try { list = await call('/api/ai-intake/sessions?limit=10&patientId=' + encodeURIComponent(pid)); }
+    try {
+      list = await call(isNew ? '/api/ai-intake/sessions?limit=30'
+                              : '/api/ai-intake/sessions?limit=10&patientId=' + encodeURIComponent(pid));
+    }
     catch (e) { box.innerHTML = '<div class="ai-empty">历史加载失败</div>'; return; }
     /* 响应回来时可能已切到别的患者：不画，避免串页 */
-    if (ai.currentPid !== pid) return;
-    if (!list || !list.length) { box.innerHTML = '<div class="ai-empty">该患者还没有识别记录</div>'; return; }
+    if (ai.currentPid !== pid || ai.newPatient !== isNew) return;
+    if (isNew) {
+      /* 新建模式只展示本人创建、尚未绑定患者的会话。
+         后端不带 patientId 时按创建人过滤（admin 看全部），这里再按
+         createdBy 收紧一层，避免管理员看到同事的未建档材料。 */
+      const me = (typeof window.currentUser !== 'undefined' && window.currentUser && window.currentUser.username) || '';
+      list = (list || []).filter(s => !s.patientId && (!me || s.createdBy === me));
+    }
+    if (!list || !list.length) { box.innerHTML = '<div class="ai-empty">' + (isNew ? '还没有新建患者的识别记录' : '该患者还没有识别记录') + '</div>'; return; }
 
     const ST = { pending: '待审核', adopted: '已采纳', rejected: '已拒绝', failed: '失败', queued: '排队中', preprocessing: '处理中', redacting: '脱敏中', extracting: '识别中' };
     box.innerHTML = list.map(s => {
