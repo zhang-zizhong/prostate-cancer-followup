@@ -1394,7 +1394,7 @@ main{padding:22px 28px}
 <link rel="stylesheet" href="/glass-theme.css">
 <link rel="stylesheet" href="/aurora-glass.css?v=20261030-password-eye">
 <link rel="stylesheet" href="/workspace.css?v=20261108-v23">
-<link rel="stylesheet" href="/construct.css?v=20261114-mobile-v23">
+<link rel="stylesheet" href="/construct.css?v=20261114-chart-v24">
 </head>
 <body>
 
@@ -3343,10 +3343,8 @@ function makeChart(arr, risk) {
   });
   const chartSvg = '<svg class="chart-svg" style="--chart-native-width:' + W + 'px;min-width:' + W + 'px" viewBox="0 0 ' + W + ' ' + h + '">' + grid +
          '<path d="' + line + '" fill="none" stroke="' + c + '" stroke-width="2.5" stroke-linecap="round"/>' + dots + labels + '</svg>';
-  return '<div class="chart-scroll chart-desktop">' + chartSvg + '</div>' +
-    '<div class="chart-scroll chart-main">' + chartSvg.replace('<svg ', '<svg preserveAspectRatio="none" ') + '</div>' +
-    '<details class="mobile-chart-detail"><summary>查看数值与日期 <span>展开后可左右滑动</span></summary>' +
-    '<div class="chart-scroll">' + chartSvg + '</div></details>';
+  /* 单一可横滑曲线：不再渲染「缩略总览 + 折叠明细」两份重复图形。 */
+  return '<div class="chart-scroll chart-main">' + chartSvg + '</div>';
 }
 
 /* ---- PSA 曲线记录点弹层 ----
@@ -3445,10 +3443,8 @@ function makeTestoChart(arr) {
   });
   const chartSvg = '<svg class="chart-svg" style="--chart-native-width:' + W + 'px;min-width:' + W + 'px" viewBox="0 0 ' + W + ' ' + h + '">' + grid +
          '<path d="' + line + '" fill="none" stroke="' + c + '" stroke-width="2.5" stroke-linecap="round"/>' + dots + labels + '</svg>';
-  return '<div class="chart-scroll chart-desktop">' + chartSvg + '</div>' +
-    '<div class="chart-scroll chart-main">' + chartSvg.replace('<svg ', '<svg preserveAspectRatio="none" ') + '</div>' +
-    '<details class="mobile-chart-detail"><summary>查看数值与日期 <span>展开后可左右滑动</span></summary>' +
-    '<div class="chart-scroll">' + chartSvg + '</div></details>';
+  /* 单一可横滑曲线：不再渲染「缩略总览 + 折叠明细」两份重复图形。 */
+  return '<div class="chart-scroll chart-main">' + chartSvg + '</div>';
 }
 
 /* ============ 总览统计 ============ */
@@ -4198,6 +4194,56 @@ function closeEditorPanel() {
   const panel = document.getElementById('editPanel');
   if (panel) panel.classList.remove('mobile-open');
   document.body.classList.remove('editor-open');
+  /* 退出工作台即清除上一次患者的点击信息：丢弃守卫状态与残留选中态，
+     回到列表后不会被旧点击/旧选中带进上一次的工作台。
+     仅在「列表与工作台不能同时显示」的窄屏浮层模式生效；桌面双栏
+     同时显示时保留选中高亮，维持原有上下文。 */
+  listGesture.blockUntil = 0;
+  listGesture.last = 0;
+  if (window.innerWidth <= 860) {
+    selectedId = null;
+    document.querySelectorAll('#mgmtList .mgmt-row.selected').forEach(r => r.classList.remove('selected'));
+  }
+}
+
+/* ---- 患者列表滚动手势守卫 ----
+   列表行是内联 onclick，触摸滚动停稳后浏览器会补发合成 click，落在手指
+   下的行上，表现为「停止滑动后直接跳进上一次点进的患者工作台」。
+   守卫在捕获阶段拦截：手势期间、以及停稳后 400ms 内的 click 一律视为滚动
+   余波丢弃；只有「列表与工作台不能同时显示」（窄屏浮层模式）才启用，
+   桌面双栏同时显示时不拦截，保持原有点击手感。 */
+const listGesture = { last: 0, blockUntil: 0 };
+function listOnlyMode() { return window.innerWidth <= 860; }
+function initListGestureGuard() {
+  const list = document.getElementById('mgmtList');
+  if (!list || list.dataset.cxGuard) return;
+  list.dataset.cxGuard = '1';
+  /* 只记录「用户手势驱动的滚动」：触摸位移>10px、滚轮、或触摸后 700ms 内
+     的惯性滚动。程序化 scrollIntoView（选中行定位等）不记录，因此不会把
+     随后的真实点按误判成滚动余波。 */
+  let sx = 0, sy = 0, touching = false, touchEndAt = 0;
+  const mark = () => { listGesture.last = Date.now(); };
+  list.addEventListener('touchstart', (e) => { touching = true; const t = e.touches[0]; sx = t.clientX; sy = t.clientY; }, { passive: true });
+  list.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) mark(); }, { passive: true });
+  const lift = () => { touching = false; touchEndAt = Date.now(); };
+  list.addEventListener('touchend', lift, { passive: true });
+  list.addEventListener('touchcancel', lift, { passive: true });
+  list.addEventListener('wheel', mark, { passive: true });
+  const onScroll = () => { if (touching || Date.now() - touchEndAt < 700) mark(); };
+  list.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('scroll', () => { if (listOnlyMode()) onScroll(); }, { passive: true });
+  document.addEventListener('click', (e) => {
+    if (!listOnlyMode()) return;
+    const row = e.target.closest && e.target.closest('#mgmtList .mgmt-row');
+    if (!row) return;
+    const now = Date.now();
+    /* 拦截滚动进行中 / 惯性刚停 100ms 内的合成 click；真实点按放行。 */
+    const scrolling = touching || (listGesture.last && now - listGesture.last < 100);
+    if (scrolling || now < listGesture.blockUntil) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
 }
 
 
@@ -5384,6 +5430,7 @@ function initAppEvents() {
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 initDatePickers();
 initAppEvents();
+initListGestureGuard();
 tryResume();
 
 /* 药物备注弹层：点击外部/按 Esc/滚动页面时关闭。 */
@@ -5406,6 +5453,6 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideMedNote(); hidePsaDot(); } });
 window.addEventListener('resize', () => { hideMedNote(); hidePsaDot(); });
 </script>
-<script src="/construct.js?v=20261114-mobile-v23"></script>
+<script src="/construct.js?v=20261114-chart-v24"></script>
 </body>
 </html>

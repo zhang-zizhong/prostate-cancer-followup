@@ -2642,6 +2642,42 @@ header .btn-logout:hover,.btn-logout:hover{background:#EFC65C!important;color:#2
 .mobile-chart-detail summary span{color:#4A554C!important;font-size:11px!important}
 .chart-main:before{color:#4A554C!important;font-size:10.5px!important}
 
+/* ---------- 单一可横滑曲线（全宽通用） ----------
+   曲线只渲染一份 .chart-main：容器宽度受视口约束、SVG 保持原生宽度，
+   桌面与窄屏都直接左右滑动读全，不再有「缩略总览 + 折叠明细」的重复。 */
+.chart-main{
+  display:block!important;
+  overflow-x:auto!important;overflow-y:hidden!important;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y!important;
+  overscroll-behavior-x:contain!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  padding-bottom:4px;
+  scrollbar-width:thin;scrollbar-color:var(--s-teal) rgba(42,116,128,.12);
+}
+.chart-main .chart-svg{
+  display:block;
+  min-width:var(--chart-native-width,560px)!important;
+  width:var(--chart-native-width,560px)!important;
+  max-width:none!important;height:180px;
+}
+.chart-main::-webkit-scrollbar{height:8px!important;display:block!important}
+.chart-main::-webkit-scrollbar-track{background:rgba(42,116,128,.12)!important;border:0!important}
+.chart-main::-webkit-scrollbar-thumb{background:var(--s-teal)!important;border:0!important;border-radius:0!important}
+.chart-main::-webkit-scrollbar-thumb:hover{background:var(--brand-deep)!important}
+/* 卡片标题右侧的滑动提示（桌面同样需要，曲线比卡片宽） */
+.ws2-card:has(.chart-main)>.ws2-card-h{
+  display:flex!important;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;
+}
+.ws2-card:has(.chart-main)>.ws2-card-h::after{
+  content:'← 左右滑动 →';
+  flex:0 0 auto;margin-left:auto;
+  font-family:var(--disp);font-size:10px;font-weight:700;letter-spacing:.08em;
+  color:#3E6B72;background:rgba(42,116,128,.12);
+  border:1px solid rgba(42,116,128,.3);
+  padding:2px 7px;white-space:nowrap;
+}
+
 /* ---------- G. 黑色实底块 → 语义色（不限尺寸，含大色块） ---------- */
 /* 登录页底幕：改深松绿，避免任何缝隙露出纯黑 */
 #loginScreen{background:var(--brand-deep)!important}
@@ -3686,11 +3722,11 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
 
 @media(max-width:600px){
   #editPanel.mobile-open #edit-title{padding:9px 12px 10px!important}
-  /* 让位量必须继续跟随表头高度：此前这里写死 11px，把 860px 断点的
-     calc(var(--cx-head-now)+12px) 覆盖掉，表头直接压住内容首屏。 */
-  #editPanel.mobile-open #edit-content{
-    padding:calc(var(--cx-head-now,var(--cx-head-h,248px)) + 11px) 12px 26px!important;
-  }
+  /* V23 起完整表头在正常文档流里随内容滚走，内容区不再需要任何让位。
+     旧版这里用 calc(var(--cx-head-now,248px)+11px) 预留表头高度，变量已
+     不存在、回落 248px，于是 ≤600px 时内容被凭空推下约 259px，形成用户
+     截图里的大块空白（>600px 走 860 断点的 padding:0 所以正常）。 */
+  #editPanel.mobile-open #edit-content{padding:0 12px 26px!important}
   .ws2-back{font-size:12px;padding:6px 11px 6px 9px;margin-bottom:8px}
   #editPanel.mobile-open .ws2-name{font-size:16px}
   /* 紧凑条在窄屏略微收紧返回按钮的内边距即可：徽章行收起后主轴已有充足
