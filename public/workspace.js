@@ -960,6 +960,9 @@
     closeSubModal();
     const el = $('ws2Modal');
     if (el) el.remove();
+    /* M8：关闭弹窗必须停掉 AI 登记的后台轮询，否则关窗后仍每 2.5s
+       发请求最长 5 分钟。AiUI 未加载时静默跳过。 */
+    if (window.AiUI && typeof AiUI.stopPoll === 'function') { try { AiUI.stopPoll(); } catch (e) {} }
   }
 
   function termSelect(term, selected, idPrefix) {

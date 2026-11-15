@@ -3746,10 +3746,17 @@ app.delete('/api/patients/:id', auth(), (req, res) => {
       JOIN ai_intake_sessions s ON s.id = af.session_id
      WHERE s.patient_id = ?
   `).all(p.id);
+  /* H4：AI 登记的文本材料单独落盘（<sid>.txt），不在 ai_intake_files 里，
+     删患者时必须一并清理，否则病历文本残留在磁盘上。 */
+  const aiSessions = db.prepare('SELECT id FROM ai_intake_sessions WHERE patient_id=?').all(p.id);
   db.prepare('DELETE FROM file_assets WHERE patient_id=?').run(p.id);
+  /* ai_intake_sessions.patient_id 无外键，需显式删除；
+     ai_intake_items / ai_intake_files 经 session_id 外键级联自动清理。 */
+  db.prepare('DELETE FROM ai_intake_sessions WHERE patient_id=?').run(p.id);
   db.prepare('DELETE FROM patients WHERE id=?').run(p.id);   // 外键级联删除 psa/reports/事件 记录
   files.concat(tlFiles).forEach(f => { try { fs.unlinkSync(path.join(uploadDir, f.stored_name)); } catch (e) {} });
   aiFiles.forEach(f => { try { fs.unlinkSync(path.join(uploadDir, 'ai-intake', f.stored_name)); } catch (e) {} });
+  aiSessions.forEach(s => { try { fs.unlinkSync(path.join(uploadDir, 'ai-intake', s.id + '.txt')); } catch (e) {} });
   logAudit(req.user.username, 'DELETE_PATIENT', p.id + ' ' + p.name);
   res.json({ ok: true });
 });
@@ -6491,8 +6498,10 @@ app.get('/api/backup/export', auth(true), (req, res) => {
        version 12：科研导出/结构化记录继续扩展（历史读取兼容）。
        version 13：治疗段/就诊/就诊行/项目/AE/手术/化疗/给药/合并症/疾病状态；
        patients[].v13 为每患者全量新对象数组，导入时按旧→新 ID 重映射。
+       version 14：纳入 AI 登记数据 aiIntake（sessions/items/files 元数据）。
+       此前备份不含 AI 审核历史与改值标注，恢复后这些数据全丢、文件元数据悬空。
        图片仍只导元数据、不含二进制——与 reports 一致，避免 JSON 膨胀到不可用。 */
-    type: 'pcd-backup', version: 13,
+    type: 'pcd-backup', version: 14,
     exportedAt: new Date().toISOString(),
     exportedBy: req.user.username,
     idCounter: parseInt(db.prepare("SELECT value FROM meta WHERE key='id_counter'").get().value),
@@ -6511,7 +6520,15 @@ app.get('/api/backup/export', auth(true), (req, res) => {
       id: r.id, patientId: r.patient_id, source: r.source, sourceId: r.source_id,
       storedName: r.stored_name, filename: r.filename || '', mime: r.mime || '',
       bytes: r.bytes || 0, sha256: r.sha256 || ''
-    }))
+    })),
+    /* M3：AI 登记审核历史与改值标注（模型质量核心指标）。
+       sessions.id 为 UUID，跨导入稳定；items/files 经 session_id 关联。
+       二进制图片不导出，与 reports 一致。 */
+    aiIntake: {
+      sessions: db.prepare('SELECT * FROM ai_intake_sessions ORDER BY created_at, id').all(),
+      items: db.prepare('SELECT * FROM ai_intake_items ORDER BY session_id, seq, id').all(),
+      files: db.prepare('SELECT * FROM ai_intake_files ORDER BY session_id, page, id').all()
+    }
   };
   logAudit(req.user.username, 'EXPORT_BACKUP', data.patients.length + ' 位患者');
   res.setHeader('Content-Disposition',
@@ -6710,10 +6727,19 @@ app.post('/api/backup/import', auth(true), (req, res) => {
       db.prepare('DELETE FROM comorbidities').run();
       db.prepare('DELETE FROM disease_states').run();
       db.prepare('DELETE FROM treatment_episodes').run();
+      /* M3：AI 登记三表。items/files 经 session_id 外键级联，显式删 sessions 即可；
+         patient_id 无外键，必须在此清理，否则覆盖导入后残留上一批患者的审核数据。 */
+      db.prepare('DELETE FROM ai_intake_sessions').run();
       db.prepare('DELETE FROM patients').run();
       fs.readdirSync(uploadDir).forEach(f => {
         try { fs.unlinkSync(path.join(uploadDir, f)); } catch (e) {}
       });
+      /* AI 材料图片与文本单独存放在 ai-intake/ 子目录，上面的 readdir 只清根目录，
+         子目录里的物理文件要单独清理（unlinkSync 对目录会失败并被吞，不会误删目录）。 */
+      const aiUpDir = path.join(uploadDir, 'ai-intake');
+      if (fs.existsSync(aiUpDir)) {
+        fs.readdirSync(aiUpDir).forEach(f => { try { fs.unlinkSync(path.join(aiUpDir, f)); } catch (e) {} });
+      }
     }
     const exist = new Set(db.prepare('SELECT id FROM patients').all().map(r => r.id));
     /* 导入时保留备份里的原始登记人：否则一次导入会把全部患者改归到导入者名下。
@@ -7125,6 +7151,29 @@ app.post('/api/backup/import', auth(true), (req, res) => {
     if (mergedLabs.labs) {
       console.log('🔧 导入时已将 ' + mergedLabs.labs + ' 条旧化验合并为 ' +
         mergedLabs.groups + ' 个病程事件');
+    }
+    /* M3：恢复 AI 登记审核历史（version 14+）。旧备份无 aiIntake 字段时跳过。
+       二进制图片不在备份内，恢复后材料图不可再预览，但审核记录与改值标注保留。 */
+    if (data.aiIntake && Array.isArray(data.aiIntake.sessions)) {
+      const insS = db.prepare(`INSERT OR IGNORE INTO ai_intake_sessions
+        (id,patient_id,new_patient_name,doc_type,status,stage_detail,model_used,prompt_ver,input_tokens,output_tokens,
+         latency_ms,finish_reason,error_class,error_msg,redaction_log,warnings,document_type,name_in_doc,created_by,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      data.aiIntake.sessions.forEach(s => insS.run(s.id, s.patient_id || null, s.new_patient_name || '', s.doc_type || '',
+        s.status, s.stage_detail || '', s.model_used || '', s.prompt_ver || '', s.input_tokens || 0, s.output_tokens || 0,
+        s.latency_ms || 0, s.finish_reason || '', s.error_class || '', s.error_msg || '', s.redaction_log || '',
+        s.warnings || '[]', s.document_type || '', s.name_in_doc || '', s.created_by || null, s.created_at, s.updated_at));
+      const insI = db.prepare(`INSERT OR IGNORE INTO ai_intake_items
+        (id,session_id,seq,kind,field,payload,evidence,page,risk,risk_reason,decision,edited_value,target_table,target_id,dedupe_key,duplicate_of,dedupe_reason)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      (data.aiIntake.items || []).forEach(x => insI.run(x.id, x.session_id, x.seq || 0, x.kind, x.field || '', x.payload || '{}',
+        x.evidence || '', x.page || 0, x.risk || 'ok', x.risk_reason || '', x.decision || 'pending', x.edited_value || null,
+        x.target_table || '', x.target_id == null ? null : x.target_id, x.dedupe_key || '', x.duplicate_of == null ? null : x.duplicate_of, x.dedupe_reason || ''));
+      const insF = db.prepare(`INSERT OR IGNORE INTO ai_intake_files
+        (id,session_id,filename,stored_name,mime,bytes,width,height,page,est_tokens)
+        VALUES(?,?,?,?,?,?,?,?,?,?)`);
+      (data.aiIntake.files || []).forEach(x => insF.run(x.id, x.session_id, x.filename || '', x.stored_name, x.mime || '',
+        x.bytes || 0, x.width || 0, x.height || 0, x.page || 1, x.est_tokens || 0));
     }
     return n;
   })();

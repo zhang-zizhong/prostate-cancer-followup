@@ -19,7 +19,9 @@ async function start() {
     DB_FILE: path.join(TMP, 'clinical.db'),
     JWT_SECRET: 'x'.repeat(64),
     INIT_ADMIN_USER: 'testadmin', INIT_ADMIN_PASS: 'test-password-123',
-    DASHSCOPE_API_KEY: '', AI_INTAKE_ENABLED: 'true'
+    DASHSCOPE_API_KEY: '', AI_INTAKE_ENABLED: 'true',
+    /* H1 生产禁止离线采纳；测试在隔离临时库验证写库链路，显式豁免 */
+    AI_ALLOW_OFFLINE_ADOPT: 'true'
   });
   child = spawn(process.execPath, ['server.js'], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
   child.stdout.on('data', d => { logs += d.toString(); });

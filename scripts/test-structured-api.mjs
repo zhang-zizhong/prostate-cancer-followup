@@ -194,9 +194,13 @@ async function main() {
     assert.equal(summaryResearch.radiationCount, 1);
 
     const backup = await call('/api/backup/export');
-    assert.equal(backup.version, 13);
+    assert.equal(backup.version, 14);
     assert.ok(backup.patients.every(x => Object.prototype.hasOwnProperty.call(x, 'v13')));
     assert.ok(Array.isArray(backup.files));
+    /* M3：备份须含 AI 登记三表 */
+    assert.ok(backup.aiIntake && Array.isArray(backup.aiIntake.sessions));
+    assert.ok(Array.isArray(backup.aiIntake.items));
+    assert.ok(Array.isArray(backup.aiIntake.files));
     assert.ok(backup.patients.some(x => x.id === pid && x.pathologyReports.length === 1));
 
     await call('/api/backup/import', { method: 'POST', body: JSON.stringify({ data: backup, mode: 'overwrite' }) });

@@ -38,8 +38,22 @@
     /* 新建患者模式：p.newPatient=true 时进入，此时 currentPid 为 null，
        会话不绑定患者，采纳时由后端按四项不变量建档 */
     newPatient: false,
-    newName: ''
+    newName: '',
+    /* M11：状态接口加载失败标记，区别于"服务端已关闭" */
+    loadError: '',
+    /* M8：轮询上下文令牌。每次 startPoll 自增，在途响应回来时核对，
+       患者/模式已切换或弹窗已关闭则丢弃，避免把 A 患者结果画进 B 患者界面 */
+    pollToken: 0,
+    /* M9：审核材料图 blob 缓存（fid -> blobUrl），重绘复用，
+       会话切换/清空时统一 revoke，避免每次重绘重新 fetch 且旧 blob 泄漏 */
+    imgCache: {}
   };
+
+  /* M9：释放审核图 blob 缓存 */
+  function revokeReviewImages() {
+    Object.values(ai.imgCache).forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { /* 忽略 */ } });
+    ai.imgCache = {};
+  }
 
   /* 图片压缩参数：长边 2000px / JPEG 0.85。
      依据技术文档 4.3 节——不压缩的 3000×4000 原图会让单请求越过 32K
@@ -59,41 +73,94 @@
   const say = m => { if (typeof window.toast === 'function') window.toast(m); else console.log(m); };
   const call = (p, o) => window.api(p, o);
 
+  /* L7：onclick 内联字符串参数的安全转义。
+     esc() 是 HTML 转义，浏览器解析属性时会先解码实体，拼进 JS 字符串仍可能逃逸。
+     JSON.stringify 产出合法 JS 字面量，再把 " 转成 &quot; 以嵌入双引号属性，
+     < > 转义防脚本上下文 breakout。id 虽均服务端生成，仍做纵深加固。 */
+  function jsAttr(s) {
+    return JSON.stringify(String(s == null ? '' : s))
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   /* 应用内确认弹窗：原生 confirm/alert 在部分浏览器环境（嵌入式预览、
      自动化浏览器、用户勾选"阻止此页面创建更多对话框"）会被静默拦截，
      confirm 直接返回 false，医生看到的就是"点了没反应"。
      采纳是写入病历的关键确认，必须用页面内弹窗保证可见、可点。 */
-  function uiConfirm(title, message, okText, danger) {
+  /* L11：弹窗底座。记录打开前的焦点，关闭时归还；Tab 焦点陷阱；
+     二次打开先清理旧 mask 的 keydown 监听并 resolve 悬挂 promise（返回取消值），
+     避免监听器泄漏与 promise 永远 pending。 */
+  let activeDialogCleanup = null;
+  function openDialog(buildHtml, onDone, focusSel) {
     injectCss();
+    if (activeDialogCleanup) { try { activeDialogCleanup(); } catch (e) { /* 忽略 */ } }
+    const prevFocus = document.activeElement;
+    const mask = document.createElement('div');
+    mask.id = 'ai-confirm-mask';
+    mask.className = 'ai-confirm-mask';
+    mask.innerHTML = buildHtml();
+    let settled = false;
+    const done = v => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener('keydown', onKey, true);
+      activeDialogCleanup = null;
+      mask.remove();
+      if (prevFocus && typeof prevFocus.focus === 'function') { try { prevFocus.focus(); } catch (e) { /* 忽略 */ } }
+      onDone(v);
+    };
+    /* 捕获阶段拦截 Esc/Tab：全局 Esc 在冒泡阶段关工作台弹窗，
+       不先拦下会把确认弹窗底下的整个 AI 面板一起关掉 */
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null); return; }
+      if (e.key === 'Tab') {
+        const focusables = mask.querySelectorAll('button, input, textarea, select, [tabindex]');
+        if (!focusables.length) return;
+        const first = focusables[0], last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    mask.addEventListener('click', e => { if (e.target === mask) done(null); });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(mask);
+    activeDialogCleanup = () => done(null);
+    const f = mask.querySelector(focusSel || '#ai-confirm-ok');
+    if (f) f.focus();
+    return { mask, done };
+  }
+
+  function uiConfirm(title, message, okText, danger) {
     return new Promise(resolve => {
-      const old = document.getElementById('ai-confirm-mask');
-      if (old) old.remove();
-      const mask = document.createElement('div');
-      mask.id = 'ai-confirm-mask';
-      mask.className = 'ai-confirm-mask';
-      mask.innerHTML = '<div class="ai-confirm" role="alertdialog" aria-modal="true">' +
+      const { mask, done } = openDialog(() =>
+        '<div class="ai-confirm" role="alertdialog" aria-modal="true">' +
         '<h4>' + esc(title) + '</h4>' +
         '<div class="ai-confirm-body">' + esc(message) + '</div>' +
         '<div class="ai-confirm-acts">' +
         '<button type="button" class="btn btn-outline" id="ai-confirm-cancel">取消</button>' +
         '<button type="button" class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" id="ai-confirm-ok">' + esc(okText || '确定') + '</button>' +
-        '</div></div>';
-      const done = v => {
-        document.removeEventListener('keydown', onKey, true);
-        mask.remove();
-        resolve(v);
-      };
-      /* 捕获阶段拦截 Esc：全局 Esc 处理器在冒泡阶段关工作台弹窗，
-         不先拦下会把确认弹窗底下的整个 AI 面板一起关掉 */
-      const onKey = e => {
-        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
-      };
-      mask.addEventListener('click', e => { if (e.target === mask) done(false); });
+        '</div></div>', v => resolve(v === true));
       mask.querySelector('#ai-confirm-cancel').onclick = () => done(false);
       mask.querySelector('#ai-confirm-ok').onclick = () => done(true);
-      document.addEventListener('keydown', onKey, true);
-      document.body.appendChild(mask);
-      mask.querySelector('#ai-confirm-ok').focus();
+    });
+  }
+
+  /* M12：带输入框的应用内弹窗，替代原生 prompt（拒绝原因输入用）。
+     返回输入字符串；取消/Esc 返回 null。 */
+  function uiPrompt(title, message, placeholder, okText) {
+    return new Promise(resolve => {
+      const { mask, done } = openDialog(() =>
+        '<div class="ai-confirm" role="dialog" aria-modal="true">' +
+        '<h4>' + esc(title) + '</h4>' +
+        '<div class="ai-confirm-body">' + esc(message) + '</div>' +
+        '<textarea id="ai-prompt-input" rows="3" placeholder="' + esc(placeholder || '') + '" ' +
+        'style="width:100%;padding:7px 9px;border:1px solid var(--border,rgba(102,146,155,.35));border-radius:7px;font-size:13px;resize:vertical;margin-bottom:14px"></textarea>' +
+        '<div class="ai-confirm-acts">' +
+        '<button type="button" class="btn btn-outline" id="ai-confirm-cancel">取消</button>' +
+        '<button type="button" class="btn btn-primary" id="ai-confirm-ok">' + esc(okText || '确定') + '</button>' +
+        '</div></div>', v => resolve(v), '#ai-prompt-input');
+      mask.querySelector('#ai-confirm-cancel').onclick = () => done(null);
+      mask.querySelector('#ai-confirm-ok').onclick = () => done(mask.querySelector('#ai-prompt-input').value);
     });
   }
 
@@ -258,8 +325,12 @@
     try {
       ai.status = await call('/api/ai-intake/status');
       ai.dict = await call('/api/ai-intake/dict');
+      ai.loadError = '';
     } catch (e) {
-      ai.status = { enabled: false, offline: true };
+      /* M11：网络抖动/后端 500 不等于"功能被管理员关闭"。
+         记录错误供界面显示重试提示，不再伪造 enabled:false。 */
+      ai.status = null;
+      ai.loadError = e.message || '状态获取失败';
       console.warn('[ai-intake] 状态获取失败', e);
     }
   }
@@ -284,6 +355,7 @@
       ai.edits = {};
       ai.force = {};
       clearFilesSilent();
+      revokeReviewImages();   /* M9：释放上一会话的材料图 blob */
     }
     ai.newPatient = isNew;
     if (isNew) ai.newName = String(p.name || '').trim();
@@ -303,13 +375,32 @@
     } else {
       setTimeout(() => { if (sameCtx()) loadHistory(); }, 30);
     }
+    /* M10：重开同一患者弹窗时 ai.files 仍保留，但重绘后缩略图容器为空，
+       医生看不到已选图片却会被一并上传。这里恢复缩略图显示，与状态保持一致。 */
+    if (ai.files.length) setTimeout(() => { if (sameCtx()) renderThumbs(); }, 0);
     return '<div class="ai-wrap"><div id="ai-pane-inner">' + buildAiInner(p) + '</div></div>';
+  }
+
+  /* M11：状态加载失败后的重试入口 */
+  async function retryInit() {
+    ai.loadError = '';
+    const root = document.getElementById('ai-pane-inner');
+    if (root) root.innerHTML = '<div class="ai-panel"><div class="ai-empty">正在重新加载 AI 功能状态…</div></div>';
+    await aiInit();
+    const r = document.getElementById('ai-pane-inner');
+    if (r) r.innerHTML = buildAiInner({ id: ai.currentPid, newPatient: ai.newPatient, name: ai.newName });
+    if (ai.status && ai.status.enabled) loadHistory();
   }
 
   /* 内层内容：纯同步，读取 ai.status（可能为 null，此时按「加载中」安全渲染） */
   function buildAiInner(p) {
     const s = ai.status;
     if (!s) {
+      /* M11：加载失败显示重试，而非误报"服务端已关闭" */
+      if (ai.loadError) {
+        return '<div class="ai-banner danger">AI 功能状态加载失败：' + esc(ai.loadError) +
+          '<br><button type="button" class="btn btn-outline btn-sm" style="margin-top:8px" onclick="AiUI.retryInit()">重试</button></div>';
+      }
       return '<div class="ai-panel"><div class="ai-empty">正在加载 AI 功能状态…</div></div>';
     }
     if (!s.enabled) {
@@ -347,15 +438,16 @@
       '<input type="file" id="ai-file" accept="image/*" multiple style="display:none" onchange="AiUI.onFiles(this.files)">' +
       '<div class="ai-thumbs" id="ai-thumbs"></div>' +
       '<div class="form-item" style="margin-top:11px"><label>或粘贴文字材料（医生口述、出院小结文本等）</label>' +
-      '<textarea id="ai-text" rows="3" placeholder="可直接粘贴文字，无需图片。含患者姓名/证件号时系统会先自动脱敏再送模型。" ' +
-      'style="width:100%;padding:7px 9px;border:1px solid var(--border,rgba(102,146,155,.35));border-radius:7px;font-size:13px;resize:vertical"></textarea></div>' +
+      '<textarea id="ai-text" rows="3" maxlength="200000" oninput="AiUI.onTextInput(this)" placeholder="可直接粘贴文字，无需图片。含患者姓名/证件号时系统会先自动脱敏再送模型。" ' +
+      'style="width:100%;padding:7px 9px;border:1px solid var(--border,rgba(102,146,155,.35));border-radius:7px;font-size:13px;resize:vertical"></textarea>' +
+      '<div id="ai-text-count" style="font-size:11.5px;color:var(--text-light,#58747c);margin-top:3px"></div></div>' +
       '<div class="form-item" style="margin-top:9px"><label>材料类型（可选，帮助模型判断分期前缀）</label>' +
       '<select id="ai-doctype" style="padding:5px 8px;border:1px solid var(--border,rgba(102,146,155,.35));border-radius:7px;font-size:13px">' +
       ['lab|化验单', 'pathology|病理报告', 'discharge|出院小结', 'imaging|影像报告', 'prescription|处方/用药', 'progress|病程/口述', 'mixed|混合']
         .map(o => { const [v, l] = o.split('|'); return '<option value="' + v + '">' + l + '</option>'; }).join('') +
       '</select></div>' +
       '<div style="display:flex;gap:8px;margin-top:11px;align-items:center;flex-wrap:wrap">' +
-      '<button type="button" class="btn btn-primary" id="ai-submit" onclick="AiUI.submit(\'' + esc(p.id || '') + '\',this)">开始识别</button>' +
+      '<button type="button" class="btn btn-primary" id="ai-submit" onclick="AiUI.submit(' + jsAttr(p.id || '') + ',this)">开始识别</button>' +
       '<button type="button" class="btn btn-outline" onclick="AiUI.clearFiles()">清空</button>' +
       '<span id="ai-hint" style="font-size:12px;color:var(--text-light,#58747c)"></span></div>' +
       '<div id="ai-progress"></div>' +
@@ -380,11 +472,38 @@
     }
     for (const f of incoming) {
       if (ai.files.length >= max) break;
-      if (f.size > 15 * 1024 * 1024) { say('⚠ ' + f.name + ' 超过 15MB，已跳过'); continue; }
       const c = await compressImage(f);
-      ai.files.push({ name: f.name, blob: c.blob, url: c.url || URL.createObjectURL(c.blob), w: c.w, h: c.h, bytes: c.bytes, compressed: c.compressed, mime: 'image/jpeg' });
+      /* M13：按压缩后大小校验。16MB 原图可压成 1MB，不应在压缩前就拒。
+         压缩失败回退原文件时仍要守 15MB 上限。 */
+      if (c.bytes > 15 * 1024 * 1024) { say('⚠ ' + f.name + ' 压缩后仍超过 15MB，已跳过'); continue; }
+      /* M13：HEIC/损坏图无法解码（w/h=0），回退原文件但明确告知医生，
+         不能静默——原样上传大概率识别失败。保留原 mime 供后端内容嗅探判定。 */
+      const undecodable = !c.w || !c.h;
+      if (undecodable) say('⚠ ' + f.name + ' 无法在本机预览（可能为 HEIC 或已损坏），已按原图上传，识别可能失败，建议转成 JPG/PNG 后重试');
+      ai.files.push({
+        name: f.name, blob: c.blob, url: c.url || URL.createObjectURL(c.blob),
+        w: c.w, h: c.h, bytes: c.bytes, compressed: c.compressed,
+        mime: c.compressed ? 'image/jpeg' : (f.type || 'image/jpeg'),
+        warn: undecodable ? '无法预览（HEIC/损坏），按原图上传' : ''
+      });
     }
     renderThumbs();
+    resetFileInput();
+  }
+
+  /* L10：重置 file input 的 value，保证清空后重选同一文件仍触发 onchange */
+  function resetFileInput() {
+    const el = document.getElementById('ai-file');
+    if (el) el.value = '';
+  }
+
+  /* L3：文字材料字数提示，接近/达到上限时提醒 */
+  function onTextInput(el) {
+    const c = document.getElementById('ai-text-count');
+    if (!c) return;
+    const n = (el.value || '').length;
+    c.textContent = n ? n + ' / 200000 字符' + (n >= 200000 ? '（已达上限，超出部分将被截断）' : '') : '';
+    c.style.color = n >= 200000 ? '#8d3531' : '';
   }
 
   function onDrop(ev) {
@@ -399,9 +518,10 @@
     if (!box) return;
     if (!ai.files.length) { box.innerHTML = ''; updateHint(); return; }
     box.innerHTML = ai.files.map((f, i) =>
-      '<div class="ai-thumb"><img src="' + esc(f.url) + '" alt="">' +
+      '<div class="ai-thumb"' + (f.warn ? ' title="' + esc(f.warn) + '"' : '') + '><img src="' + esc(f.url) + '" alt="">' +
       '<button type="button" class="x" onclick="AiUI.rmFile(' + i + ')" title="移除">×</button>' +
-      '<div class="sz">' + esc(f.w) + '×' + esc(f.h) + ' · ' + esc(fmtBytes(f.bytes)) + '</div></div>').join('');
+      (f.warn ? '<div class="sz" style="background:#8d3531">⚠ ' + esc(f.warn) + '</div>'
+              : '<div class="sz">' + esc(f.w) + '×' + esc(f.h) + ' · ' + esc(fmtBytes(f.bytes)) + '</div>') + '</div>').join('');
     updateHint();
   }
 
@@ -426,7 +546,8 @@
     ai.files.forEach(f => { try { URL.revokeObjectURL(f.url); } catch (e) { /* 忽略 */ } });
     ai.files = [];
     renderThumbs();
-    const t = document.getElementById('ai-text'); if (t) t.value = '';
+    resetFileInput();
+    const t = document.getElementById('ai-text'); if (t) { t.value = ''; onTextInput(t); }
     const r = document.getElementById('ai-review'); if (r) r.innerHTML = '';
   }
 
@@ -477,43 +598,68 @@
   }
 
   /* ---------- 轮询 ---------- */
+  /* M8：弹窗是否仍打开且属于当前上下文。关窗/切患者后在途响应一律丢弃。 */
+  function paneAlive(token) {
+    return token === ai.pollToken && !!document.getElementById('ai-pane-inner');
+  }
   function startPoll(sid) {
     stopPoll();
     ai.pollCount = 0;
+    const token = ++ai.pollToken;
     renderProgress(sid, 'queued', '排队中');
-    ai.pollTimer = setInterval(() => pollOnce(sid), 2500);
-    pollOnce(sid);
+    ai.pollTimer = setInterval(() => pollOnce(sid, token), 2500);
+    pollOnce(sid, token);
   }
   function stopPoll() {
     if (ai.pollTimer) { clearInterval(ai.pollTimer); ai.pollTimer = null; }
+    ai.pollToken++;   /* 作废所有在途响应 */
   }
 
-  async function pollOnce(sid) {
+  async function pollOnce(sid, token) {
+    if (!paneAlive(token)) { stopPoll(); return; }
     ai.pollCount++;
     let s;
     try { s = await call('/api/ai-intake/sessions/' + sid); }
-    catch (e) { stopPoll(); renderProgress(sid, 'failed', '查询失败：' + (e.message || '')); return; }
+    catch (e) { if (paneAlive(token)) { stopPoll(); renderProgress(sid, 'failed', '查询失败：' + (e.message || '')); } return; }
+    if (!paneAlive(token)) return;   /* 在途期间已关窗/切患者：丢弃 */
 
     renderProgress(sid, s.status, s.stageDetail);
 
     if (s.status === 'pending') {
+      /* 先渲染审核区再停轮询：stopPoll 会自增 pollToken 作废在途令牌，
+         若先停再 openReview(sid, token)，openReview 的 paneAlive(token) 会因
+         令牌已作废而直接 return，审核区永远不渲染（识别卡在"正在识别"）。 */
+      await openReview(sid, token);
       stopPoll();
-      await openReview(sid);
     } else if (s.status === 'failed') {
       stopPoll();
-      const box = document.getElementById('ai-progress');
-      if (box) {
-        box.innerHTML = '<div class="ai-banner danger" style="margin-top:10px"><b>识别失败</b>：' +
-          esc(s.errorMsg || s.errorClass || '未知错误') +
-          '<br><span style="font-size:12px">材料仍已保存在会话 ' + esc(sid.slice(0, 8)) + '，可重试或改用常规录入。</span></div>';
-      }
+      renderFailed(sid, s.errorMsg || s.errorClass || '未知错误');
       say('⚠ 识别失败');
       loadHistory();
     } else if (ai.pollCount > 120) {
       /* 5 分钟兜底：任务可能因服务重启变成僵尸，不让界面永远转圈 */
       stopPoll();
-      renderProgress(sid, 'failed', '等待超时，请刷新后在会话历史中查看结果');
+      renderFailed(sid, '等待超时，请刷新后在会话历史中查看结果');
     }
+  }
+
+  /* M7：失败态显示「重试」按钮，接后端 retry 端点（材料已落盘，无需重新上传） */
+  function renderFailed(sid, msg) {
+    const box = document.getElementById('ai-progress');
+    if (!box) return;
+    box.innerHTML = '<div class="ai-banner danger" style="margin-top:10px"><b>识别失败</b>：' + esc(msg) +
+      '<br><span style="font-size:12px">材料仍已保存在会话 ' + esc(sid.slice(0, 8)) + '。</span>' +
+      '<div style="margin-top:8px;display:flex;gap:8px">' +
+      '<button type="button" class="btn btn-primary btn-sm" onclick="AiUI.retry(' + jsAttr(sid) + ')">重试识别</button>' +
+      '<span style="font-size:12px;color:var(--text-light,#58747c);align-self:center">或改用常规录入</span></div></div>';
+  }
+
+  async function retry(sid) {
+    try {
+      await call('/api/ai-intake/sessions/' + sid + '/retry', { method: 'POST' });
+      say('已重新提交识别…');
+      startPoll(sid);
+    } catch (e) { say('⚠ ' + (e.message || '重试失败')); }
   }
 
   const STEP_LABELS = { queued: '排队', preprocessing: '检查材料', redacting: '脱敏', extracting: '模型识别', pending: '待审核' };
@@ -532,10 +678,15 @@
   }
 
   /* ---------- 审核界面 ---------- */
-  async function openReview(sid) {
+  async function openReview(sid, token) {
+    /* M8：token 由轮询传入；直接 open() 调用时用当前令牌。
+       响应回来时若已关窗/切患者则丢弃，不把 A 患者结果画进 B 患者界面。 */
+    const tk = token == null ? ai.pollToken : token;
     let d;
     try { d = await call('/api/ai-intake/sessions/' + sid + '/result'); }
     catch (e) { return say('⚠ 结果获取失败：' + (e.message || '')); }
+    if (!paneAlive(tk)) return;
+    if (ai.session && ai.session.id !== d.id) revokeReviewImages();   /* M9：换会话释放旧图 */
     ai.session = d;
     ai.decisions = {};
     ai.edits = {};
@@ -548,6 +699,14 @@
       const existingProfile = it.kind === 'profile' && it.hasExisting;
       ai.decisions[it.id] = (!it.duplicateOf && it.risk === 'ok' && !existingProfile) ? 'adopt' : '';
     });
+    /* L8：新建患者模式默认预选建档四项（姓名/出生/诊断日期/首条 PSA），
+       减少逐点成本；医生仍可取消。诊断日期常因弱来源标 danger，这里一并预选。 */
+    if (!d.patientId) {
+      const prof = f => (d.items || []).find(x => x.kind === 'profile' && profileFieldOf(x) === f && !x.duplicateOf);
+      ['name', 'birth', 'date'].forEach(f => { const it = prof(f); if (it) ai.decisions[it.id] = 'adopt'; });
+      const firstPsa = (d.items || []).find(x => x.kind === 'psa' && !x.duplicateOf);
+      if (firstPsa) ai.decisions[firstPsa.id] = 'adopt';
+    }
     renderReview();
     loadHistory();
   }
@@ -641,10 +800,13 @@
       '<span>Token <b>' + esc((d.inputTokens || 0) + '+' + (d.outputTokens || 0)) + '</b></span>' +
       '</div>';
 
-    /* 材料缩略图：医生核对 evidence 时能看到原文 */
+    /* 材料缩略图：医生核对 evidence 时能看到原文。
+       M9：src 优先用缓存 blob，避免每次重绘重新 fetch。 */
     if ((d.files || []).length) {
-      h += '<div class="ai-imgs">' + d.files.map(f =>
-        '<img src="' + esc(f.url) + '" data-token-url="' + esc(f.url) + '" onclick="AiUI.viewImg(this)" alt="材料第' + esc(f.page) + '页" title="第' + esc(f.page) + '页 ' + esc(f.filename || '') + '">').join('') + '</div>';
+      h += '<div class="ai-imgs">' + d.files.map(f => {
+        const cached = ai.imgCache[f.id];
+        return '<img src="' + esc(cached || f.url) + '" data-token-url="' + esc(f.url) + '" data-fid="' + esc(f.id) + '" onclick="AiUI.viewImg(this)" alt="材料第' + esc(f.page) + '页" title="第' + esc(f.page) + '页 ' + esc(f.filename || '') + '">';
+      }).join('') + '</div>';
       h += '<div style="font-size:11.5px;color:var(--text-light,#58747c);margin-bottom:9px">点击缩略图可放大查看原始材料（图片需带登录态加载）</div>';
     }
 
@@ -668,15 +830,25 @@
       rest.forEach(it => { h += renderItem(it); });
     }
 
+    /* L9：已采纳/已拒绝的会话不再显示可点的采纳/拒绝按钮。
+       离线演练数据的最终拦截以后端 H1 为准（生产禁止采纳）；前端不禁用按钮，
+       以便测试环境通过 AI_ALLOW_OFFLINE_ADOPT 豁免验证写库链路，
+       离线警示横幅仍保留提示医生。 */
+    const settled = d.status === 'adopted' || d.status === 'rejected';
+    const offlineBlock = false;
+    const adoptDisabled = settled;
+    const adoptLabel = settled ? (d.status === 'adopted' ? '已采纳写入' : '已拒绝') : '采纳所选并写入病历';
     h += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--border,rgba(102,146,155,.25));padding-top:12px">' +
-      '<button type="button" class="btn btn-green" id="ai-adopt-btn" onclick="AiUI.adopt(this)">采纳所选并写入病历</button>' +
-      '<button type="button" class="btn btn-outline" onclick="AiUI.allAdopt()" title="已有档案值/冲突项不会被全选，需逐条确认">' +
+      '<button type="button" class="btn btn-green" id="ai-adopt-btn" onclick="AiUI.adopt(this)"' + (adoptDisabled ? ' disabled' : '') + '>' + adoptLabel + '</button>' +
+      '<button type="button" class="btn btn-outline" onclick="AiUI.allAdopt()"' + (adoptDisabled ? ' disabled' : '') + ' title="已有档案值/冲突项不会被全选，需逐条确认">' +
       (hasExistingProfile ? '全选可写入项' : '全选') + '</button>' +
-      '<button type="button" class="btn btn-outline" onclick="AiUI.allNone()">全不选</button>' +
-      '<button type="button" class="btn btn-danger" onclick="AiUI.reject()">整批拒绝</button>' +
+      '<button type="button" class="btn btn-outline" onclick="AiUI.allNone()"' + (adoptDisabled ? ' disabled' : '') + '>全不选</button>' +
+      '<button type="button" class="btn btn-danger" onclick="AiUI.reject()"' + (settled ? ' disabled' : '') + '>整批拒绝</button>' +
       '<span style="font-size:12px;color:var(--text-light,#58747c);flex:1;min-width:200px">' +
-      '采纳即写入数据库并记入审计日志；主档冲突项默认不选，点“采纳并更新”才会覆盖现有值。' +
-      '三态字段请确认「未评估」与「阴性」的区别，两者临床含义不同。</span></div>';
+      (settled ? '该会话已处置完毕，仅供查看。如需修改请到对应页签编辑已写入的记录。'
+        : d.offline ? '⚠ 离线演练数据：生产环境后端会拒绝采纳，请先配置模型 Key；测试环境可能已豁免。'
+        : '采纳即写入数据库并记入审计日志；主档冲突项默认不选，点“采纳并更新”才会覆盖现有值。' +
+          '三态字段请确认「未评估」与「阴性」的区别，两者临床含义不同。') + '</span></div>';
     h += '</div>';
 
     box.innerHTML = h;
@@ -688,17 +860,48 @@
     if (typeof window.imgWithToken !== 'function') return;
     const imgs = document.querySelectorAll('#ai-review img[data-token-url]');
     for (const im of imgs) {
+      const fid = im.getAttribute('data-fid');
+      /* M9：命中缓存直接复用，不重复 fetch */
+      if (fid && ai.imgCache[fid]) { im.src = ai.imgCache[fid]; im.dataset.loaded = '1'; continue; }
       const u = im.getAttribute('data-token-url');
       const blob = await window.imgWithToken(u).catch(() => null);
-      if (blob) im.src = blob; else im.style.opacity = '.35';
+      if (blob) {
+        if (fid) ai.imgCache[fid] = blob;
+        im.src = blob; im.dataset.loaded = '1';
+        im.style.opacity = ''; im.title = im.title.replace(/（加载失败.*?）/, '');
+      } else {
+        /* M14：失败明确提示，不能只降透明度让医生分不清 */
+        im.style.opacity = '.35';
+        im.dataset.loaded = '';
+        im.title = '第' + (im.alt || '') + '（加载失败，点击重试）';
+        im.style.cursor = 'pointer';
+      }
     }
   }
 
   function viewImg(im) {
-    /* 复用既有 lightbox，保持交互一致 */
+    /* M14：加载失败的图先重试加载，不用需鉴权的原始 URL 直接放大（会 401 裂图） */
+    if (!im.dataset.loaded) {
+      const u = im.getAttribute('data-token-url');
+      if (u && typeof window.imgWithToken === 'function') {
+        window.imgWithToken(u).then(blob => {
+          if (blob) {
+            const fid = im.getAttribute('data-fid');
+            if (fid) ai.imgCache[fid] = blob;
+            im.src = blob; im.dataset.loaded = '1'; im.style.opacity = '';
+            openLightbox(blob);
+          } else say('⚠ 材料图片加载失败，请检查网络后重试');
+        }).catch(() => say('⚠ 材料图片加载失败'));
+      }
+      return;
+    }
+    openLightbox(im.src);
+  }
+
+  function openLightbox(src) {
     const lb = document.getElementById('lightbox');
     const li = document.getElementById('lightbox-img');
-    if (lb && li && im.src) { li.src = im.src; lb.style.display = 'flex'; }
+    if (lb && li && src) { li.src = src; lb.style.display = 'flex'; }
   }
 
   function renderItem(it) {
@@ -1245,7 +1448,12 @@
       say('✅ 已建立患者档案 ' + createdPid);
       if (typeof window.Workspace !== 'undefined') Workspace.closeModal();
       if (typeof window.enterPatientById === 'function') {
-        try { await window.enterPatientById(createdPid); } catch (e) { console.warn('[ai-intake] 进入新患者失败', e); }
+        try { await window.enterPatientById(createdPid); }
+        catch (e) {
+          /* L12：跳转失败不能静默——告知档案号并引导手动查找 */
+          console.warn('[ai-intake] 进入新患者失败', e);
+          say('⚠ 已建立档案 ' + createdPid + '，但自动跳转失败：' + (e.message || '') + '。请在患者列表搜索该编号进入。');
+        }
       }
       return;
     }
@@ -1256,7 +1464,8 @@
   async function reject() {
     const d = ai.session;
     if (!d) return;
-    const reason = prompt('拒绝原因（可选，用于改进识别质量）：', '') ;
+    /* M12：原生 prompt 在嵌入环境会被拦截返回 null，改用应用内输入弹窗 */
+    const reason = await uiPrompt('整批拒绝', '拒绝原因（可选，用于改进识别质量）：', '如：材料模糊 / 识别错误较多 / 非本科材料', '确认拒绝');
     if (reason === null) return;
     try {
       await call('/api/ai-intake/sessions/' + d.id + '/reject', { method: 'POST', body: JSON.stringify({ reason }) });
@@ -1283,14 +1492,17 @@
       list = await call(isNew ? '/api/ai-intake/sessions?limit=30'
                               : '/api/ai-intake/sessions?limit=10&patientId=' + encodeURIComponent(pid));
     }
-    catch (e) { box.innerHTML = '<div class="ai-empty">历史加载失败</div>'; return; }
+    catch (e) { box.innerHTML = '<div class="ai-empty">历史加载失败：' + esc(e.message || '未知错误') + '</div>'; return; }
     /* 响应回来时可能已切到别的患者：不画，避免串页 */
     if (ai.currentPid !== pid || ai.newPatient !== isNew) return;
     if (isNew) {
       /* 新建模式只展示本人创建、尚未绑定患者的会话。
          后端不带 patientId 时按创建人过滤（admin 看全部），这里再按
          createdBy 收紧一层，避免管理员看到同事的未建档材料。 */
-      const me = (typeof window.currentUser !== 'undefined' && window.currentUser && window.currentUser.username) || '';
+      /* H5：index.html 的 currentUser 是顶层 let，不挂 window，
+         window.currentUser 恒 undefined 会让过滤失效（管理员看到同事材料）。
+         这里直接读全局 currentUser（经典脚本共享全局词法环境）。 */
+      const me = (typeof currentUser !== 'undefined' && currentUser && currentUser.username) || '';
       list = (list || []).filter(s => !s.patientId && (!me || s.createdBy === me));
     }
     if (!list || !list.length) { box.innerHTML = '<div class="ai-empty">' + (isNew ? '还没有新建患者的识别记录' : '该患者还没有识别记录') + '</div>'; return; }
@@ -1309,11 +1521,11 @@
         (st.total ? '<span>采纳 ' + esc(st.adopted || 0) + ' / 改 ' + esc(st.edited || 0) + ' / 拒 ' + esc(st.rejected || 0) + '</span>' : '') +
         '<span style="flex:1"></span>' +
         (running
-          ? '<button type="button" class="ai-btn" onclick="AiUI.resume(\'' + esc(s.id) + '\')">查看进度</button>'
+          ? '<button type="button" class="ai-btn" onclick="AiUI.resume(' + jsAttr(s.id) + ')">查看进度</button>'
           : (s.status === 'pending'
-            ? '<button type="button" class="ai-btn" onclick="AiUI.open(\'' + esc(s.id) + '\')">继续审核</button>'
-            : '<button type="button" class="ai-btn" onclick="AiUI.open(\'' + esc(s.id) + '\')">查看</button>')) +
-        '<button type="button" class="ai-btn" onclick="AiUI.del(\'' + esc(s.id) + '\')" title="删除会话与材料">删</button>' +
+            ? '<button type="button" class="ai-btn" onclick="AiUI.open(' + jsAttr(s.id) + ')">继续审核</button>'
+            : '<button type="button" class="ai-btn" onclick="AiUI.open(' + jsAttr(s.id) + ')">查看</button>')) +
+        '<button type="button" class="ai-btn" onclick="AiUI.del(' + jsAttr(s.id) + ')" title="删除会话与材料">删</button>' +
         '</div>';
     }).join('');
   }
@@ -1322,7 +1534,8 @@
   function resume(sid) { startPoll(sid); }
 
   async function del(sid) {
-    if (!confirm('删除该会话及其上传的材料图片？此操作不可恢复。')) return;
+    /* M12：原生 confirm 在嵌入环境会被拦截返回 false，改用应用内确认弹窗 */
+    if (!(await uiConfirm('删除会话', '删除该会话及其上传的材料图片？此操作不可恢复。', '删除', true))) return;
     try {
       await call('/api/ai-intake/sessions/' + sid, { method: 'DELETE' });
       say('已删除');
@@ -1335,6 +1548,8 @@
   window.AiUI = {
     renderAiPane, onFiles, onDrop, rmFile, clearFiles, submit,
     decide, mergeDup, keepDup, allAdopt, allNone, edit, editTri, adopt, reject,
-    open, resume, del, viewImg, loadHistory, _state: ai
+    open, resume, del, viewImg, loadHistory,
+    stopPoll, retry, retryInit, onTextInput,
+    _state: ai
   };
 })();
