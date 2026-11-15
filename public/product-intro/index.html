@@ -293,16 +293,21 @@ h1,h2,h3{font-weight:700;letter-spacing:-.02em;line-height:1.08}
 .hier-head h3{font-size:clamp(24px,3.6vw,38px);margin-bottom:12px}
 .hier-head p{font-size:15px;color:var(--ink2);line-height:1.7}
 .hier-head p b{color:var(--ink)}
-.hier-row{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:34px}
-.hier-node{padding:14px 18px;border-radius:14px;background:var(--surface);border:1px solid var(--line2);font-size:15px;font-weight:600;text-align:center;transition:all .4s var(--ease);display:flex;flex-direction:column;justify-content:center}
-.hier-node small{display:block;font-size:11px;color:var(--ink3);font-weight:400;margin-top:3px}
-.hier-node.h1{border-color:var(--brand);background:rgba(0,105,75,.14)}
-.hier-node.h2{border-color:var(--teal)}
-.hier-node.h3{border-color:var(--blue)}
-.hier-node.h4{border-color:var(--lav)}
-.hier-node.h5{border-color:var(--amber)}
-.hier-arrow{color:var(--ink3);font-size:20px;align-self:center}
-@media(max-width:760px){.hier-arrow{transform:rotate(90deg)}.hier-row{flex-direction:column;align-items:stretch}}
+.hier-row{display:grid;grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr) 26px minmax(0,1fr) 26px minmax(0,1fr) 26px minmax(0,1fr);align-items:stretch;gap:8px;margin-bottom:34px}
+.hier-node{margin:0;padding:16px 10px;min-height:104px;border-radius:14px;background:var(--surface);border:1px solid var(--hn,var(--line2));font-size:15px;font-weight:600;line-height:1.35;letter-spacing:0;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .35s var(--ease),box-shadow .35s var(--ease),background-color .35s}
+.hier-node:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.5)}
+.hier-node small{display:block;font-size:11px;color:var(--ink3);font-weight:400;margin-top:5px;letter-spacing:.04em}
+.hier-node.n1{--hn:var(--brand);background:rgba(0,105,75,.16)}
+.hier-node.n2{--hn:var(--teal);background:rgba(45,212,191,.07)}
+.hier-node.n3{--hn:var(--blue);background:rgba(10,132,255,.07)}
+.hier-node.n4{--hn:var(--lav);background:rgba(191,90,242,.07)}
+.hier-node.n5{--hn:var(--amber);background:rgba(224,174,51,.07)}
+.hier-arrow{color:var(--ink3);font-size:20px;display:grid;place-items:center;line-height:1}
+@media(max-width:760px){
+  .hier-row{grid-template-columns:minmax(0,1fr);gap:6px}
+  .hier-node{min-height:0;padding:14px 12px}
+  .hier-arrow{transform:rotate(90deg);height:22px}
+}
 .hier-detail{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
 @media(max-width:1000px){.hier-detail{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.hier-detail{grid-template-columns:1fr}}
@@ -382,23 +387,29 @@ h1,h2,h3{font-weight:700;letter-spacing:-.02em;line-height:1.08}
 .toggle.on .tk{background:rgba(0,168,112,.3);border-color:var(--brand-bright)}
 .toggle.on .tk::after{transform:translateX(20px);background:var(--brand-bright)}
 .engine-steps{display:flex;flex-direction:column;gap:14px}
-.estep{display:flex;align-items:flex-start;gap:16px;padding:18px 20px;border-radius:14px;background:var(--overlay);border:1px solid var(--line);opacity:.4;transition:opacity .5s,border-color .5s}
+.estep{position:relative;display:block;text-align:center;padding:18px 62px;border-radius:14px;background:var(--overlay);border:1px solid var(--line);opacity:.4;transition:opacity .5s,border-color .5s}
 .estep.done{opacity:1}
 .estep.pass{border-color:rgba(48,209,88,.4)}
 .estep.fail{border-color:rgba(255,69,58,.4)}
-.estep .es-ic{width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;font-size:15px;background:var(--surface2);border:1px solid var(--line2);transition:all .4s}
+.estep .es-ic{position:absolute;left:20px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;background:var(--surface2);border:1px solid var(--line2);transition:background-color .4s,border-color .4s,color .4s}
 .estep.pass .es-ic{background:rgba(48,209,88,.18);border-color:var(--mint);color:var(--mint)}
 .estep.fail .es-ic{background:rgba(255,69,58,.15);border-color:var(--red);color:var(--red)}
 .estep .es-t{font-size:15px;font-weight:600}
 .estep .es-d{font-size:13px;color:var(--ink2);margin-top:3px;line-height:1.5}
-.verdict{margin-top:22px;padding:22px 24px;border-radius:14px;border:1px solid var(--line2);background:var(--overlay);display:flex;align-items:center;gap:16px;transition:all .5s}
-.verdict .vd-ic{font-size:30px}
+.verdict{position:relative;margin-top:22px;padding:22px 66px;border-radius:14px;border:1px solid var(--line2);background:var(--overlay);display:block;text-align:center;transition:all .5s}
+.verdict .vd-ic{position:absolute;left:22px;top:50%;transform:translateY(-50%);font-size:30px;line-height:1}
 .verdict .vd-t{font-size:18px;font-weight:700}
 .verdict .vd-d{font-size:13.5px;color:var(--ink2);margin-top:3px}
 .verdict.ok{border-color:rgba(48,209,88,.45);background:rgba(48,209,88,.07)}
 .verdict.ok .vd-t{color:var(--mint)}
 .verdict.block{border-color:rgba(255,214,10,.4);background:rgba(255,214,10,.06)}
 .verdict.block .vd-t{color:var(--amber-bright)}
+@media(max-width:600px){
+  .estep{padding:16px 46px}
+  .estep .es-ic{left:12px;width:26px;height:26px;font-size:13px}
+  .verdict{padding:18px 20px}
+  .verdict .vd-ic{position:static;transform:none;display:block;margin:0 auto 8px;font-size:26px}
+}
 
 /* ============ SECTION: guideline ============ */
 .guide-stats{display:flex;gap:clamp(20px,5vw,64px);margin:36px 0;flex-wrap:wrap}
@@ -479,6 +490,45 @@ h1,h2,h3{font-weight:700;letter-spacing:-.02em;line-height:1.08}
 .footer-meta{margin-top:36px;font-size:12.5px;color:var(--ink3);display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
 .footer-meta a{color:var(--ink2);transition:color .3s}
 .footer-meta a:hover{color:var(--brand-bright)}
+
+/* ============ SECTION: center-align ============ */
+/* 全站小标题与介绍文字统一居中，避免有的居中有的靠左 */
+.eyebrow{display:flex;justify-content:center;width:100%}
+.psa-head,.pathway-block{margin-left:auto;margin-right:auto;text-align:center}
+.pathway-block .h2,.pathway-block h3,.psa-head .h2,.psa-head h3{text-align:center}
+.pathway-lead,.psa-head .lead{margin-left:auto;margin-right:auto}
+.lead,.hero-sub,.psa-note,.tab-desc,.pw-desc,.pathway-lead,.pathway-note,.fig-hint,.gd-foot,.gd-derived,.psub,.ailab-head .psub,.hier-head p,.hier-example,.disclaimer,.deploy-list li,.deploy-list,.bento-card p,.display-card p,.intake-body p,.calc-card p,.sstep p,.sstep h3,.sstep .sstep-k{margin-left:auto;margin-right:auto}
+section .wrap > .eyebrow,section .wrap > .h2,section .wrap > .lead,
+.scrolly-head,.hero,.psa-head,.hier-head,.ailab-head,.ailab-head > div:first-child,
+.display-card,.display-card h3,.display-card p,
+.intake-body,.intake-body .tag,.intake-body h3,.intake-body p,
+.calc-card,.calc-card h3,.calc-card p,.calc-card .cc-rule,
+.bento-card,.bento-card h3,.bento-card p,.bento-card .b-num,
+.sstep,.sstep .sstep-k,.sstep h3,.sstep p,
+.tab-desc,.pw-desc,.pathway-lead,.pathway-note,.fig-hint,.gd-foot,.gd-derived,
+.psa-note,.psub,.ailab-head .psub,.hier-head p,.hier-example,.disclaimer,
+.pipeline h3,.engine-head h3,.chart-card .ch-h,.chart-card .ch-h b,.chart-card .ch-h span,
+.psa-legend,.timeline-stats,.guide-stats,.hero-stats,.deploy-grid > div:last-child,.deploy-list,.deploy-list li,
+.footer,.footer .lead,.footer-meta,.tristate,.ts-card,.hier-card,.hier-card h4,.hier-card p,.hier-card .hd-eg,
+.gd-top,.gd-empty,.ai-metric,.ai-panel .ap-h,.verdict,.verdict .vd-t,.verdict .vd-d,
+.estep .es-t,.estep .es-d,.pipe-node,.tab-hint,.sv-hint,.fig-bar,.b-tags,.stack-chips,.deploy-flow,.risk-legend,
+.hier-row,.hx-chain,.footer h2,.timeline-block .h2,.timeline-block .lead,.psa-head .h2,.psa-head .lead{
+  text-align:center;
+}
+.lead,.hero-sub,.psa-head,.hier-head,.ailab-head .psub,.pathway-lead,.disclaimer{max-width:760px}
+.ailab-head{justify-content:center}
+.ailab-controls{justify-content:center}
+.ailab-status{text-align:center;min-width:0}
+.engine-head{justify-content:center}
+.chart-card .ch-h{justify-content:center}
+.psa-legend,.b-tags,.stack-chips,.deploy-flow,.risk-legend,.hier-row,.hx-chain,.timeline-stats,.guide-stats,.hero-stats,.fig-bar,.gd-top{justify-content:center}
+.deploy-list{align-items:center}
+.deploy-list li{justify-content:center}
+.sstep.active{transform:none}
+.gd-top label{text-align:center}
+.tab-bar,.pathway-tabs{justify-content:center}
+.ai-rail{justify-content:center}
+@media(max-width:900px){.ai-rail{justify-content:flex-start}}
 
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
@@ -649,15 +699,15 @@ h1,h2,h3{font-weight:700;letter-spacing:-.02em;line-height:1.08}
     <div class="timeline-block rv">
       <p class="eyebrow">用药时间轴</p>
       <h3 class="h2" style="font-size:clamp(26px,4vw,42px)">九年病程，<span class="grad">一条泳道一类药。</span></h3>
-      <p class="lead" style="margin-bottom:28px">每段说明只占一行，用药再多也不撑高时间轴。横向滑动查看完整疗程，全程概览缩略图、当前视窗年月徽标、边缘药名吸附，窄屏还有「整段疗程 / 放大细看」双视图。</p>
-      <div class="timeline-frame frame"><img data-image="assets/med-timeline.jpg" alt="复杂病例用药时间轴：九类药物泳道与全程概览"><div class="img-fallback">用药时间轴</div></div>
+      <p class="lead" style="margin-bottom:28px">每段说明只占一行，用药再多也不撑高时间轴。横向滑动查看完整疗程，全程概览缩略图、当前视窗年月徽标、边缘药名吸附；窄屏「整段疗程 / 放大细看」双视图，短程药自动聚合、点按逐段查看，时间段翻页不必无休止横滚。</p>
+      <div class="timeline-frame frame"><img data-image="assets/med-timeline.jpg" alt="复杂病例用药时间轴：八类药物泳道与全程概览"><div class="img-fallback">用药时间轴</div></div>
       <div class="timeline-stats">
-        <div><div class="stat-num grad" data-count="9">0</div><div class="stat-label">治疗大类泳道</div></div>
-        <div><div class="stat-num grad" data-count="29">0</div><div class="stat-label">用药段</div></div>
-        <div><div class="stat-num grad" data-count="223">0</div><div class="stat-label">次给药记录</div></div>
+        <div><div class="stat-num grad" data-count="8">0</div><div class="stat-label">治疗大类泳道</div></div>
+        <div><div class="stat-num grad" data-count="17">0</div><div class="stat-label">用药段</div></div>
+        <div><div class="stat-num grad" data-count="28">0</div><div class="stat-label">次给药记录</div></div>
         <div><div class="stat-num grad" data-count="9">0</div><div class="stat-label">年病程跨度</div></div>
       </div>
-      <p class="psa-note">演示病例 PC-166：手术 → 复发 → 再治疗 → 再复发，同期多药联合，全部为构造的模拟数据。</p>
+      <p class="psa-note">演示病例 PC-140：多线序贯、同期多药联合，每段用药至少半年，全部为构造的模拟数据。</p>
     </div>
 
     <!-- psa -->
@@ -781,11 +831,11 @@ h1,h2,h3{font-weight:700;letter-spacing:-.02em;line-height:1.08}
         <p>自由文本的病程记录没法统计。系统把每位患者的诊疗过程拆成<b>五个层级</b>，逐层挂载、逐级可查：上一层是下一层的「文件夹」，任何一条化验、任何一次给药，都能追溯到它属于哪次就诊、哪个治疗段、哪条治疗线。</p>
       </div>
       <div class="hier-row">
-        <div class="hier-node h1">治疗线<small>line</small></div><span class="hier-arrow">→</span>
-        <div class="hier-node h2">治疗段<small>episode</small></div><span class="hier-arrow">→</span>
-        <div class="hier-node h3">就诊<small>visit</small></div><span class="hier-arrow">→</span>
-        <div class="hier-node h4">随访行<small>record</small></div><span class="hier-arrow">→</span>
-        <div class="hier-node h5">检查 / 不良事件<small>item · CTCAE 5.0</small></div>
+        <div class="hier-node n1">治疗线<small>line</small></div><span class="hier-arrow" aria-hidden="true">→</span>
+        <div class="hier-node n2">治疗段<small>episode</small></div><span class="hier-arrow" aria-hidden="true">→</span>
+        <div class="hier-node n3">就诊<small>visit</small></div><span class="hier-arrow" aria-hidden="true">→</span>
+        <div class="hier-node n4">随访行<small>record</small></div><span class="hier-arrow" aria-hidden="true">→</span>
+        <div class="hier-node n5">检查 / 不良事件<small>item · CTCAE 5.0</small></div>
       </div>
       <div class="hier-detail">
         <div class="hier-card" style="--hc:#00A870">
