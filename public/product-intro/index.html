@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>前列腺癌单病种科研数据库 · 产品介绍</title>
+<meta name="description" content="让每一例病例，都成为证据。前列腺癌单病种科研数据库产品介绍：数据展示、数据录入、自动计算与指南方案推荐。">
+<style>
+/* ============ SECTION: tokens ============ */
+:root{
+  --bg:#000000; --surface:#0a0f0d; --surface2:#101613; --overlay:#141b17;
+  --line:#1e2a24; --line2:#2a3a32;
+  --ink:#f5f7f6; --ink2:#aeb8b2; --ink3:#6f7d76;
+  --brand:#00694B; --brand-bright:#00A870; --brand-deep:#003D2C; --mint:#30D158;
+  --amber:#E0AE33; --amber-bright:#FFD60A; --red:#FF453A; --blue:#0A84FF; --cyan:#64D2FF; --lav:#BF5AF2; --teal:#2DD4BF;
+  --grad-hero:linear-gradient(100deg,#00A870 0%,#2DD4BF 45%,#64D2FF 100%);
+  --grad-warm:linear-gradient(100deg,#FFD60A,#FF9F0A);
+  --nav-h:52px;
+  --ease:cubic-bezier(.25,.1,.25,1); --ease-out:cubic-bezier(.16,1,.3,1);
+  --radius:18px;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+::selection{background:rgba(0,168,112,.35)}
+/* custom scrollbar */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:#050807}
+::-webkit-scrollbar-thumb{background:#1c3a2e;border-radius:6px;border:2px solid #050807}
+::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+html{scrollbar-width:thin;scrollbar-color:#1c3a2e #050807}
+
+/* ============ SECTION: ambient ============ */
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.aurora span{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;will-change:transform}
+.aurora .a1{width:60vw;height:60vw;left:-18vw;top:-22vw;background:radial-gradient(circle,rgba(0,105,75,.55),transparent 65%);animation:drift1 26s var(--ease) infinite alternate}
+.aurora .a2{width:52vw;height:52vw;right:-16vw;top:8vh;background:radial-gradient(circle,rgba(10,132,255,.28),transparent 65%);animation:drift2 32s var(--ease) infinite alternate}
+.aurora .a3{width:46vw;height:46vw;left:22vw;bottom:-24vw;background:radial-gradient(circle,rgba(45,212,191,.22),transparent 65%);animation:drift3 38s var(--ease) infinite alternate}
+@keyframes drift1{to{transform:translate(9vw,7vh) scale(1.12)}}
+@keyframes drift2{to{transform:translate(-8vw,10vh) scale(.92)}}
+@keyframes drift3{to{transform:translate(6vw,-8vh) scale(1.08)}}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+main{position:relative;z-index:2}
+
+/* ============ SECTION: nav ============ */
+.nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:100;display:flex;align-items:center;gap:20px;padding:0 clamp(16px,4vw,44px);background:rgba(0,0,0,.55);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid transparent;transition:border-color .4s,background .4s}
+.nav.scrolled{border-bottom-color:var(--line);background:rgba(0,0,0,.72)}
+.nav-brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.nav-logo{width:24px;height:24px;border-radius:6px;background:var(--brand);display:grid;place-items:center;flex:0 0 24px}
+.nav-logo svg{width:14px;height:14px}
+.nav-links{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{font-size:12.5px;color:var(--ink2);padding:6px 11px;border-radius:999px;white-space:nowrap;transition:color .25s,background .25s}
+.nav-links a:hover{color:var(--ink)}
+.nav-links a.active{color:var(--ink);background:rgba(0,168,112,.16)}
+.nav-cta{flex:0 0 auto;font-size:12.5px;font-weight:600;color:#04140d;background:var(--brand-bright);padding:7px 16px;border-radius:999px;transition:transform .25s var(--ease),box-shadow .25s}
+.nav-cta:hover{transform:scale(1.04);box-shadow:0 0 22px rgba(0,168,112,.5)}
+@media(max-width:820px){.nav-links{display:none}}
+
+/* ============ SECTION: shared ============ */
+.wrap{max-width:1120px;margin:0 auto;padding:0 clamp(18px,4vw,32px)}
+section{position:relative;padding:clamp(80px,12vh,150px) 0}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--brand-bright);text-transform:uppercase;margin-bottom:18px}
+.eyebrow::before{content:"";width:22px;height:2px;background:var(--brand-bright);border-radius:2px}
+h1,h2,h3{font-weight:700;letter-spacing:-.02em;line-height:1.08}
+.h2{font-size:clamp(32px,5.4vw,60px);margin-bottom:20px}
+.lead{font-size:clamp(16px,2.2vw,21px);color:var(--ink2);max-width:640px;line-height:1.6}
+.grad{background:var(--grad-hero);-webkit-background-clip:text;background-clip:text;color:transparent}
+.grad-warm{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent}
+.link-more{display:inline-flex;align-items:center;gap:5px;color:var(--brand-bright);font-size:16px;font-weight:500;margin-top:18px;transition:gap .25s}
+.link-more:hover{gap:9px}
+.link-more svg{width:14px;height:14px}
+/* reveal */
+.rv{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease-out),transform .9s var(--ease-out);transition-delay:calc(var(--i,0)*90ms)}
+.rv.in{opacity:1;transform:none}
+.rv-scale{opacity:0;transform:scale(.94);transition:opacity 1s var(--ease-out),transform 1s var(--ease-out)}
+.rv-scale.in{opacity:1;transform:none}
+/* device frame */
+.frame{position:relative;border-radius:var(--radius);overflow:hidden;background:var(--surface2);border:1px solid var(--line2);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.03) inset}
+.frame-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:#0d1310;border-bottom:1px solid var(--line)}
+.frame-bar i{width:9px;height:9px;border-radius:50%;background:#2a3a32}
+.frame-bar i:nth-child(1){background:#ff5f57}.frame-bar i:nth-child(2){background:#febc2e}.frame-bar i:nth-child(3){background:#28c840}
+.frame-bar span{margin-left:10px;font-size:11px;color:var(--ink3);letter-spacing:.02em}
+.frame img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.img-fallback{display:none;place-items:center;min-height:220px;color:var(--ink3);font-size:14px;background:linear-gradient(135deg,#0d1310,#101613)}
+/* stat */
+.stat-num{font-size:clamp(40px,6vw,72px);font-weight:700;letter-spacing:-.03em;line-height:1}
+.stat-label{font-size:14px;color:var(--ink2);margin-top:8px}
+/* pill / chip */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--line2);background:var(--surface2);color:var(--ink2)}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+
+/* ============ SECTION: hero ============ */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding-top:calc(var(--nav-h) + 40px);text-align:center;overflow:hidden}
+.hero-eyebrow{font-size:13px;letter-spacing:.22em;color:var(--ink3);font-weight:600;margin-bottom:22px;text-transform:uppercase}
+.hero h1{font-size:clamp(44px,8.5vw,96px);font-weight:700;letter-spacing:-.03em;line-height:1.04}
+.hero-sub{font-size:clamp(16px,2.4vw,22px);color:var(--ink2);max-width:620px;margin:26px auto 0;line-height:1.6}
+.hero-cta{display:flex;gap:16px;justify-content:center;margin-top:34px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--brand-bright);color:#04140d;font-size:16px;font-weight:600;padding:13px 28px;border-radius:999px;transition:transform .3s var(--ease),box-shadow .3s}
+.btn-primary:hover{transform:scale(1.04);box-shadow:0 0 34px rgba(0,168,112,.55)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;color:var(--brand-bright);font-size:16px;font-weight:500;padding:13px 24px;border-radius:999px;border:1px solid var(--line2);transition:border-color .3s,background .3s}
+.btn-ghost:hover{border-color:var(--brand-bright);background:rgba(0,168,112,.08)}
+.hero-stage{perspective:1400px;margin:clamp(40px,7vh,80px) auto 0;width:min(920px,92vw)}
+.hero-device{transform-style:preserve-3d;will-change:transform;transition:transform .1s linear}
+.hero-device .frame{box-shadow:0 50px 120px rgba(0,0,0,.75),0 0 90px rgba(0,105,75,.22)}
+.hero-device .frame img{aspect-ratio:16/10}
+.hero-glow{position:absolute;left:50%;top:58%;width:70vw;height:40vh;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(0,168,112,.28),transparent 70%);filter:blur(60px);z-index:-1;pointer-events:none}
+.hero-stats{display:flex;justify-content:center;gap:clamp(24px,6vw,80px);margin-top:clamp(40px,7vh,72px);flex-wrap:wrap}
+.hero-stats .stat-num{font-size:clamp(28px,4vw,44px)}
+.scroll-hint{margin:44px auto 0;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--ink3);font-size:12px;letter-spacing:.1em}
+.scroll-hint .mouse{width:22px;height:34px;border:2px solid var(--ink3);border-radius:12px;position:relative}
+.scroll-hint .mouse::after{content:"";position:absolute;left:50%;top:6px;width:3px;height:7px;margin-left:-1.5px;border-radius:2px;background:var(--brand-bright);animation:wheel 1.8s var(--ease) infinite}
+@keyframes wheel{0%{opacity:0;transform:translateY(0)}30%{opacity:1}100%{opacity:0;transform:translateY(12px)}}
+
+/* ============ SECTION: scrollytelling ============ */
+.scrolly{padding:0}
+.scrolly-head{text-align:center;padding:clamp(70px,10vh,120px) 0 40px}
+.scrolly-track{position:relative}
+.scrolly-sticky{position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));display:flex;align-items:center;overflow:hidden}
+.scrolly-inner{display:grid;grid-template-columns:minmax(280px,400px) 1fr;gap:clamp(24px,5vw,72px);align-items:center;width:100%;max-width:1180px;margin:0 auto;padding:0 clamp(18px,4vw,32px)}
+.scrolly-steps{display:flex;flex-direction:column;gap:8px}
+.sstep{padding:22px 24px;border-radius:16px;border:1px solid transparent;opacity:.32;transition:opacity .5s var(--ease),border-color .5s,background .5s,transform .5s var(--ease)}
+.sstep.active{opacity:1;border-color:var(--line2);background:var(--surface);transform:translateX(6px)}
+.sstep .sstep-k{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--brand-bright);margin-bottom:8px}
+.sstep h3{font-size:clamp(20px,2.6vw,27px);margin-bottom:8px}
+.sstep p{font-size:14.5px;color:var(--ink2);line-height:1.6}
+.scrolly-visual{position:relative}
+.scrolly-visual .frame{aspect-ratio:auto}
+.sv-viewport{position:relative;overflow:hidden;background:#f6f7f4;touch-action:pan-y;cursor:grab}
+.sv-viewport:active{cursor:grabbing}
+.sv-track{display:flex;transition:transform .6s var(--ease-out);will-change:transform}
+.sv-slide{flex:0 0 100%;min-width:0;display:flex;align-items:center;justify-content:center}
+.sv-img{width:100%;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.sv-dots{display:flex;gap:6px;justify-content:center;margin-top:14px}
+.sv-dots button{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:none;border:none;cursor:pointer;padding:0}
+.sv-dots button i{width:7px;height:7px;border-radius:50%;background:var(--line2);transition:background .4s,transform .4s;display:block}
+.sv-dots button.on i{background:var(--brand-bright);transform:scale(1.35)}
+.sv-dots button:focus-visible{outline:2px solid var(--brand-bright);outline-offset:2px}
+.sv-hint{font-size:11.5px;color:var(--ink3);text-align:center;margin-top:6px;letter-spacing:.05em}
+.scrolly-spacer{height:60vh}
+@media(max-width:860px){
+  .scrolly-sticky{position:relative;height:auto;display:block;padding:20px 0}
+  .scrolly-inner{grid-template-columns:1fr;gap:28px}
+  .scrolly-steps{order:2}
+  .sstep{opacity:1;transform:none;border-color:var(--line);background:var(--surface)}
+  .scrolly-visual{order:1}
+  .scrolly-spacer{display:none}
+  .sv-hint{display:block}
+}
+
+/* ============ SECTION: display ============ */
+.risk-legend{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0}
+.risk-legend .chip{font-size:13px}
+.display-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:36px}
+@media(max-width:860px){.display-grid{grid-template-columns:1fr}}
+.display-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;transition:border-color .4s,transform .4s var(--ease)}
+.display-card:hover{border-color:var(--line2);transform:translateY(-4px)}
+.display-card h3{font-size:21px;margin-bottom:10px}
+.display-card p{font-size:14.5px;color:var(--ink2);line-height:1.6;margin-bottom:18px}
+.display-card .frame img{aspect-ratio:16/10}
+/* tabs */
+.tabs{margin-top:56px}
+.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.tab-btn{font-size:14px;font-weight:600;color:var(--ink2);padding:9px 18px;border-radius:999px;border:1px solid var(--line);background:var(--surface);transition:all .3s var(--ease)}
+.tab-btn:hover{color:var(--ink);border-color:var(--line2)}
+.tab-btn.active{color:#04140d;background:var(--brand-bright);border-color:var(--brand-bright)}
+.tab-stage{position:relative}
+.tab-stage .frame{aspect-ratio:auto}
+.tab-scroll{max-height:min(74vh,880px);overflow-y:auto;overscroll-behavior:contain;background:#f6f7f4;scrollbar-width:thin;scrollbar-color:#1c3a2e #0d1310}
+.tab-scroll::-webkit-scrollbar{width:9px}
+.tab-scroll::-webkit-scrollbar-track{background:#0d1310}
+.tab-scroll::-webkit-scrollbar-thumb{background:#1c3a2e;border-radius:6px;border:2px solid #0d1310}
+.tab-scroll::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+.tab-img{width:100%;height:auto;display:none;object-fit:contain}
+.tab-img.show{display:block;animation:tabIn .5s var(--ease-out)}
+@keyframes tabIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tab-hint{font-size:11.5px;color:var(--ink3);margin-top:8px;letter-spacing:.04em}
+.tab-desc{margin-top:16px;font-size:15px;color:var(--ink2);min-height:44px;line-height:1.6}
+.tab-desc b{color:var(--ink)}
+/* timeline */
+.timeline-block{margin-top:64px}
+.timeline-frame{overflow:hidden}
+.timeline-frame .frame img{aspect-ratio:21/9;object-fit:cover;animation:kenpan 24s var(--ease) infinite alternate}
+@keyframes kenpan{from{object-position:0% center}to{object-position:100% center}}
+.timeline-stats{display:flex;gap:clamp(20px,5vw,64px);margin-top:26px;flex-wrap:wrap}
+/* psa canvas */
+.psa-block{margin-top:64px}
+.psa-head{max-width:720px;margin-bottom:30px}
+.charts-duo{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:900px){.charts-duo{grid-template-columns:1fr}}
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;position:relative;overflow:hidden;transition:border-color .4s}
+.chart-card:hover{border-color:var(--line2)}
+.chart-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--cc,var(--brand-bright))}
+.chart-card .ch-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
+.chart-card .ch-h b{font-size:17px}
+.chart-card .ch-h span{font-size:11.5px;color:var(--ink3)}
+.chart-card canvas{width:100%;height:auto;display:block}
+.psa-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 10px;font-size:11.5px;color:var(--ink2)}
+.psa-legend span{display:inline-flex;align-items:center;gap:6px}
+.psa-legend i{width:16px;height:3px;border-radius:2px;display:block}
+.psa-note{font-size:12px;color:var(--ink3);margin-top:12px}
+
+/* ============ SECTION: intake ============ */
+.intake-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:40px}
+@media(max-width:900px){.intake-cards{grid-template-columns:1fr}}
+.intake-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:transform .4s var(--ease),border-color .4s}
+.intake-card:hover{transform:translateY(-5px);border-color:var(--line2)}
+.intake-card .frame{border-radius:0;border:none;border-bottom:1px solid var(--line)}
+.intake-card .frame img{aspect-ratio:16/11}
+.intake-body{padding:22px}
+.intake-body .tag{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--brand-bright);margin-bottom:8px}
+.intake-body h3{font-size:19px;margin-bottom:8px}
+.intake-body p{font-size:14px;color:var(--ink2);line-height:1.6}
+/* AI intake lab */
+.ailab{margin-top:64px;background:linear-gradient(180deg,#0b1210,#0a0f0d);border:1px solid var(--line2);border-radius:22px;padding:clamp(20px,3.5vw,40px);position:relative;overflow:hidden}
+.ailab::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 40% at 70% 0%,rgba(0,168,112,.12),transparent 70%);pointer-events:none}
+.ailab-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;position:relative}
+.ailab-head h3{font-size:clamp(20px,3vw,28px);margin-bottom:6px}
+.ailab-head .psub{font-size:14px;color:var(--ink2);max-width:600px;line-height:1.6}
+.ailab-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ailab-status{font-size:12.5px;color:var(--brand-bright);font-weight:600;min-width:130px;text-align:right}
+.ai-rail{display:flex;gap:6px;margin:26px 0 22px;overflow-x:auto;padding-bottom:6px;position:relative;scrollbar-width:thin;scrollbar-color:#1c3a2e transparent}
+.ai-rail::-webkit-scrollbar{height:6px}
+.ai-rail::-webkit-scrollbar-thumb{background:#1c3a2e;border-radius:4px}
+.ai-stage{flex:1 0 auto;min-width:96px;display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);opacity:.45;transition:all .4s var(--ease);position:relative}
+.ai-stage .as-n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--overlay);border:1px solid var(--line2);color:var(--ink2);transition:all .4s}
+.ai-stage .as-t{font-size:12px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.ai-stage.active{opacity:1;border-color:var(--brand-bright);background:rgba(0,168,112,.1);box-shadow:0 0 20px rgba(0,168,112,.18)}
+.ai-stage.active .as-n{background:var(--brand-bright);color:#04140d;border-color:var(--brand-bright)}
+.ai-stage.done{opacity:.9}
+.ai-stage.done .as-n{background:rgba(48,209,88,.16);color:var(--mint);border-color:rgba(48,209,88,.4)}
+.ai-grid{display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:20px;position:relative}
+@media(max-width:900px){.ai-grid{grid-template-columns:1fr}}
+.ai-doc{background:#fbfaf7;color:#26302b;border-radius:14px;padding:20px 20px 26px;position:relative;overflow:hidden;font-size:12.5px;line-height:1.75;box-shadow:0 20px 50px rgba(0,0,0,.4);align-self:start}
+.ai-doc .doc-h{font-size:15px;font-weight:700;text-align:center;letter-spacing:.06em;border-bottom:2px solid #26302b;padding-bottom:8px;margin-bottom:12px}
+.ai-doc .doc-meta{display:flex;justify-content:space-between;font-size:11px;color:#6a756e;margin-bottom:10px}
+.ai-doc p{margin-bottom:8px;text-align:justify}
+.ai-doc .hl{background:rgba(0,168,112,.16);box-shadow:0 0 0 2px rgba(0,168,112,.35);border-radius:3px;padding:0 2px;transition:all .4s}
+.ai-doc .hl.red{background:rgba(255,69,58,.14);box-shadow:0 0 0 2px rgba(255,69,58,.4)}
+
+.ai-scan{position:absolute;left:0;right:0;top:-20%;height:70px;background:linear-gradient(180deg,transparent,rgba(0,168,112,.22),rgba(0,168,112,.5),rgba(0,168,112,.22),transparent);opacity:0;pointer-events:none}
+.ai-doc.scanning .ai-scan{opacity:1;animation:scan 2.2s linear infinite}
+@keyframes scan{from{top:-20%}to{top:110%}}
+.ai-doc .doc-tag{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;letter-spacing:.08em;color:#00694B;background:rgba(0,105,75,.12);border:1px solid rgba(0,105,75,.3);padding:3px 8px;border-radius:999px}
+.ai-right{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ai-panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.ai-panel .ap-h{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--ink3);margin-bottom:12px}
+.ai-panel .ap-h b{color:var(--brand-bright)}
+.ai-fields{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1c3a2e transparent}
+.ai-fields::-webkit-scrollbar{width:6px}
+.ai-fields::-webkit-scrollbar-thumb{background:#1c3a2e;border-radius:4px}
+.ai-field{display:grid;grid-template-columns:88px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:var(--overlay);border:1px solid var(--line);opacity:0;transform:translateY(8px);transition:all .45s var(--ease-out)}
+.ai-field.in{opacity:1;transform:none}
+.ai-field .af-k{font-size:11.5px;color:var(--ink3);font-weight:600}
+.ai-field .af-v{font-size:13px;color:var(--ink);font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai-field .af-c{font-size:10.5px;font-weight:700;color:var(--mint);background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.3);padding:2px 7px;border-radius:999px;white-space:nowrap}
+.ai-field.warn .af-c{color:var(--amber-bright);background:rgba(255,214,10,.1);border-color:rgba(255,214,10,.3)}
+.ai-field .af-act{display:flex;gap:6px}
+.ai-field .af-act button{font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;border:1px solid var(--line2);color:var(--ink2);transition:all .25s}
+.ai-field .af-act button.yes{color:var(--mint);border-color:rgba(48,209,88,.4)}
+.ai-field .af-act button.yes:hover{background:rgba(48,209,88,.15)}
+.ai-field .af-act button.no:hover{background:rgba(255,69,58,.12);color:var(--red)}
+.ai-field.adopted{border-color:rgba(48,209,88,.45);background:rgba(48,209,88,.07)}
+.ai-field.rejected{opacity:.45}
+.ai-field.rejected .af-v{text-decoration:line-through}
+.ai-log{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.7;color:var(--ink2);max-height:150px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1c3a2e transparent}
+.ai-log::-webkit-scrollbar{width:6px}
+.ai-log::-webkit-scrollbar-thumb{background:#1c3a2e;border-radius:4px}
+.ai-log .lg{opacity:0;animation:lgIn .4s forwards}
+.ai-log .lg b{color:var(--brand-bright)}
+.ai-log .lg.warn b{color:var(--amber-bright)}
+@keyframes lgIn{to{opacity:1}}
+.ai-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:600px){.ai-metrics{grid-template-columns:repeat(2,1fr)}}
+.ai-metric{background:var(--overlay);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+.ai-metric .am-v{font-size:20px;font-weight:700;color:var(--brand-bright)}
+.ai-metric .am-l{font-size:10.5px;color:var(--ink3);margin-top:3px}
+.ai-merge{display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px dashed rgba(255,214,10,.4);background:rgba(255,214,10,.05);font-size:12px;color:var(--ink2)}
+.ai-merge.show{display:flex}
+.ai-merge button{font-size:11px;font-weight:700;color:var(--amber-bright);border:1px solid rgba(255,214,10,.4);padding:4px 10px;border-radius:8px}
+.ai-done{display:none;margin-top:16px;padding:16px 20px;border-radius:12px;border:1px solid rgba(48,209,88,.45);background:rgba(48,209,88,.08);align-items:center;gap:14px}
+.ai-done.show{display:flex}
+.ai-done .ad-ic{font-size:26px}
+.ai-done .ad-t{font-size:15px;font-weight:700;color:var(--mint)}
+.ai-done .ad-d{font-size:12.5px;color:var(--ink2);margin-top:2px}
+/* hierarchy */
+.hierarchy{margin-top:64px}
+.hier-head{max-width:780px;margin:0 auto 34px;text-align:center}
+.hier-head h3{font-size:clamp(24px,3.6vw,38px);margin-bottom:12px}
+.hier-head p{font-size:15px;color:var(--ink2);line-height:1.7}
+.hier-head p b{color:var(--ink)}
+.hier-row{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:34px}
+.hier-node{padding:14px 18px;border-radius:14px;background:var(--surface);border:1px solid var(--line2);font-size:15px;font-weight:600;text-align:center;transition:all .4s var(--ease);display:flex;flex-direction:column;justify-content:center}
+.hier-node small{display:block;font-size:11px;color:var(--ink3);font-weight:400;margin-top:3px}
+.hier-node.h1{border-color:var(--brand);background:rgba(0,105,75,.14)}
+.hier-node.h2{border-color:var(--teal)}
+.hier-node.h3{border-color:var(--blue)}
+.hier-node.h4{border-color:var(--lav)}
+.hier-node.h5{border-color:var(--amber)}
+.hier-arrow{color:var(--ink3);font-size:20px;align-self:center}
+@media(max-width:760px){.hier-arrow{transform:rotate(90deg)}.hier-row{flex-direction:column;align-items:stretch}}
+.hier-detail{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+@media(max-width:1000px){.hier-detail{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.hier-detail{grid-template-columns:1fr}}
+.hier-card{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--hc,var(--brand-bright));border-radius:14px;padding:18px;transition:transform .4s var(--ease),border-color .4s}
+.hier-card:hover{transform:translateY(-4px);border-color:var(--line2)}
+.hier-card .hd-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--hc,var(--brand-bright));color:#04140d;font-size:12px;font-weight:800;margin-bottom:10px}
+.hier-card h4{font-size:16px;margin-bottom:2px}
+.hier-card .hd-en{font-size:11px;color:var(--ink3);letter-spacing:.06em;margin-bottom:10px}
+.hier-card p{font-size:12.5px;color:var(--ink2);line-height:1.6;margin-bottom:10px}
+.hier-card .hd-eg{font-size:11.5px;color:var(--ink2);background:var(--overlay);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.55}
+.hier-card .hd-eg b{color:var(--hc,var(--brand-bright))}
+.hier-example{margin-top:26px;background:var(--overlay);border:1px solid var(--line2);border-radius:14px;padding:18px 22px;font-size:13.5px;color:var(--ink2);line-height:1.8}
+.hier-example b{color:var(--ink)}
+.hier-example .hx-chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;font-size:12.5px}
+.hier-example .hx-chain span{padding:4px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line2);color:var(--ink)}
+.hier-example .hx-chain i{color:var(--ink3);font-style:normal}
+/* full-width scrollable figure */
+.fig-full{margin-top:18px}
+.fig-full .frame{aspect-ratio:auto}
+.fig-scroll{max-height:min(78vh,900px);overflow-y:auto;overscroll-behavior:contain;background:#f6f7f4;scrollbar-width:thin;scrollbar-color:#1c3a2e #0d1310}
+.fig-scroll::-webkit-scrollbar{width:9px}
+.fig-scroll::-webkit-scrollbar-track{background:#0d1310}
+.fig-scroll::-webkit-scrollbar-thumb{background:#1c3a2e;border-radius:6px;border:2px solid #0d1310}
+.fig-scroll::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+.fig-full .fig-scroll img{width:100%;height:auto;aspect-ratio:auto;display:block;object-fit:contain}
+.fig-hint{font-size:11.5px;color:var(--ink3);margin-top:8px;letter-spacing:.04em}
+.fig-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.fig-zoom{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--brand-bright);border:1px solid rgba(0,168,112,.4);background:rgba(0,168,112,.08);padding:7px 14px;border-radius:999px;transition:all .25s}
+.fig-zoom:hover{background:rgba(0,168,112,.16);border-color:var(--brand-bright)}
+.fig-zoom svg{width:13px;height:13px}
+@media(max-width:700px){
+  .fig-scroll{overflow-x:auto}
+  .fig-full .fig-scroll img{width:1000px;max-width:none}
+}
+/* figure lightbox */
+.figlb{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;flex-direction:column}
+.figlb.show{display:flex}
+.figlb-bar{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)}
+.figlb-bar b{font-size:14px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.figlb-bar .flb-hint{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.figlb-close{margin-left:auto;flex:0 0 36px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line2);color:var(--ink2);font-size:16px;display:grid;place-items:center;transition:all .25s}
+@media(max-width:700px){.figlb-bar{padding:10px 14px}.figlb-bar .flb-hint{display:none}}
+.figlb-close:hover{color:var(--ink);border-color:var(--brand-bright)}
+.figlb-body{flex:1;overflow:auto;overscroll-behavior:contain;padding:18px;display:flex;scrollbar-width:thin;scrollbar-color:#1c3a2e #050807}
+.figlb-body img{margin:auto}
+.figlb-body::-webkit-scrollbar{width:9px;height:9px}
+.figlb-body::-webkit-scrollbar-track{background:#050807}
+.figlb-body::-webkit-scrollbar-thumb{background:#1c3a2e;border-radius:6px}
+.figlb-body img{display:block;height:auto;object-fit:contain;border-radius:8px}
+
+/* ============ SECTION: calc ============ */
+.calc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+@media(max-width:900px){.calc-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.calc-grid{grid-template-columns:1fr}}
+.calc-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;position:relative;overflow:hidden;transition:transform .4s var(--ease),border-color .4s}
+.calc-card:hover{transform:translateY(-4px);border-color:var(--line2)}
+.calc-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--cc,var(--brand-bright))}
+.calc-card .cc-ic{font-size:26px;margin-bottom:14px}
+.calc-card h3{font-size:18px;margin-bottom:8px}
+.calc-card p{font-size:13.5px;color:var(--ink2);line-height:1.6}
+.calc-card .cc-rule{margin-top:14px;font-size:12px;color:var(--ink3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--overlay);padding:8px 12px;border-radius:8px;border:1px solid var(--line)}
+/* tristate */
+.tristate{display:flex;gap:16px;margin-top:48px;flex-wrap:wrap}
+.ts-card{flex:1 1 200px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
+.ts-card .ts-v{font-size:34px;font-weight:700;font-family:ui-monospace,Menlo,monospace}
+.ts-card .ts-l{font-size:14px;color:var(--ink2);margin-top:6px}
+.ts-card.null .ts-v{color:var(--ink3)}
+.ts-card.zero .ts-v{color:var(--blue)}
+.ts-card.one .ts-v{color:var(--mint)}
+/* engine demo */
+.engine{margin-top:56px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(24px,4vw,44px)}
+.engine-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+.engine-head h3{font-size:clamp(20px,3vw,28px)}
+.toggle{display:inline-flex;align-items:center;gap:10px;font-size:14px;color:var(--ink2);cursor:pointer;user-select:none}
+.toggle .tk{width:46px;height:26px;border-radius:999px;background:var(--overlay);border:1px solid var(--line2);position:relative;transition:background .3s}
+.toggle .tk::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--ink3);transition:transform .3s var(--ease),background .3s}
+.toggle.on .tk{background:rgba(0,168,112,.3);border-color:var(--brand-bright)}
+.toggle.on .tk::after{transform:translateX(20px);background:var(--brand-bright)}
+.engine-steps{display:flex;flex-direction:column;gap:14px}
+.estep{display:flex;align-items:flex-start;gap:16px;padding:18px 20px;border-radius:14px;background:var(--overlay);border:1px solid var(--line);opacity:.4;transition:opacity .5s,border-color .5s}
+.estep.done{opacity:1}
+.estep.pass{border-color:rgba(48,209,88,.4)}
+.estep.fail{border-color:rgba(255,69,58,.4)}
+.estep .es-ic{width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;font-size:15px;background:var(--surface2);border:1px solid var(--line2);transition:all .4s}
+.estep.pass .es-ic{background:rgba(48,209,88,.18);border-color:var(--mint);color:var(--mint)}
+.estep.fail .es-ic{background:rgba(255,69,58,.15);border-color:var(--red);color:var(--red)}
+.estep .es-t{font-size:15px;font-weight:600}
+.estep .es-d{font-size:13px;color:var(--ink2);margin-top:3px;line-height:1.5}
+.verdict{margin-top:22px;padding:22px 24px;border-radius:14px;border:1px solid var(--line2);background:var(--overlay);display:flex;align-items:center;gap:16px;transition:all .5s}
+.verdict .vd-ic{font-size:30px}
+.verdict .vd-t{font-size:18px;font-weight:700}
+.verdict .vd-d{font-size:13.5px;color:var(--ink2);margin-top:3px}
+.verdict.ok{border-color:rgba(48,209,88,.45);background:rgba(48,209,88,.07)}
+.verdict.ok .vd-t{color:var(--mint)}
+.verdict.block{border-color:rgba(255,214,10,.4);background:rgba(255,214,10,.06)}
+.verdict.block .vd-t{color:var(--amber-bright)}
+
+/* ============ SECTION: guideline ============ */
+.guide-stats{display:flex;gap:clamp(20px,5vw,64px);margin:36px 0;flex-wrap:wrap}
+.guide-demo{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(22px,4vw,40px);margin-top:20px}
+.gd-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.gd-top label{font-size:14px;color:var(--ink2);font-weight:600}
+.gd-select{font-size:15px;font-family:inherit;color:var(--ink);background:var(--overlay);border:1px solid var(--line2);border-radius:12px;padding:11px 16px;min-width:240px;max-width:100%;transition:border-color .3s}
+.gd-select:focus{outline:none;border-color:var(--brand-bright)}
+.gd-derived{font-size:13.5px;color:var(--ink3);margin:10px 0 24px;padding:10px 14px;background:var(--overlay);border-radius:10px;border:1px solid var(--line)}
+.gd-derived b{color:var(--ink2)}
+.gd-options{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:700px){.gd-options{grid-template-columns:1fr}}
+.gd-card{background:var(--overlay);border:1px solid var(--line2);border-radius:14px;padding:20px;border-left:4px solid var(--lv,var(--brand-bright));animation:cardIn .5s var(--ease-out) both;animation-delay:calc(var(--ci,0)*70ms)}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.gd-card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.gd-card-h b{font-size:16px;line-height:1.3}
+.gd-lv{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(0,168,112,.16);color:var(--brand-bright);border:1px solid rgba(0,168,112,.3)}
+.gd-lv.lv2{background:rgba(255,214,10,.12);color:var(--amber-bright);border-color:rgba(255,214,10,.3)}
+.gd-lv.lv3{background:rgba(174,184,178,.1);color:var(--ink2);border-color:var(--line2)}
+.gd-src{font-size:12px;color:var(--ink3);margin-bottom:10px}
+.gd-meta{font-size:12.5px;color:var(--ink2);line-height:1.55;margin-top:6px}
+.gd-meta b{color:var(--ink3);font-weight:600}
+.gd-empty{grid-column:1/-1;padding:32px;border-radius:14px;border:1px dashed rgba(255,214,10,.4);background:rgba(255,214,10,.05);text-align:center}
+.gd-empty .ge-t{font-size:16px;font-weight:700;color:var(--amber-bright);margin-bottom:8px}
+.gd-empty .ge-d{font-size:13.5px;color:var(--ink2);line-height:1.6;max-width:520px;margin:0 auto}
+.gd-foot{font-size:12.5px;color:var(--ink3);margin-top:22px;line-height:1.6}
+/* pathway */
+.pathway-block{margin-top:72px}
+.pathway-lead{font-size:clamp(15px,2vw,18px);color:var(--ink2);max-width:680px;line-height:1.65;margin-bottom:30px}
+.pathway-lead b{color:var(--ink)}
+.pathway-ov{margin-bottom:26px}
+.pathway-ov .frame img{aspect-ratio:auto;object-fit:contain;background:#f8fafc;padding:6px}
+.pathway-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.pw-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;font-size:13.5px;font-weight:600;color:var(--ink2);padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--surface);transition:all .3s var(--ease);text-align:left}
+.pw-btn small{font-size:11px;font-weight:400;color:var(--ink3)}
+.pw-btn:hover{color:var(--ink);border-color:var(--line2)}
+.pw-btn.active{color:var(--ink);border-color:var(--pw,var(--brand-bright));background:rgba(0,168,112,.08);box-shadow:0 0 18px rgba(0,168,112,.12)}
+.pw-btn.active small{color:var(--ink2)}
+.pathway-stage .frame{aspect-ratio:16/10}
+.pw-img{position:absolute;inset:0;opacity:0;transition:opacity .55s var(--ease);object-fit:cover;object-position:top left}
+.pw-img.show{opacity:1}
+.pw-desc{margin-top:14px;font-size:14px;color:var(--ink2);line-height:1.6;min-height:40px}
+.pw-desc b{color:var(--ink)}
+.pathway-note{font-size:12.5px;color:var(--ink3);margin-top:14px;line-height:1.6}
+
+/* ============ SECTION: research bento ============ */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:20px;margin-top:40px}
+.bento-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;overflow:hidden;transition:transform .4s var(--ease),border-color .4s;position:relative}
+.bento-card:hover{transform:translateY(-4px);border-color:var(--line2)}
+.bento-card h3{font-size:19px;margin-bottom:8px}
+.bento-card p{font-size:13.5px;color:var(--ink2);line-height:1.6}
+.bento-card .frame{margin-top:18px}
+.bento-card .frame img{aspect-ratio:16/10}
+.b-wide{grid-column:span 4}.b-half{grid-column:span 3}.b-third{grid-column:span 2}
+@media(max-width:900px){.b-wide,.b-half,.b-third{grid-column:span 6}}
+.b-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.b-num{font-size:clamp(30px,4vw,46px);font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+
+/* ============ SECTION: mobile/deploy ============ */
+.deploy-grid{display:grid;grid-template-columns:340px 1fr;gap:clamp(28px,5vw,64px);align-items:center;margin-top:40px}
+@media(max-width:860px){.deploy-grid{grid-template-columns:1fr}}
+.phone{width:min(300px,80vw);margin:0 auto;border-radius:38px;border:8px solid #1a221e;background:#000;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.7),0 0 60px rgba(0,105,75,.18)}
+.phone img{width:100%;aspect-ratio:9/19;object-fit:cover;object-position:top center}
+.stack-chips{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}
+.deploy-flow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:24px}
+.df-node{padding:12px 20px;border-radius:12px;background:var(--surface);border:1px solid var(--line2);font-size:14px;font-weight:600}
+.df-arrow{color:var(--ink3)}
+.deploy-list{list-style:none;margin-top:24px;display:flex;flex-direction:column;gap:12px}
+.deploy-list li{display:flex;gap:12px;font-size:14.5px;color:var(--ink2);line-height:1.5}
+.deploy-list li::before{content:"✓";color:var(--brand-bright);font-weight:700;flex:0 0 auto}
+
+/* ============ SECTION: footer ============ */
+.footer{border-top:1px solid var(--line);padding:clamp(60px,9vh,100px) 0 50px;text-align:center}
+.footer h2{font-size:clamp(30px,5vw,54px);margin-bottom:18px}
+.footer .lead{margin:0 auto 30px}
+.disclaimer{max-width:720px;margin:40px auto 0;padding:22px 26px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-size:12.5px;color:var(--ink3);line-height:1.7;text-align:left}
+.disclaimer b{color:var(--ink2)}
+.footer-meta{margin-top:36px;font-size:12.5px;color:var(--ink3);display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.footer-meta a{color:var(--ink2);transition:color .3s}
+.footer-meta a:hover{color:var(--brand-bright)}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .rv,.rv-scale{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<!-- SECTION: ambient -->
+<div class="aurora" aria-hidden="true"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- SECTION: nav -->
+<nav class="nav" id="nav">
+  <a class="nav-brand" href="#top">
+    <span class="nav-logo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg></span>
+    前列腺癌科研数据库
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="#overview" data-sec="overview">总览</a>
+    <a href="#display" data-sec="display">数据展示</a>
+    <a href="#intake" data-sec="intake">数据录入</a>
+    <a href="#calc" data-sec="calc">自动计算</a>
+    <a href="#guideline" data-sec="guideline">方案推荐</a>
+    <a href="#research" data-sec="research">科研输出</a>
+  </div>
+  <a class="nav-cta" href="#deploy">了解部署</a>
+</nav>
+
+<main id="top">
+
+<!-- SECTION: hero -->
+<section class="hero" id="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <p class="hero-eyebrow rv">Single-Disease Research Database</p>
+    <h1 class="rv" style="--i:1">让每一例病例，<br><span class="grad">都成为证据。</span></h1>
+    <p class="hero-sub rv" style="--i:2">聚焦前列腺癌单一病种，统一变量与随访口径，把日常诊疗沉淀为可检索、可统计、可复用的研究队列。</p>
+    <div class="hero-cta rv" style="--i:3">
+      <a class="btn-primary" href="#overview">开始探索 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14m0 0l-6-6m6 6l6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a class="btn-ghost" href="#research">查看科研输出</a>
+    </div>
+  </div>
+  <div class="hero-stage rv-scale" style="--i:2">
+    <div class="hero-device" id="heroDevice">
+      <div class="frame">
+        <div class="frame-bar"><i></i><i></i><i></i><span>患者工作台 · 总览</span></div>
+        <img data-image="assets/hero-workspace.jpg" alt="患者工作台总览界面：头部语义徽章、诊疗路径、待办提醒与一句话摘要">
+        <div class="img-fallback">患者工作台 · 总览</div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="hero-stats">
+      <div class="rv" style="--i:1"><div class="stat-num grad" data-count="5">0</div><div class="stat-label">级结构化关联</div></div>
+      <div class="rv" style="--i:2"><div class="stat-num grad" data-count="286">0</div><div class="stat-label">指南节点</div></div>
+      <div class="rv" style="--i:3"><div class="stat-num grad" data-count="30">0</div><div class="stat-label">临床场景</div></div>
+      <div class="rv" style="--i:4"><div class="stat-num grad" data-count="102">0</div><div class="stat-label">项单元测试</div></div>
+    </div>
+    <div class="scroll-hint rv" style="--i:5"><span class="mouse"></span>向下滑动</div>
+  </div>
+</section>
+
+<!-- SECTION: overview scrollytelling -->
+<section class="scrolly" id="overview">
+  <div class="scrolly-head wrap">
+    <p class="eyebrow rv">总览 · Overview</p>
+    <h2 class="h2 rv" style="--i:1">打开即知道，<span class="grad">今天该做什么。</span></h2>
+    <p class="lead rv" style="--i:2" style="margin:0 auto">总览页把待办放在最前，先处理缺口，再看队列统计。向下滑动，逐层展开。</p>
+  </div>
+  <div class="scrolly-track" id="scrollyTrack">
+    <div class="scrolly-sticky">
+      <div class="scrolly-inner">
+        <div class="scrolly-steps" id="scrollySteps">
+          <div class="sstep active" data-step="0">
+            <div class="sstep-k">01 · 今日工作台</div>
+            <h3>六类待办，置顶提醒</h3>
+            <p>随访到期、睾酮未达去势、CRPC 待判定、M1 未细分、数据待补、核心字段缺失——按当前日期实时计算，先处理这些，再看下面的队列统计。</p>
+          </div>
+          <div class="sstep" data-step="1">
+            <div class="sstep-k">02 · 科研就绪度</div>
+            <h3>数据缺口，逐患者可见</h3>
+            <p>基线 / 病理 / 治疗 / 随访四层完整度逐患者打分，样本与分子可分析性一目了然。把补录变成日常动作，而不是投稿前的突击。</p>
+          </div>
+          <div class="sstep" data-step="2">
+            <div class="sstep-k">03 · 队列表格</div>
+            <h3>一键切换，队列视图</h3>
+            <p>从工作台视图切到队列表格，按 ID、姓名、分期、Gleason、治疗与状态横向比对，支持搜索、排序与风险着色。</p>
+          </div>
+        </div>
+        <div class="scrolly-visual">
+          <div class="frame">
+            <div class="frame-bar"><i></i><i></i><i></i><span id="svTitle">总览统计 · 今日工作台</span></div>
+            <div class="sv-viewport" id="svViewport">
+              <div class="sv-track" id="svTrack">
+                <div class="sv-slide"><img class="sv-img" data-step="0" data-image="assets/overview-home.jpg" alt="总览首屏完整截图：今日工作台六类待办与队列统计"></div>
+                <div class="sv-slide"><img class="sv-img" data-step="1" data-image="assets/readiness.jpg" alt="科研就绪度：治疗暴露、治疗线数与样本分子可分析性"></div>
+                <div class="sv-slide"><img class="sv-img" data-step="2" data-image="assets/cohort-table.jpg" alt="队列表格：按风险着色的患者横向比对视图"></div>
+              </div>
+            </div>
+          </div>
+          <div class="sv-dots" id="svDots">
+            <button class="on" data-step="0" aria-label="今日工作台"><i></i></button>
+            <button data-step="1" aria-label="科研就绪度"><i></i></button>
+            <button data-step="2" aria-label="队列表格"><i></i></button>
+          </div>
+          <p class="sv-hint">点击圆点或左右滑动切换 · 完整截图</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrolly-spacer"></div>
+  </div>
+</section>
+
+<!-- SECTION: display -->
+<section id="display">
+  <div class="wrap">
+    <p class="eyebrow rv">数据展示 · Display</p>
+    <h2 class="h2 rv" style="--i:1">先看结论，<span class="grad">再看记录。</span></h2>
+    <p class="lead rv" style="--i:2">读优先的患者工作台：左侧列表按风险着色，右侧八个页签按需展开。一眼扫完患者当前状态，再决定要不要登记。</p>
+
+    <div class="risk-legend rv" style="--i:3">
+      <span class="chip"><span class="dot" style="background:var(--mint)"></span>稳定</span>
+      <span class="chip"><span class="dot" style="background:var(--amber-bright)"></span>需关注</span>
+      <span class="chip"><span class="dot" style="background:var(--red)"></span>紧急预警</span>
+      <span class="chip"><span class="dot" style="background:var(--ink3)"></span>已终止随访</span>
+    </div>
+
+    <div class="display-grid">
+      <div class="display-card rv">
+        <h3>风险着色的患者列表</h3>
+        <p>每一行按风险等级铺底色、加左色条，搜索、排序、分页俱全。紧急预警的患者，打开列表就能看见。</p>
+        <div class="frame"><img data-image="assets/patient-list.jpg" alt="患者管理列表：按风险着色的患者行"><div class="img-fallback">患者列表</div></div>
+      </div>
+      <div class="display-card rv" style="--i:1">
+        <h3>语义分色的头部徽章</h3>
+        <p>年龄、分期、Gleason、ISUP、风险、疾病、随访、治疗段、预警——九类徽章各配其色，患者当前状态一眼扫完。</p>
+        <div class="frame"><img data-image="assets/pc166-overview.jpg" alt="复杂病例工作台总览：多线治疗与语义徽章"><div class="img-fallback">工作台总览</div></div>
+      </div>
+    </div>
+
+    <!-- tabs -->
+    <div class="tabs rv">
+      <div class="tab-bar" id="tabBar">
+        <button class="tab-btn active" data-tab="0">总览</button>
+        <button class="tab-btn" data-tab="1">随访记录册</button>
+        <button class="tab-btn" data-tab="2">治疗与用药</button>
+        <button class="tab-btn" data-tab="3">检查检验</button>
+        <button class="tab-btn" data-tab="4">科研数据</button>
+      </div>
+      <div class="tab-stage">
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i><span id="tabFrameTitle">患者工作台 · 总览</span></div>
+          <div class="tab-scroll" id="tabScroll">
+            <img class="tab-img show" data-tab="0" data-image="assets/ws-overview.jpg" alt="工作台总览页签：完整工作台截图">
+            <img class="tab-img" data-tab="1" data-image="assets/ws-record.jpg" alt="随访记录册页签：连续随访表完整截图">
+            <img class="tab-img" data-tab="2" data-image="assets/ws-treatment.jpg" alt="治疗与用药页签：指南方案库与治疗线完整截图">
+            <img class="tab-img" data-tab="3" data-image="assets/ws-checks.jpg" alt="检查检验页签：PSA 与睾酮记录完整截图">
+            <img class="tab-img" data-tab="4" data-image="assets/ws-research.jpg" alt="科研数据页签：样本、IHC、基因检测完整截图">
+          </div>
+        </div>
+      </div>
+      <p class="tab-hint">完整工作台截图 · 框内上下滚动细看</p>
+      <p class="tab-desc" id="tabDesc"><b>总览</b> · 诊疗路径、待办提醒、一句话摘要、用药时间轴与 CSCO 指南评估，先给结论。</p>
+    </div>
+
+    <!-- timeline -->
+    <div class="timeline-block rv">
+      <p class="eyebrow">用药时间轴</p>
+      <h3 class="h2" style="font-size:clamp(26px,4vw,42px)">九年病程，<span class="grad">一条泳道一类药。</span></h3>
+      <p class="lead" style="margin-bottom:28px">每段说明只占一行，用药再多也不撑高时间轴。横向滑动查看完整疗程，全程概览缩略图、当前视窗年月徽标、边缘药名吸附，窄屏还有「整段疗程 / 放大细看」双视图。</p>
+      <div class="timeline-frame frame"><img data-image="assets/med-timeline.jpg" alt="复杂病例用药时间轴：九类药物泳道与全程概览"><div class="img-fallback">用药时间轴</div></div>
+      <div class="timeline-stats">
+        <div><div class="stat-num grad" data-count="9">0</div><div class="stat-label">治疗大类泳道</div></div>
+        <div><div class="stat-num grad" data-count="29">0</div><div class="stat-label">用药段</div></div>
+        <div><div class="stat-num grad" data-count="223">0</div><div class="stat-label">次给药记录</div></div>
+        <div><div class="stat-num grad" data-count="9">0</div><div class="stat-label">年病程跨度</div></div>
+      </div>
+      <p class="psa-note">演示病例 PC-166：手术 → 复发 → 再治疗 → 再复发，同期多药联合，全部为构造的模拟数据。</p>
+    </div>
+
+    <!-- psa -->
+    <div class="psa-block">
+      <div class="psa-head rv">
+        <p class="eyebrow">检验曲线</p>
+        <h3 class="h2" style="font-size:clamp(26px,4vw,42px)">PSA 与睾酮，<span class="grad">各画一张图。</span></h3>
+        <p class="lead">两条曲线分开绘制、各带阈值参考线：PSA 看复发（BCR 阈值 0.2 ng/mL），睾酮看去势（50 / 深度降酮 20 ng/dl）。真实界面支持横向滚动查看长病程，每一个点都可点开详情。</p>
+        <a class="link-more" href="#calc">了解自动判定 <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+      <div class="charts-duo">
+        <div class="chart-card rv-scale" style="--cc:#00A870">
+          <div class="ch-h"><b>PSA 动态曲线</b><span>ng/mL · 对数轴</span></div>
+          <div class="psa-legend">
+            <span><i style="background:#00A870"></i>PSA</span>
+            <span><i style="background:#FF453A"></i>BCR 阈值 0.2</span>
+          </div>
+          <canvas id="psaCanvas" width="640" height="400"></canvas>
+          <p class="psa-note">根治术后 PSA 降至不可测，随后连续上升触发 BCR 判定。数值仅为示意。</p>
+        </div>
+        <div class="chart-card rv-scale" style="--cc:#64D2FF;--i:1">
+          <div class="ch-h"><b>睾酮动态曲线</b><span>ng/dl · 线性轴</span></div>
+          <div class="psa-legend">
+            <span><i style="background:#64D2FF"></i>睾酮</span>
+            <span><i style="background:#FFD60A"></i>去势 50 / 深度降酮 20</span>
+          </div>
+          <canvas id="testoCanvas" width="640" height="400"></canvas>
+          <p class="psa-note">启动 ADT 后睾酮降至去势水平（&lt;50）并深度降酮（&lt;20）。数值仅为示意。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: intake -->
+<section id="intake">
+  <div class="wrap">
+    <p class="eyebrow rv">数据录入 · Intake</p>
+    <h2 class="h2 rv" style="--i:1">三种方式，<span class="grad">把病历变成数据。</span></h2>
+    <p class="lead rv" style="--i:2">从手工登记到 AI 抽取，录入成本逐级降低，但医生审核这一关始终都在。</p>
+
+    <div class="intake-cards">
+      <div class="intake-card rv">
+        <div class="frame"><img data-image="assets/new-patient.jpg" alt="新增患者弹窗：基本信息与分期"><div class="img-fallback">新增患者</div></div>
+        <div class="intake-body"><div class="tag">方式一</div><h3>新增患者档案</h3><p>基本信息、家族史、ECOG、Charlson 合并症、分期、Gleason、ISUP、危险分层，一次建档，长期复用。</p></div>
+      </div>
+      <div class="intake-card rv" style="--i:1">
+        <div class="frame"><img data-image="assets/visit.jpg" alt="登记本次就诊弹窗：检查、诊断、治疗、随访四类入口"><div class="img-fallback">登记就诊</div></div>
+        <div class="intake-body"><div class="tag">方式二</div><h3>登记本次就诊</h3><p>检查 / 诊断 / 治疗 / 随访四类入口，按治疗段自动带出应填项目，症状、体能、化验、影像、毒性一次录齐。</p></div>
+      </div>
+      <div class="intake-card rv" style="--i:2">
+        <div class="frame"><img data-image="assets/ai-intake.jpg" alt="AI 登记弹窗：上传病历、粘贴文本、开始识别"><div class="img-fallback">AI 登记</div></div>
+        <div class="intake-body"><div class="tag">方式三 · 可选</div><h3>AI 病历登记</h3><p>上传出院小结 / 病理报告，或直接粘贴文本，模型抽取结构化字段，医生逐条审核后入库。未配置密钥时自动进入离线演练。</p></div>
+      </div>
+    </div>
+
+    <!-- AI intake lab -->
+    <div class="ailab rv" id="aiLab">
+      <div class="ailab-head">
+        <div>
+          <h3>AI 登记演示台</h3>
+          <p class="psub">一份出院小结，五个阶段：版面解析 → 字段抽取 → 冲突检测 → 医生审核 → 校验入库。点击「运行演示」，看 AI 如何把自由文本变成可入库的结构化记录。</p>
+        </div>
+        <div class="ailab-controls">
+          <button class="btn-primary" id="aiRun" style="font-size:14px;padding:10px 22px">运行演示</button>
+          <button class="btn-ghost" id="aiReset" style="font-size:14px;padding:10px 20px">重置</button>
+          <span class="ailab-status" id="aiStatus">待运行</span>
+        </div>
+      </div>
+
+      <div class="ai-rail" id="aiRail">
+        <div class="ai-stage" data-s="0"><span class="as-n">1</span><span class="as-t">版面解析</span></div>
+        <div class="ai-stage" data-s="1"><span class="as-n">2</span><span class="as-t">字段抽取</span></div>
+        <div class="ai-stage" data-s="2"><span class="as-n">3</span><span class="as-t">冲突检测</span></div>
+        <div class="ai-stage" data-s="3"><span class="as-n">4</span><span class="as-t">医生审核</span></div>
+        <div class="ai-stage" data-s="4"><span class="as-n">5</span><span class="as-t">校验入库</span></div>
+      </div>
+
+      <div class="ai-grid">
+        <div class="ai-doc" id="aiDoc">
+          <span class="doc-tag">出院小结 · 模拟</span>
+          <div class="ai-scan"></div>
+          <div class="doc-h">XX医院 出院小结</div>
+          <div class="doc-meta"><span>病历号 <span id="docMrn">PC-2026-0117</span></span><span>2026-11-12</span></div>
+          <p>患者 <span class="hl" id="hlName">周石</span>，男，62 岁。因「确诊前列腺癌 3 年，PSA 进行性升高」入院。身份证 <span class="hl" id="hlId">610102196401011234</span>。</p>
+          <p>既往 2023-06-13 行机器人辅助根治术（RP），术后病理 <span class="hl" id="hlPath">pT3aN0M0，Gleason 3+4=7（ISUP 2）</span>，切缘阴性。</p>
+          <p>本次入院 PSA <span class="hl" id="hlPsa">1.9 ng/mL</span>，睾酮 <span class="hl" id="hlTesto">16 ng/dl</span>。骨扫描未见转移征象。</p>
+          <p>诊疗计划：启动 <span class="hl" id="hlTx">挽救性放疗 + ADT（戈舍瑞林）</span>，门诊随访。</p>
+        </div>
+
+        <div class="ai-right">
+          <div class="ai-panel">
+            <div class="ap-h"><span>结构化字段抽取</span><b id="aiFieldCount">0 项</b></div>
+            <div class="ai-fields" id="aiFields"></div>
+            <div class="ai-merge" id="aiMerge"><span>检测到重复项：睾酮 16 ng/dl 与已有记录同日同值。</span><button id="aiMergeBtn">合并到主项</button></div>
+          </div>
+          <div class="ai-panel">
+            <div class="ap-h"><span>流水线日志</span><b id="aiLogStage">—</b></div>
+            <div class="ai-log" id="aiLog"></div>
+          </div>
+          <div class="ai-metrics">
+            <div class="ai-metric"><div class="am-v" id="mFields">0</div><div class="am-l">抽取字段</div></div>
+            <div class="ai-metric"><div class="am-v" id="mConf">—</div><div class="am-l">平均置信度</div></div>
+            <div class="ai-metric"><div class="am-v" id="mConflict">0</div><div class="am-l">冲突项</div></div>
+            <div class="ai-metric"><div class="am-v" id="mAdopt">0</div><div class="am-l">已采纳</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-done" id="aiDone">
+        <span class="ad-ic">✅</span>
+        <div><div class="ad-t">校验通过 · 已入库</div><div class="ad-d" id="aiDoneDesc">8 项字段经医生审核采纳，写入患者档案与随访记录，审计日志已留痕。</div></div>
+      </div>
+    </div>
+
+    <!-- hierarchy -->
+    <div class="hierarchy rv">
+      <div class="hier-head">
+        <p class="eyebrow" style="justify-content:center;display:flex">五级结构化关联</p>
+        <h3>一条病历，<span class="grad">拆成五层可查询的数据。</span></h3>
+        <p>自由文本的病程记录没法统计。系统把每位患者的诊疗过程拆成<b>五个层级</b>，逐层挂载、逐级可查：上一层是下一层的「文件夹」，任何一条化验、任何一次给药，都能追溯到它属于哪次就诊、哪个治疗段、哪条治疗线。</p>
+      </div>
+      <div class="hier-row">
+        <div class="hier-node h1">治疗线<small>line</small></div><span class="hier-arrow">→</span>
+        <div class="hier-node h2">治疗段<small>episode</small></div><span class="hier-arrow">→</span>
+        <div class="hier-node h3">就诊<small>visit</small></div><span class="hier-arrow">→</span>
+        <div class="hier-node h4">随访行<small>record</small></div><span class="hier-arrow">→</span>
+        <div class="hier-node h5">检查 / 不良事件<small>item · CTCAE 5.0</small></div>
+      </div>
+      <div class="hier-detail">
+        <div class="hier-card" style="--hc:#00A870">
+          <span class="hd-n">1</span><h4>治疗线</h4><div class="hd-en">LINE</div>
+          <p>按「第几线治疗」组织：一线、二线、三线……记录该线的情境、方案与起止，是病程的顶层骨架。</p>
+          <div class="hd-eg"><b>例</b> · 一线：挽救性放疗 + ADT；二线：阿比特龙；三线：多西他赛化疗。</div>
+        </div>
+        <div class="hier-card" style="--hc:#2DD4BF">
+          <span class="hd-n">2</span><h4>治疗段</h4><div class="hd-en">EPISODE</div>
+          <p>一条线里具体执行的治疗阶段：某次放疗、某段内分泌、某周期化疗，含起止日期、疗效与停药原因。</p>
+          <div class="hd-eg"><b>例</b> · 一线下的「戈舍瑞林 ADT 段」2023-06 → 至今，疗效评估 PR。</div>
+        </div>
+        <div class="hier-card" style="--hc:#0A84FF">
+          <span class="hd-n">3</span><h4>就诊</h4><div class="hd-en">VISIT</div>
+          <p>治疗段内的一次门诊 / 住院：记录日期、症状、体能，是当次所有检查与处理的容器。</p>
+          <div class="hd-eg"><b>例</b> · 2026-11-12 门诊复查，ECOG 1，无骨痛。</div>
+        </div>
+        <div class="hier-card" style="--hc:#BF5AF2">
+          <span class="hd-n">4</span><h4>随访行</h4><div class="hd-en">RECORD</div>
+          <p>就诊里逐条的随访记录：PSA、睾酮、疗效、毒性，一行一个时间点，构成连续曲线。</p>
+          <div class="hd-eg"><b>例</b> · 该行 PSA 1.9 ng/mL、睾酮 16 ng/dl，疗效 SD。</div>
+        </div>
+        <div class="hier-card" style="--hc:#E0AE33">
+          <span class="hd-n">5</span><h4>检查 / 不良事件</h4><div class="hd-en">ITEM · CTCAE 5.0</div>
+          <p>随访行挂载的具体项目：化验、影像、病理，以及按 CTCAE 5.0 分级的不良事件。</p>
+          <div class="hd-eg"><b>例</b> · 血常规 WBC 3.2；不良事件「乏力 G2」。</div>
+        </div>
+      </div>
+      <div class="hier-example">
+        <b>串起来看：</b>一位患者的「二线治疗」里有一段「阿比特龙治疗段」，段内 2026-11-12 的「就诊」记了一条「随访行」，行上挂着「PSA 1.9」与「乏力 G2」。层层挂载，所以统计「二线阿比特龙的 PSA 变化」或「某药 G2 以上毒性发生率」时，直接按层级筛选即可，不用翻自由文本。
+        <div class="hx-chain"><span>二线治疗</span><i>→</i><span>阿比特龙段</span><i>→</i><span>11-12 就诊</span><i>→</i><span>随访行</span><i>→</i><span>PSA 1.9 / 乏力 G2</span></div>
+      </div>
+      <p class="psa-note" style="text-align:center;margin-top:20px">手术、化疗周期、给药与不良事件自动镜像为时间轴节点，删除时同步清理，不留孤儿记录。</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: calc -->
+<section id="calc">
+  <div class="wrap">
+    <p class="eyebrow rv">自动计算 · Computation</p>
+    <h2 class="h2 rv" style="--i:1">规则内置，<span class="grad">判定自动。</span></h2>
+    <p class="lead rv" style="--i:2">BCR、CRPC、风险分层、PSA 动力学、随访到期——把指南口径写进代码，让每一次判定都有据可查、可复核。</p>
+
+    <div class="calc-grid">
+      <div class="calc-card rv" style="--cc:var(--red)"><div class="cc-ic">🩸</div><h3>生化复发 BCR</h3><p>术后区分 persistence 与 recurrence；放疗后按 Phoenix 标准 nadir+2 判定，不拿术后早期 PSA 妄下结论。</p><div class="cc-rule">RP: 6–12 周窗口 · RT: nadir + 2 ng/ml</div></div>
+      <div class="calc-card rv" style="--i:1;--cc:var(--amber)"><div class="cc-ic">🧬</div><h3>去势抵抗 CRPC</h3><p>nmCRPC / mCRPC 分型判定，先核实睾酮去势水平，缺睾酮绝不默认成立。</p><div class="cc-rule">睾酮 &lt; 50 ng/dl + PSA 进展</div></div>
+      <div class="calc-card rv" style="--i:2;--cc:var(--blue)"><div class="cc-ic">📊</div><h3>CSCO 风险分层</h3><p>按 cT 分期、ISUP、PSA、穿刺阳性率自动分层，低危到极高危逐档对应指南场景。</p><div class="cc-rule">CSCO 2026 · 5.2 p88-89</div></div>
+      <div class="calc-card rv" style="--cc:var(--teal)"><div class="cc-ic">📈</div><h3>PSA 动力学</h3><p>PSADT 倍增时间与 PSAV 速率自动计算，需 ≥3 次、跨度 ≥3 个月且 R²≥0.7 才给可信值。</p><div class="cc-rule">PSADT · PSAV · R² ≥ 0.7</div></div>
+      <div class="calc-card rv" style="--i:1;--cc:var(--lav)"><div class="cc-ic">📅</div><h3>随访到期</h3><p>按治疗阶段自动生成随访节点，到期 / 逾期提醒，按当前日期实时计算。</p><div class="cc-rule">访视计划 · 到期 / 逾期</div></div>
+      <div class="calc-card rv" style="--i:2;--cc:var(--mint)"><div class="cc-ic">💉</div><h3>去势水平核实</h3><p>最新睾酮是否达去势水平、是否超过 120 天需复测，逐患者给出核实状态。</p><div class="cc-rule">去势 &lt; 50 · 深度降酮 &lt; 20</div></div>
+    </div>
+
+    <!-- tristate -->
+    <div class="tristate">
+      <div class="ts-card null rv"><div class="ts-v">NULL</div><div class="ts-l">未评估</div></div>
+      <div class="ts-card zero rv" style="--i:1"><div class="ts-v">0</div><div class="ts-l">评估为否</div></div>
+      <div class="ts-card one rv" style="--i:2"><div class="ts-v">1</div><div class="ts-l">是</div></div>
+    </div>
+    <p class="psa-note rv" style="text-align:center;margin-top:16px">三态语义贯穿全库：「未评估」绝不当作「阴性」参与统计——这是科研数据可信的底线。</p>
+
+    <!-- engine demo -->
+    <div class="engine rv">
+      <div class="engine-head">
+        <h3>判定引擎演示 · nmCRPC</h3>
+        <div class="toggle" id="testoToggle" role="switch" aria-checked="false" tabindex="0"><span class="tk"></span>补充近期睾酮记录</div>
+      </div>
+      <div class="engine-steps" id="engineSteps">
+        <div class="estep" data-e="0"><div class="es-ic">1</div><div><div class="es-t">核实去势水平</div><div class="es-d" data-d>等待睾酮记录…</div></div></div>
+        <div class="estep" data-e="1"><div class="es-ic">2</div><div><div class="es-t">确认 PSA 进展</div><div class="es-d">连续两次 PSA 上升，符合进展标准</div></div></div>
+        <div class="estep" data-e="2"><div class="es-ic">3</div><div><div class="es-t">评估转移状态</div><div class="es-d">传统影像阴性，无远处转移证据</div></div></div>
+      </div>
+      <div class="verdict block" id="verdict">
+        <div class="vd-ic" id="vdIc">⚠️</div>
+        <div><div class="vd-t" id="vdT">无法判定（缺近期睾酮）</div><div class="vd-d" id="vdD">无睾酮记录，无法确认去势水平，不能诊断 nmCRPC。系统不会默认成立。</div></div>
+      </div>
+      <p class="psa-note" style="margin-top:16px">拨动开关，看「缺睾酮」与「睾酮已核实」两种路径——这正是产品对判定严谨性的坚持。演示数值仅为示意。</p>
+    </div>
+
+    <div class="display-card rv" style="margin-top:48px">
+      <h3>CSCO 2026 指南评估，逐条给依据</h3>
+      <p>预警级别、去势状态、风险分层、ISUP 分组、术后治愈、PSADT、PSAV、放疗后 nadir、BCR、nmCRPC——每一条都标注「标签 ↔ 结论 ↔ 依据出处」，推荐等级与页码随条显示。下图为完整评估卡，可上下滚动逐条细看。</p>
+      <div class="fig-full">
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i><span>CSCO 2026 指南评估 · 完整</span></div>
+          <div class="fig-scroll"><img data-image="assets/csco-full.jpg" alt="CSCO 指南评估完整卡：11 条判定逐条标签、结论与依据出处，含数据质量与药物监测"><div class="img-fallback">CSCO 指南评估</div></div>
+        </div>
+        <div class="fig-bar">
+          <button class="fig-zoom" data-fig="csco"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>放大查看</button>
+          <span class="fig-hint" style="margin-top:0">完整评估卡 · 框内滚动逐条细看 · 手机可左右滑动</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: guideline -->
+<section id="guideline">
+  <div class="wrap">
+    <p class="eyebrow rv">方案推荐 · Guideline</p>
+    <h2 class="h2 rv" style="--i:1">指南方案库，<span class="grad">随场景而变。</span></h2>
+    <p class="lead rv" style="--i:2">系统按患者当前分期、治疗史与判定结果自动落到指南场景，给出对应方案选项。级别、前置条件、监测与出处随卡片显示，医生可偏离指南并填写原因。</p>
+
+    <div class="guide-stats">
+      <div class="rv"><div class="stat-num grad" data-count="4">0</div><div class="stat-label">张指南流程图</div></div>
+      <div class="rv" style="--i:1"><div class="stat-num grad" data-count="286">0</div><div class="stat-label">个节点</div></div>
+      <div class="rv" style="--i:2"><div class="stat-num grad" data-count="30">0</div><div class="stat-label">个临床场景</div></div>
+      <div class="rv" style="--i:3"><div class="stat-num grad" data-count="138">0</div><div class="stat-label">个方案选项</div></div>
+    </div>
+
+    <div class="guide-demo rv">
+      <div class="gd-top">
+        <label for="gdSelect">切换临床场景</label>
+        <select class="gd-select" id="gdSelect"></select>
+      </div>
+      <div class="gd-derived" id="gdDerived"></div>
+      <div class="gd-options" id="gdOptions"></div>
+      <p class="gd-foot">选项来自 CSCO 2026 图一 / 图二，此处为交互演示，选取六个代表性场景。真实系统中场景由患者数据自动判定，也可手动切换查看全部 286 节点落点。所有方案仅供科研与临床参考，最终决策以医生判断为准。</p>
+    </div>
+
+    <!-- pathway -->
+    <div class="pathway-block">
+      <p class="eyebrow rv">诊疗路径总览 · Pathway</p>
+      <h3 class="h2 rv" style="--i:1;font-size:clamp(26px,4vw,44px)">四张流程图，<span class="grad">把指南读成一条路。</span></h3>
+      <p class="pathway-lead rv" style="--i:2">总览统计页右上角的<b>「诊疗路径总览」</b>，跳转到基于 <b>CSCO 2026 最新指南</b>构建的交互式流程图：诊断与分期、局限期治疗与复发、转移与去势抵抗、随访与用药——<b>4 张图、286 个节点</b>，覆盖从筛查到全程管理的完整诊疗路径。节点可点击展开，推荐等级与出处页码随节点显示，方案推荐正是落在这些节点上。</p>
+
+      <div class="pathway-ov frame rv-scale">
+        <div class="frame-bar"><i></i><i></i><i></i><span>诊疗路径 · 四图逻辑总览（CSCO 2026）</span></div>
+        <img data-image="assets/pathway-overview.jpg" alt="四图逻辑总览：诊断分期、局限期、转移CRPC、随访四张流程图的衔接关系">
+        <div class="img-fallback">四图逻辑总览</div>
+      </div>
+
+      <div class="rv">
+        <div class="pathway-tabs" id="pwTabs">
+          <button class="pw-btn active" data-pw="0" style="--pw:#f59e0b">图一 · 局限期<small>第 5–6 章 · 75 节点</small></button>
+          <button class="pw-btn" data-pw="1" style="--pw:#34d399">图二 · 转移 / CRPC<small>第 7–9 章 · 102 节点</small></button>
+          <button class="pw-btn" data-pw="2" style="--pw:#38bdf8">图三 · 诊断与分期<small>第 1–4 章 · 48 节点</small></button>
+          <button class="pw-btn" data-pw="3" style="--pw:#a78bfa">图四 · 随访与用药<small>第 10+11 章 · 61 节点</small></button>
+        </div>
+        <div class="pathway-stage">
+          <div class="frame">
+            <div class="frame-bar"><i></i><i></i><i></i><span id="pwTitle">图一 · 局限期治疗与复发</span></div>
+            <img class="pw-img show" data-pw="0" data-image="assets/pathway-fig1.jpg" alt="图一局限期治疗与复发流程图：危险分层四行、初始治疗、术后放疗后监测三轨道">
+            <img class="pw-img" data-pw="1" data-image="assets/pathway-fig2.jpg" alt="图二转移与去势抵抗流程图：mHSPC三分层、nmCRPC与mCRPC四类、骨保护与亚型">
+            <img class="pw-img" data-pw="2" data-image="assets/pathway-fig3.jpg" alt="图三筛查诊断与分期流程图：筛查、PSA、影像、穿刺、病理、分期、危险分层">
+            <img class="pw-img" data-pw="3" data-image="assets/pathway-fig4.jpg" alt="图四随访与用药流程图：随访、疗效评估、尿失禁、骨健康、药物剂量方案">
+            <div class="img-fallback">诊疗路径流程图</div>
+          </div>
+        </div>
+        <p class="pw-desc" id="pwDesc"><b>图一 · 局限期治疗与复发</b> · 危险分层四行 × 各层初始治疗选项，术后 / 放疗后 / 监测三条轨道，复发按 6.1 / 6.2 / 6.3 分流，出口通向远处转移或进展。</p>
+        <p class="pathway-note">流程图支持路径 / 透镜双视图、缩放与导出；再分期影像与基因检测可回流到图三重新分层。此处展示为静态截图，真实页面中每个节点均可交互。</p>
+      </div>
+    </div>
+
+    <div class="display-card rv" style="margin-top:32px">
+      <h3>真实界面中的指南方案库</h3>
+      <p>选择方案后进入治疗段向导，前置条件与监测要求一并带出；瘤负荷未评估时，系统先要求补数据，绝不默认按高瘤负荷处理。下图为完整方案库卡：当前场景、切换入口与全部方案选项一屏看全。</p>
+      <div class="fig-full">
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i><span>指南方案库 · 完整</span></div>
+          <div class="fig-scroll"><img data-image="assets/guide-full.jpg" alt="指南方案库完整卡：当前场景、切换场景入口、自定义治疗段与全部方案选项"><div class="img-fallback">指南方案库</div></div>
+        </div>
+        <div class="fig-bar">
+          <button class="fig-zoom" data-fig="guide"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>放大查看</button>
+          <span class="fig-hint" style="margin-top:0">完整方案库卡 · 场景 / 选项 / 出处一屏看全 · 手机可左右滑动</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: research -->
+<section id="research">
+  <div class="wrap">
+    <p class="eyebrow rv">科研输出 · Research</p>
+    <h2 class="h2 rv" style="--i:1">从日常诊疗，<span class="grad">到可发表的数据。</span></h2>
+    <p class="lead rv" style="--i:2">队列统计、科研就绪度、分析就绪导出、审计留痕——把补录变成日常，把投稿前的突击变成从容。</p>
+
+    <div class="bento">
+      <div class="bento-card b-wide rv">
+        <h3>队列统计与切片</h3>
+        <p>按治疗方式、分期、Gleason、随访状态等维度切片，治疗暴露、治疗线数、样本与分子可分析性逐层展开。</p>
+        <div class="frame"><img data-image="assets/cohort-table.jpg" alt="队列表格视图"><div class="img-fallback">队列表格</div></div>
+      </div>
+      <div class="bento-card b-third rv" style="--i:1">
+        <div class="b-num grad">CSV</div>
+        <h3>分析就绪导出</h3>
+        <p>tidy CSV + ZIP 打包，字段口径统一，导入 R / Python 即可分析。全库 JSON 备份与恢复（v13 格式）。</p>
+        <div class="b-tags"><span class="chip">tidy CSV</span><span class="chip">ZIP</span><span class="chip">JSON v13</span></div>
+      </div>
+      <div class="bento-card b-half rv">
+        <h3>科研就绪度</h3>
+        <p>核心四层完整度逐患者可见，待补字段、M1 未细分、CRPC 待判定、失访——缺口直接暴露在总览。</p>
+        <div class="frame"><img data-image="assets/readiness.jpg" alt="科研就绪度统计"><div class="img-fallback">科研就绪度</div></div>
+      </div>
+      <div class="bento-card b-half rv" style="--i:1">
+        <h3>临床摘要，一键打印</h3>
+        <p>九个分区组织：疾病状态 / 当前治疗 / 就诊毒性 / 病理分子 / 结局 / 检验 / 随访 / 合并症 / 数据质量，各带编号与依据，可直接打印 / 保存 PDF。</p>
+        <div class="frame"><img data-image="assets/summary.jpg" alt="临床摘要弹窗：九分区与打印按钮"><div class="img-fallback">临床摘要</div></div>
+      </div>
+      <div class="bento-card b-third rv">
+        <div class="b-num grad">审计</div>
+        <h3>全程留痕</h3>
+        <p>登录、数据变更、导出行为全部写入审计日志，谁在什么时候改了什么，可追溯。</p>
+      </div>
+      <div class="bento-card b-third rv" style="--i:1">
+        <div class="b-num grad">权限</div>
+        <h3>角色隔离</h3>
+        <p>管理员可见全部患者；普通医生仅可见自己创建的患者。JWT + bcrypt，启动强制校验密钥强度。</p>
+      </div>
+      <div class="bento-card b-third rv" style="--i:2">
+        <div class="b-num grad">科研</div>
+        <h3>样本与分子</h3>
+        <p>组织样本、血液 cfDNA、IHC、基因检测（HRR / MSI）、样本-分子配对，逐患者可分析性评分。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: deploy -->
+<section id="deploy">
+  <div class="wrap">
+    <p class="eyebrow rv">移动端与部署 · Deploy</p>
+    <h2 class="h2 rv" style="--i:1">一台服务器，<span class="grad">一个科室。</span></h2>
+    <div class="deploy-grid">
+      <div class="rv-scale">
+        <div class="phone"><img data-image="assets/mobile-overview.jpg" alt="移动端总览：今日工作台与队列统计"><div class="img-fallback">移动端总览</div></div>
+        <p class="psa-note" style="text-align:center;margin-top:16px">移动端完整可用，窄屏双视图一屏看全用药时间轴。</p>
+      </div>
+      <div class="rv" style="--i:1">
+        <h3 style="font-size:clamp(22px,3vw,30px);margin-bottom:14px">单机单进程 + SQLite</h3>
+        <p class="lead" style="font-size:16px">为了让一个科室在一台普通服务器上就能跑起来。零运维、无构建步骤，前端直接静态托管，改完刷新即可。</p>
+        <div class="stack-chips">
+          <span class="chip">Node.js ≥ 20</span><span class="chip">Express 4</span><span class="chip">SQLite · WAL</span><span class="chip">原生 HTML/CSS/JS</span><span class="chip">JWT + bcrypt</span>
+        </div>
+        <div class="deploy-flow">
+          <span class="df-node">Nginx · TLS</span><span class="df-arrow">→</span>
+          <span class="df-node">Node · 127.0.0.1:3000</span><span class="df-arrow">→</span>
+          <span class="df-node">SQLite 文件</span>
+        </div>
+        <ul class="deploy-list">
+          <li>美术层与业务层解耦，主题可整体替换而不影响任何功能</li>
+          <li>AI 登记可替换为任意 OpenAI 兼容服务，未配置密钥自动离线演练</li>
+          <li>102 项单测 + 集成脚本，覆盖临床判定、访视校验、队列统计与导出</li>
+          <li>多中心场景建议数据层换 PostgreSQL 并前置对象存储</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: footer -->
+<footer class="footer">
+  <div class="wrap">
+    <h2 class="rv">让每一例病例，<br><span class="grad">都成为证据。</span></h2>
+    <p class="lead rv" style="--i:1">前列腺癌单病种科研数据库 · 从初诊到结局，把日常诊疗沉淀为可复用的研究队列。</p>
+    <div class="hero-cta rv" style="--i:2">
+      <a class="btn-primary" href="#top">回到顶部</a>
+      <a class="btn-ghost" href="#guideline">再看方案推荐</a>
+    </div>
+    <div class="disclaimer rv">
+      <b>使用前必读：</b>本项目不是医疗器械，未经过任何临床验证，不构成医疗建议，不得直接用于诊疗决策。所有自动判定（BCR / CRPC / 风险分层 / 随访到期）仅供科研与临床参考，最终决策以医生判断为准。本页所有界面截图与演示数值均来自构造的模拟测试数据，不含任何真实患者信息。若用于真实临床环境，请自行完成伦理审批、数据脱敏、等保与个人信息保护合规评估、访问审计与备份加密。
+    </div>
+    <div class="footer-meta">
+      <span>作者 · 张子众（Zhang Zizhong）</span>
+      <span>Apache License 2.0</span>
+      <span>Copyright © 2026</span>
+    </div>
+  </div>
+</footer>
+
+</main>
+
+<!-- SECTION: guideline template -->
+<template id="gdCardTpl">
+  <div class="gd-card">
+    <div class="gd-card-h"><b data-f="label"></b><span class="gd-lv" data-f="level"></span></div>
+    <div class="gd-src" data-f="source"></div>
+    <div class="gd-meta" data-f="pre"></div>
+    <div class="gd-meta" data-f="mon"></div>
+  </div>
+</template>
+
+<script>
+/* ============ SECTION: data ============ */
+var GUIDELINE = {
+  scenarios: [
+    {key:'localized_low', label:'局限期 · 低危', derived:'cT1–2a + ISUP 1 + PSA<10'},
+    {key:'localized_high', label:'局限期 · 高危', derived:'cT3–4 / ISUP 4–5 / PSA>20 且未达极高危'},
+    {key:'mHSPC_high', label:'mHSPC · 高瘤负荷', derived:'内脏转移，或 ≥4 骨转移且 ≥1 处在盆腔/脊柱外'},
+    {key:'mHSPC_burden_unknown', label:'mHSPC · 瘤负荷未评估', derived:'缺转移灶数量 / 是否盆腔外 / 内脏转移，先补负荷再选方案'},
+    {key:'nmCRPC', label:'nmCRPC', derived:'睾酮<50 + PSA 进展，传统影像阴性'},
+    {key:'mCRPC_1L', label:'mCRPC · 未经 ARPI 一线', derived:'mCRPC 且未用过 ARPI'}
+  ],
+  options: {
+    localized_low: [
+      {label:'主动监测（AS）', level:'I/1A', source:'图一 · 低危 · 5.5', pre:['预期寿命≥10 年','ISUP 1（ISUP 3 不做 AS）'], mon:'PSA 每 6 月、DRE 每 12 月、mpMRI 每 12 月、重复活检每 2–3 年'},
+      {label:'根治性前列腺切除（RP）', level:'I/1A', source:'图一 · 低危 · 5.5', pre:[], mon:'术后 6–12 周 PSA，之后 3–6 月'},
+      {label:'放射治疗（RT）', level:'I/1A', source:'图一 · 低危 · 5.5', pre:[], mon:'PSA 3–6 月，DRE/影像至少每年'},
+      {label:'观察等待（WW）', level:'I/1B', source:'图一 · 低危 · 5.5', pre:['预期寿命<10 年或无症状'], mon:'PSA/症状，按需'}
+    ],
+    localized_high: [
+      {label:'RP + 扩大盆腔淋巴结清扫', level:'I/1A', source:'图一 · 高危 · 5.5', pre:[], mon:''},
+      {label:'RT + ADT 2–3 年', level:'I/1A', source:'图一 · 高危 · 5.5', pre:[], mon:''},
+      {label:'姑息性 ADT', level:'II/2A', source:'图一 · 高危 · 5.5', pre:['预期寿命≤5 年或不宜根治'], mon:''},
+      {label:'观察（无症状）', level:'II/2B', source:'图一 · 高危 · 5.5', pre:['无症状、预期寿命有限'], mon:''}
+    ],
+    mHSPC_high: [
+      {label:'ADT + 达罗他胺 + 多西他赛', level:'I/1A', source:'图二 · L3 高瘤负荷 · 7.2', pre:[], mon:''},
+      {label:'ADT + 阿比特龙 + 多西他赛', level:'I/1A', source:'图二 · L3 高瘤负荷 · 7.2', pre:[], mon:''},
+      {label:'ADT + ARPI', level:'I/1A', source:'图二 · L3 高瘤负荷 · 7.2', pre:[], mon:''},
+      {label:'ADT + 多西他赛 ± 泼尼松', level:'II/1B', source:'图二 · L3 高瘤负荷 · 7.2', pre:[], mon:''}
+    ],
+    mHSPC_burden_unknown: [],
+    nmCRPC: [
+      {label:'达罗他胺', level:'I/1A', source:'图二 · L4 nmCRPC · 8.1', pre:[], mon:''},
+      {label:'阿帕他胺', level:'I/1A', source:'图二 · L4 nmCRPC · 8.1', pre:[], mon:''},
+      {label:'恩扎卢胺', level:'I/1A', source:'图二 · L4 nmCRPC · 8.1', pre:[], mon:''},
+      {label:'观察（PSADT>10 月）', level:'I/1B', source:'图二 · L4 nmCRPC · 8.1', pre:[], mon:''}
+    ],
+    mCRPC_1L: [
+      {label:'阿比特龙 / 泼尼松', level:'I/1A', source:'图二 · L5 mCRPC 一线 · 8.2', pre:[], mon:''},
+      {label:'恩扎卢胺', level:'I/1A', source:'图二 · L5 mCRPC 一线 · 8.2', pre:[], mon:''},
+      {label:'多西他赛', level:'I/1A', source:'图二 · L5 mCRPC 一线 · 8.2', pre:[], mon:''},
+      {label:'镭-223', level:'I/1A', source:'图二 · L5 mCRPC 一线 · 8.2', pre:['骨转移','无内脏转移'], mon:''}
+    ]
+  }
+};
+var TAB_DESC = [
+  ['总览','诊疗路径、待办提醒、一句话摘要、用药时间轴与 CSCO 指南评估，先给结论。'],
+  ['随访记录册','治疗段标签选中态深松绿底白字，连续随访表逐行记录 PSA、睾酮、疗效与毒性。'],
+  ['治疗与用药','指南方案库按场景给选项，治疗线与治疗段表格、放疗记录、用药时间轴与当前历史用药。'],
+  ['检查检验','PSA / 睾酮动态曲线带阈值参考线，化验、影像、功能与监测评估逐类展开。'],
+  ['科研数据','样本、IHC、基因检测、报告图片与科研就绪度，面向导出与统计分析。']
+];
+var TAB_TITLE = ['患者工作台 · 总览','患者工作台 · 随访记录册','患者工作台 · 治疗与用药','患者工作台 · 检查检验','患者工作台 · 科研数据'];
+
+/* ============ SECTION: images ============ */
+document.querySelectorAll('img[data-image]').forEach(function(img){
+  img.src = img.dataset.image;
+  img.addEventListener('error', function(){
+    img.style.display = 'none';
+    var fb = img.parentElement.querySelector('.img-fallback');
+    if(fb) fb.style.display = 'grid';
+  });
+});
+
+/* ============ SECTION: reveal ============ */
+var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var io = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+},{threshold:.12, rootMargin:'0px 0px -8% 0px'});
+document.querySelectorAll('.rv,.rv-scale').forEach(function(el){ io.observe(el); });
+
+/* ============ SECTION: counters ============ */
+function animCount(el){
+  var target = parseInt(el.dataset.count,10), dur = 1400, t0 = null;
+  if(reduce){ el.textContent = target; return; }
+  function tick(t){
+    if(!t0) t0 = t;
+    var p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(target*e);
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+var cio = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting){ animCount(e.target); cio.unobserve(e.target); } });
+},{threshold:.5});
+document.querySelectorAll('[data-count]').forEach(function(el){ cio.observe(el); });
+
+/* ============ SECTION: nav ============ */
+var nav = document.getElementById('nav');
+var navLinks = document.querySelectorAll('#navLinks a');
+var secIds = ['overview','display','intake','calc','guideline','research'];
+var secEls = secIds.map(function(id){ return document.getElementById(id); });
+function onScrollNav(){
+  nav.classList.toggle('scrolled', window.scrollY > 20);
+  var cur = '';
+  for(var i=0;i<secEls.length;i++){
+    var r = secEls[i].getBoundingClientRect();
+    if(r.top <= window.innerHeight*0.4) cur = secIds[i];
+  }
+  navLinks.forEach(function(a){ a.classList.toggle('active', a.dataset.sec === cur); });
+}
+window.addEventListener('scroll', onScrollNav, {passive:true});
+onScrollNav();
+
+/* ============ SECTION: hero parallax ============ */
+var heroDevice = document.getElementById('heroDevice');
+var fine = window.matchMedia('(pointer: fine)').matches;
+var mx = 0, my = 0;
+if(fine && !reduce){
+  document.querySelector('.hero').addEventListener('mousemove', function(e){
+    var r = this.getBoundingClientRect();
+    mx = ((e.clientX - r.left)/r.width - .5)*2;
+    my = ((e.clientY - r.top)/r.height - .5)*2;
+  });
+}
+function heroTick(){
+  var sy = window.scrollY;
+  var p = Math.min(1, sy/(window.innerHeight*0.9));
+  var rx = (reduce?0:(-my*4)) + p*10;
+  var ry = reduce?0:(mx*5);
+  var tz = -p*120;
+  heroDevice.style.transform = 'rotateX('+rx+'deg) rotateY('+ry+'deg) translateZ('+tz+'px) translateY('+(p*40)+'px)';
+  heroDevice.style.opacity = String(1 - p*0.5);
+  requestAnimationFrame(heroTick);
+}
+if(!reduce) requestAnimationFrame(heroTick);
+
+/* ============ SECTION: scrollytelling ============ */
+var track = document.getElementById('scrollyTrack');
+var ssteps = document.querySelectorAll('#scrollySteps .sstep');
+var svTrack = document.getElementById('svTrack');
+var svViewport = document.getElementById('svViewport');
+var svTitle = document.getElementById('svTitle');
+var svdots = document.querySelectorAll('#svDots button');
+var SV_TITLE = ['总览统计 · 今日工作台','总览统计 · 科研就绪度','总览统计 · 队列表格'];
+var wide = window.matchMedia('(min-width: 861px)').matches;
+var svCur = 0, svManualUntil = 0;
+function setStep(n){
+  n = Math.max(0, Math.min(2, n));
+  svCur = n;
+  ssteps.forEach(function(s,i){ s.classList.toggle('active', i===n); });
+  svTrack.style.transform = 'translateX(' + (-n*100) + '%)';
+  svTitle.textContent = SV_TITLE[n];
+  svdots.forEach(function(d,i){ d.classList.toggle('on', i===n); });
+}
+svdots.forEach(function(d){
+  d.addEventListener('click', function(){
+    svManualUntil = Date.now() + 5000;
+    setStep(parseInt(d.dataset.step,10));
+  });
+});
+/* touch / pointer swipe on the visual */
+(function(){
+  var sx = null, sy = null, dragging = false;
+  svViewport.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; dragging = true; });
+  svViewport.addEventListener('pointerup', function(e){
+    if(!dragging) return; dragging = false;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if(Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy)*1.2){
+      svManualUntil = Date.now() + 5000;
+      setStep(svCur + (dx < 0 ? 1 : -1));
+    }
+    sx = sy = null;
+  });
+  svViewport.addEventListener('pointercancel', function(){ dragging = false; sx = sy = null; });
+})();
+function scrollyTick(){
+  if(!wide) return;
+  if(Date.now() < svManualUntil) return;
+  var r = track.getBoundingClientRect();
+  var total = r.height - window.innerHeight;
+  var p = Math.min(1, Math.max(0, -r.top / Math.max(1,total)));
+  var n = Math.min(2, Math.floor(p*3));
+  if(n !== svCur) setStep(n);
+}
+window.addEventListener('scroll', function(){ requestAnimationFrame(scrollyTick); }, {passive:true});
+window.addEventListener('resize', function(){ wide = window.matchMedia('(min-width: 861px)').matches; });
+setStep(0);
+scrollyTick();
+
+/* ============ SECTION: tabs ============ */
+var tabBtns = document.querySelectorAll('#tabBar .tab-btn');
+var tabImgs = document.querySelectorAll('.tab-img');
+var tabDesc = document.getElementById('tabDesc');
+var tabTitle = document.getElementById('tabFrameTitle');
+tabBtns.forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var n = parseInt(btn.dataset.tab,10);
+    tabBtns.forEach(function(b){ b.classList.toggle('active', b===btn); });
+    tabImgs.forEach(function(im){ im.classList.toggle('show', parseInt(im.dataset.tab,10)===n); });
+    document.getElementById('tabScroll').scrollTop = 0;
+    tabTitle.textContent = TAB_TITLE[n];
+    tabDesc.textContent = '';
+    var b = document.createElement('b'); b.textContent = TAB_DESC[n][0];
+    tabDesc.appendChild(b);
+    tabDesc.appendChild(document.createTextNode(' · ' + TAB_DESC[n][1]));
+  });
+});
+
+/* ============ SECTION: lab charts (PSA / testosterone, separate) ============ */
+var MONTHS = 24;
+var psaPts = [[0,28],[1,12],[2,4],[3,0.8],[4,0.05],[5,0.04],[6,0.06],[7,0.12],[8,0.22],[9,0.38],[10,0.62],[11,0.95],[12,1.5],[14,2.4],[16,3.6],[18,4.8],[20,5.6],[22,6.2],[24,6.8]];
+var testoPts = [[0,420],[2,405],[4,430],[6,415],[8,440],[10,420],[12,410],[13,180],[14,60],[15,32],[16,18],[18,14],[20,12],[22,15],[24,13]];
+function chartBase(ctx, W, H, pad, yTicks, yFn, color){
+  ctx.clearRect(0,0,W,H);
+  ctx.lineWidth = 1;
+  yTicks.forEach(function(v){
+    var y = yFn(v);
+    ctx.strokeStyle = 'rgba(255,255,255,.06)';
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    ctx.fillStyle = color; ctx.font = '10px -apple-system,sans-serif'; ctx.textAlign='right';
+    ctx.fillText(v, pad.l-7, y+3);
+  });
+  ctx.fillStyle='#6f7d76'; ctx.textAlign='center'; ctx.font='10px -apple-system,sans-serif';
+  for(var m=0;m<=MONTHS;m+=4){ ctx.fillText(m, pad.l+(m/MONTHS)*(W-pad.l-pad.r), H-14); }
+  ctx.fillText('术后时间（月）', pad.l+(W-pad.l-pad.r)/2, H-2);
+}
+function drawSeries(ctx, pts, maxM, X, Y, color, pad, ch, fill, ptColor){
+  var pn = pts.filter(function(p){ return p[0]<=maxM; });
+  if(pn.length<2) return;
+  ctx.strokeStyle=color; ctx.lineWidth=2.6; ctx.lineJoin='round';
+  ctx.beginPath();
+  pn.forEach(function(p,i){ var x=X(p[0]),y=Y(p[1]); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.stroke();
+  if(fill){
+    ctx.lineTo(X(pn[pn.length-1][0]), pad.t+ch); ctx.lineTo(X(pn[0][0]), pad.t+ch); ctx.closePath();
+    var g = ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+    g.addColorStop(0,fill); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fill();
+  }
+  pn.forEach(function(p){ ctx.beginPath(); ctx.arc(X(p[0]),Y(p[1]),3,0,7); ctx.fillStyle = ptColor?ptColor(p):color; ctx.fill(); });
+}
+/* --- PSA chart --- */
+var psaCanvas = document.getElementById('psaCanvas');
+var psaCtx = psaCanvas.getContext('2d');
+function drawPsa(prog){
+  var W = psaCanvas.width, H = psaCanvas.height, pad = {l:48,r:20,t:26,b:40};
+  var cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+  function X(m){ return pad.l + (m/MONTHS)*cw; }
+  function Y(v){ return pad.t + ch - (Math.log10(v+0.01)+2)/(Math.log10(30+0.01)+2)*ch; }
+  chartBase(psaCtx, W, H, pad, [0.01,0.1,1,10], Y, '#00A870');
+  var ty = Y(0.2);
+  psaCtx.strokeStyle = 'rgba(255,69,58,.55)'; psaCtx.setLineDash([5,4]);
+  psaCtx.beginPath(); psaCtx.moveTo(pad.l,ty); psaCtx.lineTo(W-pad.r,ty); psaCtx.stroke(); psaCtx.setLineDash([]);
+  psaCtx.fillStyle = '#FF453A'; psaCtx.textAlign='left'; psaCtx.font='10px -apple-system,sans-serif';
+  psaCtx.fillText('BCR 阈值 0.2', pad.l+4, ty-5);
+  var maxM = prog*MONTHS;
+  drawSeries(psaCtx, psaPts, maxM, X, Y, '#00A870', pad, ch, 'rgba(0,168,112,.2)', function(p){ return (p[1]>=0.2&&p[0]>=8)?'#FF453A':'#00A870'; });
+  if(maxM>=8){ psaCtx.fillStyle='#FF453A'; psaCtx.font='bold 10px -apple-system,sans-serif'; psaCtx.textAlign='left'; psaCtx.fillText('BCR 成立', X(8)+6, Y(0.22)-8); }
+}
+/* --- testosterone chart --- */
+var testoCanvas = document.getElementById('testoCanvas');
+var testoCtx = testoCanvas.getContext('2d');
+function drawTesto(prog){
+  var W = testoCanvas.width, H = testoCanvas.height, pad = {l:48,r:20,t:26,b:40};
+  var cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+  function X(m){ return pad.l + (m/MONTHS)*cw; }
+  function Y(v){ return pad.t + ch - (v/500)*ch; }
+  chartBase(testoCtx, W, H, pad, [0,100,200,300,400,500], Y, '#64D2FF');
+  [[50,'去势 50'],[20,'深度降酮 20']].forEach(function(t){
+    var y = Y(t[0]);
+    testoCtx.strokeStyle = 'rgba(255,214,10,.5)'; testoCtx.setLineDash([4,4]);
+    testoCtx.beginPath(); testoCtx.moveTo(pad.l,y); testoCtx.lineTo(W-pad.r,y); testoCtx.stroke(); testoCtx.setLineDash([]);
+    testoCtx.fillStyle='#FFD60A'; testoCtx.textAlign='right'; testoCtx.font='10px -apple-system,sans-serif';
+    testoCtx.fillText(t[1], W-pad.r-4, y-4);
+  });
+  var maxM = prog*MONTHS;
+  drawSeries(testoCtx, testoPts, maxM, X, Y, '#64D2FF', pad, ch, 'rgba(100,210,255,.14)', null);
+  if(maxM>=13){ testoCtx.fillStyle='#64D2FF'; testoCtx.font='bold 10px -apple-system,sans-serif'; testoCtx.textAlign='left'; testoCtx.fillText('启动 ADT', X(13)+4, Y(180)-8); }
+  if(maxM>=16){ testoCtx.fillStyle='#FFD60A'; testoCtx.font='bold 10px -apple-system,sans-serif'; testoCtx.textAlign='left'; testoCtx.fillText('达去势水平', X(16)+4, Y(18)+16); }
+}
+var labProg = 0, labStarted = false;
+function labAnim(){
+  if(labProg<1){ labProg = Math.min(1, labProg+0.010); drawPsa(labProg); drawTesto(labProg); requestAnimationFrame(labAnim); }
+}
+var pio = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting && !labStarted){ labStarted=true; if(reduce){labProg=1;drawPsa(1);drawTesto(1);} else labAnim(); pio.unobserve(e.target); } });
+},{threshold:.3});
+pio.observe(document.querySelector('.charts-duo'));
+drawPsa(0); drawTesto(0);
+
+/* ============ SECTION: AI intake lab ============ */
+var aiStages = document.querySelectorAll('#aiRail .ai-stage');
+var aiStatus = document.getElementById('aiStatus');
+var aiDoc = document.getElementById('aiDoc');
+var aiFields = document.getElementById('aiFields');
+var aiLog = document.getElementById('aiLog');
+var aiLogStage = document.getElementById('aiLogStage');
+var aiFieldCount = document.getElementById('aiFieldCount');
+var aiMerge = document.getElementById('aiMerge');
+var aiDone = document.getElementById('aiDone');
+var aiTimers = [];
+var aiAdopted = 0, aiFieldTotal = 0;
+var AI_FIELDS = [
+  {k:'姓名', v:'周石', c:99, hl:'hlName'},
+  {k:'性别 / 年龄', v:'男 · 62 岁', c:99},
+  {k:'病理分期', v:'pT3aN0M0', c:97, hl:'hlPath'},
+  {k:'Gleason / ISUP', v:'3+4=7 · ISUP 2', c:98, hl:'hlPath'},
+  {k:'PSA', v:'1.9 ng/mL', c:99, hl:'hlPsa'},
+  {k:'睾酮', v:'16 ng/dl', c:98, hl:'hlTesto', dup:true},
+  {k:'治疗方案', v:'挽救性放疗 + ADT', c:95, hl:'hlTx'},
+  {k:'身份证号', v:'610102196401011234', c:99, hl:'hlId'}
+];
+function aiLater(fn, ms){ aiTimers.push(setTimeout(fn, ms)); }
+function aiSetStage(n){
+  aiStages.forEach(function(s,i){
+    s.classList.toggle('active', i===n);
+    s.classList.toggle('done', i<n);
+  });
+  aiLogStage.textContent = '阶段 ' + (n+1) + '/5';
+}
+function aiLogLine(html, warn){
+  var d = document.createElement('div');
+  d.className = 'lg' + (warn?' warn':'');
+  d.innerHTML = html;
+  aiLog.appendChild(d);
+  aiLog.scrollTop = aiLog.scrollHeight;
+}
+function aiMetric(id, val){ document.getElementById(id).textContent = val; }
+function aiReset(){
+  aiTimers.forEach(clearTimeout); aiTimers = [];
+  aiAdopted = 0; aiFieldTotal = 0;
+  aiStages.forEach(function(s){ s.classList.remove('active','done'); });
+  aiDoc.classList.remove('scanning');
+  aiFields.textContent = '';
+  aiLog.textContent = '';
+  aiMerge.classList.remove('show');
+  aiFields.parentElement.querySelectorAll('.ai-merge').forEach(function(e){ if(e.id !== 'aiMerge') e.remove(); });
+  aiDone.classList.remove('show');
+  aiStatus.textContent = '待运行';
+  aiLogStage.textContent = '—';
+  aiFieldCount.textContent = '0 项';
+  aiMetric('mFields',0); aiMetric('mConf','—'); aiMetric('mConflict',0); aiMetric('mAdopt',0);
+  ['hlName','hlId','hlPath','hlPsa','hlTesto','hlTx'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.classList.remove('hl','red');
+  });
+  document.getElementById('hlName').textContent = '周石';
+  document.getElementById('hlId').textContent = '610102196401011234';
+}
+function aiAddField(f, idx){
+  var row = document.createElement('div');
+  row.className = 'ai-field' + (f.dup?' warn':'');
+  var k = document.createElement('span'); k.className='af-k'; k.textContent=f.k;
+  var v = document.createElement('span'); v.className='af-v'; v.textContent=f.v;
+  row.appendChild(k); row.appendChild(v);
+  var act = document.createElement('span'); act.className='af-act';
+  var yes = document.createElement('button'); yes.className='yes'; yes.textContent='采纳';
+  var no = document.createElement('button'); no.className='no'; no.textContent='拒绝';
+  act.appendChild(yes); act.appendChild(no);
+  row.appendChild(act);
+  aiFields.appendChild(row);
+  requestAnimationFrame(function(){ row.classList.add('in'); });
+  aiFieldTotal++;
+  aiFieldCount.textContent = aiFieldTotal + ' 项';
+  aiMetric('mFields', aiFieldTotal);
+  yes.addEventListener('click', function(){
+    if(row.classList.contains('adopted')||row.classList.contains('rejected')) return;
+    row.classList.add('adopted'); aiAdopted++; aiMetric('mAdopt', aiAdopted);
+    aiLogLine('<b>审核</b> 采纳「'+f.k+'」→ 写入候选');
+  });
+  no.addEventListener('click', function(){
+    if(row.classList.contains('adopted')||row.classList.contains('rejected')) return;
+    row.classList.add('rejected');
+    aiLogLine('<b>审核</b> 拒绝「'+f.k+'」→ 不入库', true);
+  });
+  return row;
+}
+function aiRun(){
+  aiReset();
+  aiStatus.textContent = '解析中…';
+  /* stage 0: layout parse + scan */
+  aiSetStage(0);
+  aiDoc.classList.add('scanning');
+  aiLogLine('<b>版面解析</b> 识别标题 / 段落 / 数值区域…');
+  aiLater(function(){ aiLogLine('<b>版面解析</b> 检出 6 个语义区块，OCR 置信度 0.98'); }, 700);
+  /* stage 1: field extraction */
+  aiLater(function(){
+    aiSetStage(1); aiDoc.classList.remove('scanning');
+    aiStatus.textContent = '抽取字段…';
+    aiLogLine('<b>字段抽取</b> 映射到数据字典（workbench-labels）…');
+    var confSum = 0;
+    AI_FIELDS.forEach(function(f, i){
+      aiLater(function(){
+        if(f.hl){ var el=document.getElementById(f.hl); el.classList.add('hl'); }
+        aiAddField(f, i);
+        confSum += f.c;
+        aiMetric('mConf', Math.round(confSum/(i+1)) + '%');
+        aiLogLine('<b>抽取</b> '+f.k+' = '+f.v+'（'+f.c+'%）');
+      }, i*260);
+    });
+  }, 1600);
+  /* stage 2: conflict / duplicate detection */
+  aiLater(function(){
+    aiSetStage(2); aiStatus.textContent = '冲突检测…';
+    aiLogLine('<b>冲突检测</b> 比对已有档案与同日记录…');
+    aiLater(function(){
+      aiMerge.classList.add('show');
+      var dupRow = aiFields.children[5];
+      if(dupRow) dupRow.classList.add('warn');
+      aiMetric('mConflict', 1);
+      aiLogLine('<b>冲突</b> 睾酮 16 ng/dl 与已有记录同日同值 → 建议合并', true);
+    }, 600);
+  }, 4200);
+  /* stage 3: doctor review (interactive) */
+  aiLater(function(){
+    aiSetStage(3); aiStatus.textContent = '等待医生审核…';
+    aiLogLine('<b>审核</b> 请逐条采纳 / 拒绝（右侧按钮），或一键全部采纳');
+    var all = document.createElement('div');
+    all.className = 'ai-merge show';
+    all.innerHTML = '<span>医生审核：可逐条点击采纳/拒绝。</span>';
+    var allBtn = document.createElement('button'); allBtn.textContent='全部采纳';
+    allBtn.addEventListener('click', function(){
+      [...aiFields.children].forEach(function(r){
+        if(!r.classList.contains('adopted')&&!r.classList.contains('rejected')){
+          r.classList.add('adopted'); aiAdopted++;
+        }
+      });
+      aiMetric('mAdopt', aiAdopted);
+      aiLogLine('<b>审核</b> 一键采纳 '+aiAdopted+' 项');
+    });
+    all.appendChild(allBtn);
+    aiFields.parentElement.appendChild(all);
+    aiTimers.push(setTimeout(function(){ all.remove(); }, 6000));
+  }, 5600);
+  /* stage 4: validate + commit */
+  aiLater(function(){
+    aiSetStage(4); aiStatus.textContent = '校验入库…';
+    aiLogLine('<b>校验</b> 运行与常规建档同一套不变量（枚举 / 用药冲突 / 日期）…');
+    aiLater(function(){
+      /* auto-adopt any not yet decided so demo completes */
+      [...aiFields.children].forEach(function(r){
+        if(!r.classList.contains('adopted')&&!r.classList.contains('rejected')){ r.classList.add('adopted'); aiAdopted++; }
+      });
+      aiMetric('mAdopt', aiAdopted);
+      aiStages.forEach(function(s){ s.classList.add('done'); s.classList.remove('active'); });
+      aiDone.classList.add('show');
+      document.getElementById('aiDoneDesc').textContent = aiAdopted + ' 项字段经医生审核采纳，写入患者档案与随访记录，审计日志已留痕。';
+      aiStatus.textContent = '完成 · 已入库';
+      aiLogLine('<b>入库</b> 校验通过，写入 '+aiAdopted+' 项，审计留痕 ✓');
+    }, 900);
+  }, 9000);
+}
+document.getElementById('aiRun').addEventListener('click', aiRun);
+document.getElementById('aiReset').addEventListener('click', aiReset);
+document.getElementById('aiMergeBtn').addEventListener('click', function(){
+  aiMerge.classList.remove('show');
+  var dupRow = aiFields.children[5];
+  if(dupRow){ dupRow.classList.remove('warn'); dupRow.classList.add('adopted'); }
+  aiMetric('mConflict', 0);
+  aiLogLine('<b>合并</b> 重复睾酮记录已合并到主项');
+});
+
+/* ============ SECTION: engine demo ============ */
+var testoOn = false;
+var toggle = document.getElementById('testoToggle');
+var esteps = document.querySelectorAll('#engineSteps .estep');
+var verdict = document.getElementById('verdict');
+var vdIc = document.getElementById('vdIc'), vdT = document.getElementById('vdT'), vdD = document.getElementById('vdD');
+function runEngine(){
+  esteps.forEach(function(s){ s.classList.remove('done','pass','fail'); });
+  verdict.classList.remove('ok','block');
+  var e0 = esteps[0], d0 = e0.querySelector('[data-d]');
+  setTimeout(function(){
+    e0.classList.add('done');
+    if(testoOn){
+      e0.classList.add('pass'); e0.querySelector('.es-ic').textContent='✓';
+      d0.textContent='最新睾酮 16 ng/dl < 50，去势水平已核实';
+    } else {
+      e0.classList.add('fail'); e0.querySelector('.es-ic').textContent='✕';
+      d0.textContent='无睾酮记录，无法确认去势水平';
+    }
+  }, 300);
+  setTimeout(function(){
+    esteps[1].classList.add('done','pass'); esteps[1].querySelector('.es-ic').textContent='✓';
+  }, 800);
+  setTimeout(function(){
+    esteps[2].classList.add('done', testoOn?'pass':'fail');
+    esteps[2].querySelector('.es-ic').textContent = testoOn?'✓':'—';
+  }, 1300);
+  setTimeout(function(){
+    if(testoOn){
+      verdict.classList.add('ok'); vdIc.textContent='✅';
+      vdT.textContent='nmCRPC 成立';
+      vdD.textContent='睾酮去势 + PSA 进展 + 传统影像阴性，符合 nmCRPC 判定（CSCO 2026 · 8.1 p154）。';
+    } else {
+      verdict.classList.add('block'); vdIc.textContent='⚠️';
+      vdT.textContent='无法判定（缺近期睾酮）';
+      vdD.textContent='无睾酮记录，无法确认去势水平，不能诊断 nmCRPC。系统不会默认成立。';
+    }
+  }, 1700);
+}
+function flipToggle(){
+  testoOn = !testoOn;
+  toggle.classList.toggle('on', testoOn);
+  toggle.setAttribute('aria-checked', String(testoOn));
+  runEngine();
+}
+toggle.addEventListener('click', flipToggle);
+toggle.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); flipToggle(); } });
+var eio = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting){ runEngine(); eio.unobserve(e.target); } });
+},{threshold:.4});
+eio.observe(document.querySelector('.engine'));
+
+/* ============ SECTION: guideline demo ============ */
+var gdSelect = document.getElementById('gdSelect');
+var gdDerived = document.getElementById('gdDerived');
+var gdOptions = document.getElementById('gdOptions');
+var gdTpl = document.getElementById('gdCardTpl');
+GUIDELINE.scenarios.forEach(function(s){
+  var o = document.createElement('option'); o.value = s.key; o.textContent = s.label; gdSelect.appendChild(o);
+});
+function lvClass(lv){ return /^I\b/.test(lv)?'':(/^II\b/.test(lv)?'lv2':'lv3'); }
+function renderGuide(key){
+  var sc = GUIDELINE.scenarios.find(function(s){ return s.key===key; });
+  gdDerived.textContent = '';
+  var b = document.createElement('b'); b.textContent = '判定依据：'; gdDerived.appendChild(b);
+  gdDerived.appendChild(document.createTextNode(sc.derived));
+  gdOptions.textContent = '';
+  var opts = GUIDELINE.options[key] || [];
+  if(!opts.length){
+    var em = document.createElement('div'); em.className='gd-empty';
+    var t = document.createElement('div'); t.className='ge-t'; t.textContent='瘤负荷未评估，先补数据';
+    var d = document.createElement('div'); d.className='ge-d'; d.textContent='请先补转移灶数量、是否位于盆腔/脊柱外、有无内脏转移；系统不会默认按高瘤负荷处理。补完负荷后再选择方案。';
+    em.appendChild(t); em.appendChild(d); gdOptions.appendChild(em);
+    return;
+  }
+  opts.forEach(function(op,i){
+    var node = gdTpl.content.firstElementChild.cloneNode(true);
+    node.style.setProperty('--ci', i);
+    var lv = /^I\b/.test(op.level)?'var(--brand-bright)':(/^II\b/.test(op.level)?'var(--amber-bright)':'var(--ink3)');
+    node.style.setProperty('--lv', lv);
+    node.querySelector('[data-f="label"]').textContent = op.label;
+    var lvEl = node.querySelector('[data-f="level"]'); lvEl.textContent = op.level;
+    var lvc = lvClass(op.level); if(lvc) lvEl.classList.add(lvc);
+    node.querySelector('[data-f="source"]').textContent = op.source;
+    var preEl = node.querySelector('[data-f="pre"]');
+    if(op.pre.length){ var pb=document.createElement('b'); pb.textContent='前置：'; preEl.appendChild(pb); preEl.appendChild(document.createTextNode(op.pre.join('；'))); }
+    else preEl.style.display='none';
+    var monEl = node.querySelector('[data-f="mon"]');
+    if(op.mon){ var mb=document.createElement('b'); mb.textContent='监测：'; monEl.appendChild(mb); monEl.appendChild(document.createTextNode(op.mon)); }
+    else monEl.style.display='none';
+    gdOptions.appendChild(node);
+  });
+}
+gdSelect.addEventListener('change', function(){ renderGuide(this.value); });
+gdSelect.value = 'nmCRPC';
+renderGuide('nmCRPC');
+
+/* ============ SECTION: pathway tabs ============ */
+var PW_DESC = [
+  ['图一 · 局限期治疗与复发','危险分层四行 × 各层初始治疗选项，术后 / 放疗后 / 监测三条轨道，复发按 6.1 / 6.2 / 6.3 分流，出口通向远处转移或进展。'],
+  ['图二 · 转移、去势抵抗与亚型','mHSPC 三分层逐条方案，nmCRPC 与 mCRPC 四类分型，骨相关事件全程管理与特定亚型（DAC / IDC-P / NEPC / 间叶源性）。'],
+  ['图三 · 筛查、诊断与分期','筛查 → PSA → mpMRI → 穿刺 → 病理 → 分期 → 危险分层与基因检测，出口为四类风险层 + M1，是全部路径的起点。'],
+  ['图四 · 随访、并发症与用药方案','治愈性 / 综合治疗后随访、疗效评估标准、尿失禁与骨健康管理、药物剂量方案，覆盖治疗后的全程管理。']
+];
+var PW_TITLE = ['图一 · 局限期治疗与复发','图二 · 转移、去势抵抗与亚型','图三 · 筛查、诊断与分期','图四 · 随访、并发症与用药方案'];
+var pwBtns = document.querySelectorAll('#pwTabs .pw-btn');
+var pwImgs = document.querySelectorAll('.pw-img');
+var pwDesc = document.getElementById('pwDesc');
+var pwTitle = document.getElementById('pwTitle');
+pwBtns.forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var n = parseInt(btn.dataset.pw,10);
+    pwBtns.forEach(function(b){ b.classList.toggle('active', b===btn); });
+    pwImgs.forEach(function(im){ im.classList.toggle('show', parseInt(im.dataset.pw,10)===n); });
+    pwTitle.textContent = PW_TITLE[n];
+    pwDesc.textContent = '';
+    var b = document.createElement('b'); b.textContent = PW_DESC[n][0];
+    pwDesc.appendChild(b);
+    pwDesc.appendChild(document.createTextNode(' · ' + PW_DESC[n][1]));
+  });
+});
+</script>
+
+<!-- SECTION: figure lightbox -->
+<div class="figlb" id="figlb" role="dialog" aria-modal="true" aria-label="放大查看截图">
+  <div class="figlb-bar">
+    <b id="figlbTitle">放大查看</b>
+    <span class="flb-hint">滚动 / 滑动查看完整截图</span>
+    <button class="figlb-close" id="figlbClose" aria-label="关闭">✕</button>
+  </div>
+  <div class="figlb-body" id="figlbBody"><img id="figlbImg" alt="放大查看的完整截图"></div>
+</div>
+
+<script>
+/* ============ SECTION: figure lightbox ============ */
+(function(){
+  var lb = document.getElementById('figlb');
+  var lbImg = document.getElementById('figlbImg');
+  var lbTitle = document.getElementById('figlbTitle');
+  var lbBody = document.getElementById('figlbBody');
+  var FIG = {
+    csco: { title:'CSCO 2026 指南评估 · 完整', w:1600 },
+    guide: { title:'指南方案库 · 完整', w:1600 }
+  };
+  function open(key, src){
+    var f = FIG[key]; if(!f) return;
+    lbTitle.textContent = f.title;
+    lbImg.src = src;
+    lbImg.style.width = Math.min(f.w, Math.max(900, window.innerWidth - 40)) + 'px';
+    lbImg.style.maxWidth = 'none';
+    lb.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    lbBody.scrollTop = 0; lbBody.scrollLeft = 0;
+  }
+  function close(){
+    lb.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  document.querySelectorAll('.fig-zoom').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.dataset.fig;
+      var img = btn.closest('.fig-full').querySelector('.fig-scroll img');
+      open(key, img.src);
+    });
+  });
+  document.getElementById('figlbClose').addEventListener('click', close);
+  lb.addEventListener('click', function(e){ if(e.target === lb) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && lb.classList.contains('show')) close(); });
+})();
+</script>
+</body>
+</html>

@@ -1394,7 +1394,7 @@ main{padding:22px 28px}
 <link rel="stylesheet" href="/glass-theme.css">
 <link rel="stylesheet" href="/aurora-glass.css?v=20261030-password-eye">
 <link rel="stylesheet" href="/workspace.css?v=20261108-v23">
-<link rel="stylesheet" href="/construct.css?v=20261114-chart-v24">
+<link rel="stylesheet" href="/construct.css?v=20261115-medtl-v25">
 </head>
 <body>
 
@@ -1430,6 +1430,11 @@ main{padding:22px 28px}
       </div>
       <div class="login-err" id="login-err" role="alert"></div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="doLogin()">登 录</button>
+      <a class="login-intro-link" href="/product-intro/index.html" target="_blank" rel="noopener">
+        <span class="lil-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.4 5.3L20 9l-4 4 1 5.6-5-2.8-5 2.8 1-5.6-4-4 5.6-.7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+        <span class="lil-txt"><b>了解产品</b><small>查看产品介绍 · 数据展示 / 录入 / 自动计算 / 方案推荐</small></span>
+        <span class="lil-arrow" aria-hidden="true">→</span>
+      </a>
       <div class="login-tip">账号由管理员统一分配<br>临床数据统一存储于服务器<br><span style="opacity:.72">本系统为随访数据管理工具，自动判定仅供临床参考，诊疗决策以医生判断为准。</span></div>
     </div>
   </div>
@@ -1742,14 +1747,14 @@ const MED_CATEGORIES = [
   { key: 'endocrine', label: '内分泌', color: '#8c6239', drugs: [
     '比卡鲁胺', '氟他胺', '尼鲁米特'
   ] },
-  { key: 'arpi', label: '新型内分泌（ARPI）', color: '#7d5ba6', drugs: [
+  { key: 'arpi', label: '新型内分泌（ARPI）', short: '新型内分泌', color: '#7d5ba6', drugs: [
     '阿比特龙+泼尼松', '恩扎卢胺', '阿帕他胺', '达罗他胺', '瑞维鲁胺'
   ] },
   { key: 'chemo', label: '化疗', color: '#c77c2b', drugs: [
     '多西他赛+泼尼松', '卡巴他赛+泼尼松', '卡巴他赛+卡铂',
     '卡铂/多西他赛', '卡铂/依托泊苷', '顺铂/依托泊苷', '米托蒽醌+泼尼松'
   ] },
-  { key: 'parpi', label: 'PARP抑制剂/靶向', color: '#2f8f83', drugs: [
+  { key: 'parpi', label: 'PARP抑制剂/靶向', short: 'PARP/靶向', color: '#2f8f83', drugs: [
     '奥拉帕利', '奥拉帕利+阿比特龙', '尼拉帕利+阿比特龙',
     '他拉唑帕利+恩扎卢胺', '芦卡帕利', '卡匹色替+阿比特龙'
   ] },
@@ -4413,19 +4418,63 @@ function hideMedNote() {
   pop._target = null;
 }
 
-/* 点击带「注」标记的药物条形/手机明细，弹出备注；不使用原生 hover title。 */
+/* 整览聚合块的段数标签：块窄时只显示数字，宽时带「段」字 */
+function payloadLabel(payload) {
+  let n = 0;
+  try { n = JSON.parse(payload).length; } catch (e) { n = 0; }
+  return n + ' 段';
+}
+/* 点按整览里的聚合块：列出该块内每一段药，逐段可看起止/时长/备注。
+   整览把 9 年压到一屏，短程药只有几像素，聚合后仍可读到全部信息。 */
+function toggleMedCluster(e, el) {
+  if (e) e.stopPropagation();
+  const pop = document.getElementById('medNotePop');
+  if (!pop || !el) return;
+  let items = [];
+  try { items = JSON.parse(el.dataset.cluster || '[]'); } catch (err) { items = []; }
+  if (!items.length) { hideMedNote(); return; }
+  if (pop.classList.contains('show') && pop._target === el) { hideMedNote(); return; }
+  pop._target = el;
+  const rows = items.map(m => '<div class="mnp-row">' +
+    '<b>' + htmlAttr(m.d) + '</b>' +
+    '<span>' + htmlAttr(m.s + ' → ' + (m.e || '至今') + (m.t ? ' · ' + m.t : '')) + '</span>' +
+    (m.dose || m.sch ? '<i>' + htmlAttr([m.dose, m.sch].filter(Boolean).join(' · ')) + '</i>' : '') +
+    (m.n ? '<em>' + htmlAttr(m.n) + '</em>' : '') + '</div>').join('');
+  pop.innerHTML = '<div class="mnp-title">' + htmlAttr(el.dataset.cat || '用药') + ' · ' + items.length + ' 段</div>' +
+    '<div class="mnp-list">' + rows + '</div>';
+  pop.classList.add('show');
+  const width = Math.min(340, window.innerWidth - 24);
+  pop.style.width = width + 'px';
+  const r = el.getBoundingClientRect();
+  const h = pop.offsetHeight || 160;
+  let left = r.left + r.width / 2 - width / 2;
+  left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+  let top = r.bottom + 8;
+  if (top + h > window.innerHeight - 12) top = Math.max(12, r.top - h - 8);
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+}
+
+/* 点击药物条形/手机明细，弹出用药详情卡。
+   手机端没有 hover，原生 title 看不到：所有药物条都可点按，
+   卡内给出药名、起止、时长、剂量频次与备注（无备注时显示「无备注」）。 */
 function toggleMedNote(e, el) {
   if (e) e.stopPropagation();
   const pop = document.getElementById('medNotePop');
   if (!pop || !el) return;
   const note = el.dataset.note || '';
-  if (!note) { hideMedNote(); return; }
+  const drug = el.dataset.drug || '';
+  if (!drug && !note) { hideMedNote(); return; }
   if (pop.classList.contains('show') && pop._target === el) { hideMedNote(); return; }
   pop._target = el;
-  pop.innerHTML = '<div class="mnp-title">用药备注</div>' +
-    '<div class="mnp-drug">' + htmlAttr(el.dataset.drug || '') + '</div>' +
+  const dose = el.dataset.dose || '';
+  const sch = el.dataset.schedule || '';
+  const cat = el.dataset.cat || '';
+  pop.innerHTML = '<div class="mnp-title">' + htmlAttr(cat || '用药详情') + '</div>' +
+    '<div class="mnp-drug">' + htmlAttr(drug) + '</div>' +
     '<div class="mnp-date">' + htmlAttr(el.dataset.dates || '') + '</div>' +
-    '<div class="mnp-note">' + htmlAttr(note) + '</div>';
+    (dose || sch ? '<div class="mnp-dose">' + htmlAttr([dose, sch].filter(Boolean).join(' · ')) + '</div>' : '') +
+    '<div class="mnp-note' + (note ? '' : ' empty') + '">' + htmlAttr(note || '无备注') + '</div>';
   pop.classList.add('show');
   const width = Math.min(340, window.innerWidth - 24);
   pop.style.width = width + 'px';
@@ -4480,12 +4529,38 @@ function medPct(iso, range) {
 }
 /* 画布宽度：按时间跨度给足横向像素，让药名与起止日期在段内一行读完。
    宁可横向滚动，也不把说明挤成多行——纵向堆叠会让整条时间轴变得极高。 */
-function medCanvasMetrics(range) {
+function medCanvasMetrics(range, opts) {
+  const o = opts || {};
   const span = Math.max(1, (medDateMs(range.end) - medDateMs(range.start)) / (30.44 * 86400000));
   let pxPerMonth = 26;
   if (span > 240) pxPerMonth = 16;
   if (span > 480) pxPerMonth = 10;
-  return { months: span, pxPerMonth, width: Math.max(660, Math.round(span * pxPerMonth) + 48) };
+  let minW = 660;
+  /* 手机端「放大细看」：时间密度必须让药名读得完。
+     旧版沿用桌面密度（10~26px/月），40 天的短程药只有 13~34px，
+     药名被裁成「奥。」、日期只剩「2…」，等于没有信息。
+     这里按「最长药名 + 到下一段起点的间距」反推每月像素，
+     并保证一屏至少看得到 4 个月，避免密度过大导致无休止横滑。 */
+  if (o.narrow) {
+    const vp = Math.max(200, Math.round(o.viewport || 260));
+    minW = vp;
+    /* 手机端「放大细看」密度：一屏 5~12 个月。
+       下限 vp/12 保证长疗程不至于要翻几十屏；
+       上限 vp/5 保证 40 天的短程药有 ~90px，六字药名放得下。
+       典型药名 ÷ 典型间隔决定实际取值，个别极短间隔不参与决策。 */
+    const gaps = (o.gaps || []).filter(x => x > 0).sort((a, b) => a - b);
+    const rep = gaps.length ? gaps[Math.floor(gaps.length * 0.25)] : 2;
+    const names = (o.names || []).map(n => medTextWidth(n, 12) + 14).sort((a, b) => a - b);
+    const typical = names.length ? names[Math.floor(names.length * 0.6)] : 90;
+    const need = typical / Math.max(0.4, rep);
+    /* 上限再受「总屏数」约束：9 年疗程若按 vp/5 会到 24 屏，翻页翻不完。
+       保证细看最多约 8 屏，密度不足时药名让位给点按详情卡。 */
+    const byScreens = (vp * 8) / Math.max(1, span);
+    const hi = Math.max(vp / 14, Math.min(vp / 5, byScreens));
+    pxPerMonth = Math.round(Math.min(hi, Math.max(vp / 14, need)));
+    if (!isFinite(pxPerMonth) || pxPerMonth < 6) pxPerMonth = Math.max(6, Math.round(vp / 12));
+  }
+  return { months: span, pxPerMonth, width: Math.max(minW, Math.round(span * pxPerMonth) + 48) };
 }
 function medTicks(range, pxPerMonth) {
   const s = new Date(range.start + 'T00:00:00Z');
@@ -4524,22 +4599,25 @@ function medTicks(range, pxPerMonth) {
 /* 按时间轴说明的真实字体量文字宽度。字符数估算在不同字体下偏差可达 15%，
    会让短程药标注放不下药名而被裁成「复方…」。 */
 let MED_MEASURE_CTX = null;
-function medTextWidth(text) {
+let MED_MEASURE_FONT = '';
+function medTextWidth(text, size) {
   const s = String(text || '');
   if (!s) return 0;
+  const px = size || 11;
   try {
-    if (!MED_MEASURE_CTX) {
-      MED_MEASURE_CTX = document.createElement('canvas').getContext('2d');
+    if (!MED_MEASURE_CTX) MED_MEASURE_CTX = document.createElement('canvas').getContext('2d');
+    if (!MED_MEASURE_FONT) {
       const probe = document.querySelector('.med-tl-detail b');
       const cs = probe ? getComputedStyle(probe) : null;
-      const fam = cs ? cs.fontFamily : '"Futura","Avenir Next","PingFang SC",sans-serif';
-      MED_MEASURE_CTX.font = '700 11px ' + fam;
+      MED_MEASURE_FONT = cs ? cs.fontFamily : '"Futura","Avenir Next","PingFang SC",sans-serif';
     }
+    const font = '700 ' + px + 'px ' + MED_MEASURE_FONT;
+    if (MED_MEASURE_CTX.font !== font) MED_MEASURE_CTX.font = font;
     return MED_MEASURE_CTX.measureText(s).width + s.length * 0.12 + 2;
   } catch (e) {
-    let px = 0;
-    for (const ch of s) px += /[\x00-\xff]/.test(ch) ? 7 : 12;
-    return px;
+    let w = 0;
+    for (const ch of s) w += /[\x00-\xff]/.test(ch) ? px * 0.62 : px * 1.05;
+    return w;
   }
 }
 function medBarGeom(m, range) {
@@ -4598,17 +4676,56 @@ function setMedTimelineView(btn, mode) {
     }
   }
   if (detail) {
-    const segs = [...sc.querySelectorAll('.med-tl-seg')];
-    const open = segs.filter(s => s.classList.contains('open'));
-    const target = open.length ? open[open.length - 1] : segs[segs.length - 1];
-    if (target) {
-      const sr = sc.getBoundingClientRect(), tr = target.getBoundingClientRect();
-      sc.scrollLeft = Math.max(0, (tr.left - sr.left) + sc.scrollLeft - sc.clientWidth * 0.62);
-    }
+    /* 切到细看：定位交给 focusMedNow 的密度打分（见 construct.js），
+       这里不再按「最后一个在用条」硬跳，避免落到长期慢病药的起点空白区。 */
   } else {
     sc.scrollLeft = 0;
   }
   window.dispatchEvent(new Event('cx-medview-change'));
+}
+
+/* 取当前视图下真正可见的药物条：整览用聚合条、细看用独立条。
+   两套条并存于 DOM，直接 querySelectorAll 会把两套都算进来，
+   导致定位、翻页、概览计数全部翻倍错位。 */
+function medVisibleSegs(sc) {
+  const box = sc.closest('.med-tl-box');
+  const fit = box && box.classList.contains('cx-fitview');
+  const line = sc.querySelector(fit ? '.cx-bars-fit' : '.cx-bars-detail');
+  return [...(line || sc).querySelectorAll('.med-tl-seg')];
+}
+
+/* 手机端细看模式的时间段翻页：一次移动约一屏（留 15% 重叠保持上下文）。
+   dir=0 回到「当前在用药」所在窗口；±1 前后翻。 */
+function stepMedTimeline(btn, dir) {
+  const box = btn.closest('.med-tl-box');
+  if (!box) return;
+  const sc = box.querySelector('.med-tl-scroll');
+  if (!sc) return;
+  const cw = sc.clientWidth || 1;
+  const max = Math.max(0, sc.scrollWidth - cw);
+  if (dir === 0) {
+    const segs = medVisibleSegs(sc);
+    const open = segs.filter(s => s.classList.contains('open'));
+    const pool = open.length ? open : segs;
+    /* DOM 顺序是类别序而非时间序：取「起点最靠右」= 最近启动的在用药。
+       旧版取数组末位，会选中 2015 年就开始的氨氯地平这类长期慢病药，
+       一跳转就落在疗程起点的空白泳道。 */
+    let target = null, bestL = -1;
+    pool.forEach(s => {
+      const l = parseFloat(s.style.left) || 0;
+      if (l > bestL) { bestL = l; target = s; }
+    });
+    if (target) {
+      const l = bestL / 100 * sc.scrollWidth;
+      sc.scrollLeft = Math.max(0, Math.min(max, l - cw * 0.35));
+    } else sc.scrollLeft = 0;
+  } else {
+    sc.scrollLeft = Math.max(0, Math.min(max, sc.scrollLeft + dir * cw * 0.85));
+  }
+  /* 只重绘滚动装饰，不能派发 cx-medview-change：那个事件会清掉
+     cxFocused 标记并重新自动定位，把刚翻到的位置又拉回密集区，
+     表现为「点下一段没反应」。 */
+  window.dispatchEvent(new Event('cx-medscroll-repaint'));
 }
 
 /* 患者详情页/编辑页共用的药物甘特图。
@@ -4625,14 +4742,28 @@ function renderMedTimeline(p, opts) {
       '<div class="med-tl-empty">暂无用药记录。请在「治疗与用药」页点「＋ 新增用药」添加；旧版兼容界面在「用药/治疗线」页添加。</div></div>';
   }
   const range = medTimelineRange(all);
-  const metrics = medCanvasMetrics(range);
-  /* 窄屏默认「整段疗程一屏看全」：手机视窗只有 200px 左右，
-     若沿用桌面画布宽度，打开时只能看到两三个月、泳道几乎全空。
-     这里把画布压到视窗宽度，医生先看清全程用药轮廓，再按需展开细看。 */
+  /* 窄屏（手机）：默认「放大细看」——按真实时间密度横向滑动，药名与起止读得完。
+     整段疗程压缩到 200px 宽时，40 天的短程药只有 2~3px，等于看不见；
+     全程轮廓交给上方「全程概览」缩略图，点击即可跳转，不再牺牲可读性。 */
   const narrow = typeof window !== 'undefined' && window.innerWidth <= 600;
-  /* 可用宽 = 屏宽 − 页面留白 − 卡片内边距 − 类别列(112) − 边框余量。
-     实测 430px 屏视窗约 250px，留足余量确保整览真的不横向滚动。 */
-  const fitWidth = narrow ? Math.max(150, Math.round(window.innerWidth - 186)) : metrics.width;
+  /* 可用宽 = 屏宽 − 页面留白 − 卡片内边距 − 类别列(96) − 边框余量。 */
+  const viewport = narrow ? Math.max(200, Math.round(window.innerWidth - 150)) : 0;
+  const names = narrow ? all.map(m => m.drug) : [];
+  /* 相邻用药的间隔（月）：同类内不重叠，间隔决定药名能借多少横向空间 */
+  const gaps = [];
+  if (narrow) {
+    const DAY = 86400000, MON = 30.44 * DAY;
+    groups.forEach(g => {
+      for (let i = 0; i + 1 < g.items.length; i++) {
+        const d = (medDateMs(g.items[i + 1].startDate) - medDateMs(g.items[i].startDate)) / MON;
+        if (d > 0) gaps.push(d);
+      }
+    });
+  }
+  const metrics = medCanvasMetrics(range, { narrow, viewport, names, gaps });
+  const fitWidth = narrow ? Math.max(150, viewport) : metrics.width;
+  /* 手机端默认整览：画布必须真的等于视窗宽，否则「一屏看全」名不副实。
+     说明区在整览下隐藏，短程药靠最小可见宽度 + 点按详情卡保证可读。 */
   const canvasW = narrow ? fitWidth : metrics.width;
   const ticks = medTicks(range, narrow ? canvasW / Math.max(1, metrics.months) : metrics.pxPerMonth);
   const activeCats = groups.filter(g => g.items.some(m => medIsActive(m))).length;
@@ -4644,15 +4775,16 @@ function renderMedTimeline(p, opts) {
     '<div class="med-tl-gridline" style="left:' + t.left.toFixed(3) + '%"></div>').join('');
 
   const noteOf = m => String(m.notes || '').trim();
-  const noteAttrs = m => noteOf(m)
-    ? ' data-note="' + htmlAttr(noteOf(m)) + '" data-drug="' + htmlAttr(m.drug) +
-      '" data-dates="' + htmlAttr(m.startDate + ' → ' + (m.endDate || '至今')) + '"'
-    : '';
-  const noteClick = m => noteOf(m) ? ' onclick="toggleMedNote(event,this)"' : '';
+  /* 所有药物都带完整详情字段：手机端无 hover，点按即看起止/时长/剂量/备注 */
+  const noteAttrs = (m, g) => ' data-note="' + htmlAttr(noteOf(m)) + '" data-drug="' + htmlAttr(m.drug) +
+    '" data-dates="' + htmlAttr(m.startDate + ' → ' + (m.endDate || '至今') + ' · ' + medDurationText(m)) + '"' +
+    ' data-dose="' + htmlAttr(m.dose || '') + '" data-schedule="' + htmlAttr(m.schedule || '') + '"' +
+    ' data-cat="' + htmlAttr(g && g.cat ? g.cat.label : '') + '"';
+  const noteClick = () => ' onclick="toggleMedNote(event,this)"';
   const detailChip = (g, m) => {
     const note = noteOf(m);
-    return '<span class="med-tl-detail-chip' + (note ? ' has-note' : '') + '"' +
-      noteClick(m) + noteAttrs(m) + '>' +
+    return '<span class="med-tl-detail-chip has-note' + (note ? ' noted' : '') + '"' +
+      noteClick() + noteAttrs(m, g) + '>' +
       '<b>' + htmlAttr(m.drug) + '</b> ' + htmlAttr(m.startDate) + ' → ' +
       htmlAttr(m.endDate || '至今') + ' · ' + htmlAttr(medDurationText(m)) +
       (note ? ' <span class="med-note-inline">注</span>' : '') + '</span>';
@@ -4662,19 +4794,66 @@ function renderMedTimeline(p, opts) {
      下一段起点，就永远不会压到别的药名——无需再靠换行避让。
      旧版用「重叠就换行」的贪心排布，8 段 ADT 会被挤成 5 行、单泳道高达 177px；
      现在每条泳道恒定一行说明，纵向不再随用药数量增长。 */
-  const ROW_H = 58;
+  /* 手机端行高更大：药物条要能点按（≥14px 高 + 透明命中区扩到 28px），
+     说明单行完整显示药名，不再出现「奥。」「2…」这类被裁断的残字。 */
+  const ROW_H = narrow ? 64 : 58;
   const rowHeights = [];
   const rows = groups.map(g => {
     const geoms = g.items.map(m => medBarGeom(m, range));
-    const bars = g.items.map((m, i) => {
-      const geom = geoms[i];
+    /* 整览（手机默认）：一屏塞进 9 年，40 天的药只有 3px，十几段挤在一起
+       就是一排细条纹，既看不清也点不中。这里把间隔小于 6px 的相邻段
+       聚合成一个整块，块上标「N 段」，点按弹出逐段清单——
+       轮廓干净、命中区够大，信息一段不丢。 */
+    const segHtml = (m, geom, extraCls, label, payload) => {
       const note = noteOf(m);
-      return '<div class="med-tl-seg' + (m.endDate ? '' : ' open') + (note ? ' has-note' : '') +
+      return '<div class="med-tl-seg has-note' + (m.endDate ? '' : ' open') + (note ? ' noted' : '') + (extraCls || '') +
         '" style="left:' + geom.left.toFixed(3) + '%;width:' + geom.width.toFixed(3) +
-        '%;background:' + g.cat.color + '"' + noteClick(m) + noteAttrs(m) +
-        ' title="' + htmlAttr(m.drug + ' · ' + m.startDate + ' → ' + (m.endDate || '至今') + ' · ' + medDurationText(m)) + '">' +
-        (note ? '<span class="med-note-badge" aria-hidden="true">注</span>' : '') + '</div>';
-    }).join('');
+        '%;background:' + g.cat.color + '"' +
+        (payload ? ' onclick="toggleMedCluster(event,this)" data-cluster="' + htmlAttr(payload) + '"' +
+          ' data-cat="' + htmlAttr(g.cat.label) + '"'
+                 : noteClick() + noteAttrs(m, g)) +
+        ' role="button" tabindex="0" aria-label="' + htmlAttr(label) + '"' +
+        ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();' +
+        (payload ? 'toggleMedCluster(event,this)' : 'toggleMedNote(event,this)') + '}"' +
+        ' title="' + htmlAttr(label) + '">' +
+        (payload ? '<span class="cx-clustern">' + htmlAttr(payloadLabel(payload)) + '</span>'
+                 : (note ? '<span class="med-note-badge" aria-hidden="true">注</span>' : '')) + '</div>';
+    };
+    /* 细看/桌面：每段独立一条，药名在下方说明里完整读出 */
+    const barsDetail = g.items.map((m, i) => segHtml(m, geoms[i], '',
+      m.drug + ' · ' + m.startDate + ' → ' + (m.endDate || '至今') + ' · ' + medDurationText(m), '')).join('');
+    /* 整览（手机默认）：一屏塞进 9 年，40 天的药只有 3px，十几段挤在一起
+       就是一排细条纹。把间隔小于 6px 的相邻段聚合成整块、标「N 段」，
+       点按弹出逐段清单。聚合条只属于整览，细看用上面的独立条。 */
+    let barsFit = '';
+    if (narrow) {
+      const MIN_GAP_PCT = (6 / Math.max(1, canvasW)) * 100;
+      const clusters = [];
+      g.items.forEach((m, i) => {
+        const gm = geoms[i];
+        const last = clusters[clusters.length - 1];
+        if (last && gm.left - (last.left + last.width) < MIN_GAP_PCT) {
+          last.width = Math.max(last.width, gm.left + gm.width - last.left);
+          last.items.push(m);
+          if (!m.endDate) last.open = true;
+        } else {
+          clusters.push({ left: gm.left, width: gm.width, items: [m], open: !m.endDate });
+        }
+      });
+      barsFit = clusters.map(c => {
+        if (c.items.length === 1) {
+          const m = c.items[0];
+          return segHtml(m, c, '', m.drug + ' · ' + m.startDate + ' → ' + (m.endDate || '至今') + ' · ' + medDurationText(m), '');
+        }
+        const payload = JSON.stringify(c.items.map(m => ({
+          d: m.drug, s: m.startDate, e: m.endDate || '', t: medDurationText(m),
+          n: noteOf(m), dose: m.dose || '', sch: m.schedule || ''
+        })));
+        const first = c.items[0], last = c.items[c.items.length - 1];
+        const label = g.cat.label + ' · ' + c.items.length + ' 段 · ' + first.startDate + ' → ' + (last.endDate || '至今');
+        return segHtml(first, c, ' cx-cluster' + (c.open ? ' open' : ''), label, payload);
+      }).join('');
+    }
     const details = g.items.map((m, i) => {
       const geom = geoms[i];
       /* 说明可用宽度 = 到下一段起点的距离；末段可用到画布右端。
@@ -4689,35 +4868,53 @@ function renderMedTimeline(p, opts) {
       /* 极短程药（如 40 天的抗感染预防）横向空间放不下两行：
          改为单行紧凑标注，药名完整显示，起止与时长交给悬停提示与备注。
          仅当「到下一段的实际间距」足以容纳药名时才启用，否则宁可省略也不压字。 */
-      const slotPx = (width / 100) * canvasW;
-      const roomPx = (room / 100) * canvasW;
+      /* 说明只在细看视图出现，宽度必须按细看画布算：
+         整览画布被压到一屏宽，若用它算像素会把所有药名判为放不下而全隐藏。 */
+      const labelW = narrow ? metrics.width : canvasW;
+      const slotPx = (width / 100) * labelW;
+      const roomPx = (room / 100) * labelW;
       /* 用 canvas 按真实字体量药名宽度：字符数估算会偏小，
          导致紧凑标注放不下药名而被裁成「复方…」。 */
-      const namePx = Math.ceil(medTextWidth(m.drug)) + 26;
-      const tight = slotPx < 96 && roomPx >= namePx;
+      const namePx = Math.ceil(medTextWidth(m.drug, narrow ? 12 : 11)) + 26;
+      /* 手机端一律单行紧凑标注：药名完整可读，日期交给点按后的详情卡。
+         万一仍不足（极密集换药），宁可省略也不压字、不留残字。 */
+      const needPx = Math.ceil(medTextWidth(m.drug, narrow ? 12 : 11)) + 12;
+      /* 放不下完整药名就整条不画，绝不留「奥。」「复方…」这类残字。
+         桌面同样适用：短程药密集时可用间距只有几十像素，
+         省略号截断的药名没有信息量，反而像渲染坏了。
+         该段信息不丢——色块可点按出详情卡，悬停有完整 title。 */
+      const fits = roomPx >= (narrow ? needPx : namePx);
+      const tight = narrow ? fits : (slotPx < 96 && fits);
+      if (!fits) return '';
       /* 紧凑标注按像素占满「到下一段起点」的空白：room 已扣安全间隙。
          用像素而非百分比，避免画布宽度取整后比实际间距少几像素而裁字。 */
-      const tightPx = tight ? Math.max(0, Math.floor((room / 100) * canvasW) - 2) : 0;
+      const tightPx = tight ? Math.max(0, Math.floor((room / 100) * labelW) - 2) : 0;
       const widthCss = tight ? tightPx + 'px' : width.toFixed(3) + '%';
-      return '<div class="med-tl-detail' + (note ? ' has-note' : '') + (tight ? ' cx-tight' : '') +
+      return '<div class="med-tl-detail has-note' + (note ? ' noted' : '') + (tight ? ' cx-tight' : '') +
         '" style="left:' + geom.left.toFixed(3) + '%;width:' + widthCss +
         (tight ? ';--cx-pin:' + g.cat.color : '') + '"' +
-        noteClick(m) + noteAttrs(m) +
+        noteClick() + noteAttrs(m, g) +
         ' title="' + htmlAttr(m.drug + ' · ' + m.startDate + ' → ' + (m.endDate || '至今') + ' · ' + medDurationText(m)) + '">' +
         '<b>' + htmlAttr(m.drug) + '</b>' +
         '<span>' + htmlAttr(m.startDate) + ' → ' + htmlAttr(m.endDate || '至今') +
         ' · ' + htmlAttr(medDurationText(m)) + '</span></div>';
     }).join('');
     rowHeights.push(ROW_H);
+    /* 两套条并存、按视图显隐：整览看聚合轮廓，细看逐段读药名。
+       切换视图无需重渲染，只换 CSS 类，滚动位置与弹层状态都不丢。 */
     return '<div class="med-tl-cat-row" style="--med-row-h:' + ROW_H + 'px">' +
-      '<div class="med-tl-barline">' + bars + '</div>' +
+      (narrow ? '<div class="med-tl-barline cx-bars-fit">' + barsFit + '</div>' : '') +
+      '<div class="med-tl-barline cx-bars-detail">' + barsDetail + '</div>' +
       '<div class="med-tl-details">' + details + '</div></div>';
   }).join('');
+  /* 手机端类别列只有 84px：长名称用短标签（完整名在 title 与图例里），
+     否则「新型内分泌（ARPI）」会换行成三行、溢出到相邻泳道。 */
   const labels = groups.map((g, i) =>
     '<div class="med-tl-label-row" style="--med-row-h:' + rowHeights[i] + 'px">' +
       '<i class="med-tl-label-dot" style="background:' + g.cat.color + '"></i>' +
-      '<b>' + htmlAttr(g.cat.label) + '</b>' +
+      '<b title="' + htmlAttr(g.cat.label) + '">' + htmlAttr(narrow ? (g.cat.short || g.cat.label) : g.cat.label) + '</b>' +
       '<small>' + g.items.length + ' 段</small></div>').join('');
+
   /* 手机端：默认只列「在用 + 最近 2 段」，其余收进 details。
      29 段全展开会把页面拉到 1500px 以上，医生要滑很久才看到下一张卡。 */
   const mobileDetails = groups.map(g => {
@@ -4743,12 +4940,24 @@ function renderMedTimeline(p, opts) {
     : '';
   const legend = groups.map(g =>
     '<span><i class="med-tl-dot" style="background:' + g.cat.color + '"></i>' + htmlAttr(g.cat.label) + '</span>').join('');
-  /* 窄屏两种视图：整览（全程压到一屏）/ 细看（按真实时间密度横向滚动）。
-     默认整览，避免打开只看到两三个月的空白泳道。 */
+  /* 窄屏两种视图：细看（按可读时间密度横向滚动，默认）/ 整览（全程压到一屏）。
+     默认细看：整览下短程药只有 2~3px，药名必然被裁成残字；
+     全程轮廓由上方「全程概览」承担，点/拖即可跳转。 */
+  /* 手机端默认整段疗程：一屏看全 9 年的用药轮廓与并行关系，
+     色条加粗到可点按；要看具体药名与起止，点色块出详情卡，
+     或切到「放大细看」按时间段翻页。 */
   const viewToggle = narrow
     ? '<div class="med-tl-view" role="group" aria-label="时间轴视图">' +
         '<button type="button" class="cx-medview on" data-medview="fit" onclick="setMedTimelineView(this,\'fit\')">整段疗程</button>' +
         '<button type="button" class="cx-medview" data-medview="detail" onclick="setMedTimelineView(this,\'detail\')">放大细看</button>' +
+      '</div>'
+    : '';
+  /* 细看模式的时间段翻页：9 年疗程横滑几十屏不现实，给出上一段/下一段/回到当前 */
+  const stepper = narrow
+    ? '<div class="cx-medstep" role="group" aria-label="时间段翻页">' +
+        '<button type="button" class="cx-stepbtn" onclick="stepMedTimeline(this,-1)" aria-label="上一时间段">‹ 上一段</button>' +
+        '<button type="button" class="cx-stepbtn cx-stepnow" onclick="stepMedTimeline(this,0)">回到当前</button>' +
+        '<button type="button" class="cx-stepbtn" onclick="stepMedTimeline(this,1)" aria-label="下一时间段">下一段 ›</button>' +
       '</div>'
     : '';
   return '<div class="med-tl-box' + (narrow ? ' cx-fitview' : '') + '" data-med-full="' + metrics.width +
@@ -4758,6 +4967,7 @@ function renderMedTimeline(p, opts) {
       '<span>' + groups.length + ' 类 · ' + all.length + ' 段 · 当前 ' + activeCats + ' 类 · 峰值 ' + peak + ' 类同期</span></div>' +
       viewToggle +
       '<div class="med-tl-legend">' + legend + '</div></div>' +
+    stepper +
     '<div class="med-tl-frame">' +
       '<div class="med-tl-labels"><div class="med-tl-label-head">治疗大类</div>' + labels + '</div>' +
       '<div class="med-tl-scroll"><div class="med-tl-canvas" style="width:' + canvasW + 'px">' +
@@ -4770,8 +4980,8 @@ function renderMedTimeline(p, opts) {
       groups.length + ' 类 · ' + all.length + ' 段）</summary>' +
       '<div class="med-tl-mobile-body">' + mobileDetails + '</div></details>' +
     '<div class="med-tl-foot">' +
-      '<span class="cx-foot-fit">整段疗程已压缩到一屏：一条泳道 = 一个治疗大类，色块长度代表用药时长，空白代表该期间未用此类药。点「放大细看」可按真实时间密度左右滑动，查看每段药名与起止日期。</span>' +
-      '<span class="cx-foot-detail">一条泳道 = 一个治疗大类，每段说明只占一行，用药再多也不会把时间轴撑高。横向可左右滑动查看完整疗程（拖动下方滚动条、滚轮或在空白处拖动）；开放条（右端浅色）表示仍在用；带「注」标记的药物点击可查看备注。</span>' +
+      '<span class="cx-foot-fit">一屏看全整个疗程：一条泳道 = 一个治疗大类，色块长度 = 用药时长，空白 = 该期间未用此类药。<b>点按任意色块</b>看药名、起止、时长与备注；右端浅色表示仍在用。要逐段细读，切到「放大细看」。</span>' +
+      '<span class="cx-foot-detail">按时间段细读：用上方「上一段 / 回到当前 / 下一段」翻页，也可左右滑动或拖动全程概览的绿框。色块下方显示药名，<b>点按</b>看完整起止与备注。</span>' +
     '</div>' +
     '</div>';
 }
@@ -5484,6 +5694,6 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideMedNote(); hidePsaDot(); } });
 window.addEventListener('resize', () => { hideMedNote(); hidePsaDot(); });
 </script>
-<script src="/construct.js?v=20261114-chart-v24"></script>
+<script src="/construct.js?v=20261115-medtl-v25"></script>
 </body>
 </html>

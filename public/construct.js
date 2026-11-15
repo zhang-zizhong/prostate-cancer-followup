@@ -189,7 +189,7 @@
       const card = document.createElement('div');
       card.className = 'cx-login-card';
       const keep = ['.login-eyebrow', 'h2', '.sub', 'label[for="login-user"]', '#login-user',
-        'label[for="login-pass"]', '.pass-field', '#login-err', '.btn', '.login-tip'];
+        'label[for="login-pass"]', '.pass-field', '#login-err', '.btn', '.login-intro-link', '.login-tip'];
       keep.forEach((sel) => {
         const n = box.querySelector(sel);
         if (n && n.parentElement === box) card.appendChild(n);
@@ -556,6 +556,14 @@
   /* 说明标签吸附：横向滚动后，起点已滑出左边界的药物段，其说明会被裁成
      「个月」这类无意义残尾。这里把仍在视窗内的段的说明吸附到左边缘，
      药名始终可读；空间不足时按可用宽度省略，绝不与下一段说明重叠。 */
+  /* 当前视图下真正可见的药物条：整览用聚合条、细看用独立条。
+     两套条并存于 DOM，取错集合会让索引/定位/概览全部错位。 */
+  function medSegs(sc) {
+    const box = sc.closest('.med-tl-box');
+    const fit = box && box.classList.contains('cx-fitview');
+    const line = sc.querySelector(fit ? '.cx-bars-fit' : '.cx-bars-detail');
+    return [...(line || sc).querySelectorAll('.med-tl-seg')];
+  }
   function pinMedLabels(sc) {
     const left = sc.scrollLeft;
     const viewRight = left + sc.clientWidth;
@@ -563,7 +571,7 @@
     const CHROME = 16;   /* 吸附态自身的左内边距 + 左边框 + 右内边距 */
     sc.querySelectorAll('.med-tl-cat-row').forEach((row) => {
       const details = [...row.querySelectorAll('.med-tl-detail')];
-      const segs = [...row.querySelectorAll('.med-tl-seg')];
+      const segs = [...(row.querySelector('.cx-bars-detail') || row).querySelectorAll('.med-tl-seg')];
       /* 一次性算出每条说明的最终左沿与可用宽度，再统一写入。
          逐条边算边写会让后一条读到前一条已改动的几何，边界随视口漂移。 */
       const plan = details.map((d, i) => {
@@ -777,22 +785,30 @@
     if (mini) return mini;
     mini = el('div', 'cx-medmini');
     const track = el('div', 'cx-mini-track');
-    /* 从真实药物条读取位置与颜色，缩略图与主图始终一致 */
-    const canvas = sc.querySelector('.med-tl-canvas');
-    const cw = canvas ? canvas.getBoundingClientRect().width : 0;
-    sc.querySelectorAll('.med-tl-cat-row').forEach((row) => {
-      row.querySelectorAll('.med-tl-seg').forEach((seg) => {
-        const r = seg.getBoundingClientRect();
-        const sr = sc.getBoundingClientRect();
-        const absLeft = (r.left - sr.left) + sc.scrollLeft;
-        const l = cw > 0 ? (absLeft / cw) * 100 : parseFloat(seg.style.left) || 0;
-        const w = cw > 0 ? (r.width / cw) * 100 : parseFloat(seg.style.width) || 1;
+    /* 从真实药物条读取位置与颜色，缩略图与主图始终一致。
+       纵向泳道与主轴一一对应：行序=泳道序（--lane-i），不再按「第几条」
+       循环错开高度——旧 nth-child 做法会把同一分类的长条在概览与主轴
+       里放到不同高度（如「其他」长条概览在顶、主轴在底），上下对不上。 */
+    const rows = sc.querySelectorAll('.med-tl-cat-row');
+    rows.forEach((row, lane) => {
+      const line = row.querySelector(box.classList.contains('cx-fitview') ? '.cx-bars-fit' : '.cx-bars-detail') || row;
+      line.querySelectorAll('.med-tl-seg').forEach((seg) => {
+        /* 横向直接读药物条自身的画布百分比：与主轴同原点。
+           旧算法用「视口坐标+滚动量」换算，主轴左侧类别列不参与滚动，
+           两套坐标原点不同，概览色条会整体右移一列、与主轴对不上。 */
+        const l = parseFloat(seg.style.left) || 0;
+        const w = parseFloat(seg.style.width) || 1;
         const pip = el('i', 'cx-mini-pip');
-        pip.style.cssText = 'left:' + Math.max(0, l).toFixed(3) + '%;width:' +
+        pip.style.cssText = '--lane-i:' + lane + ';left:' + Math.max(0, l).toFixed(3) + '%;width:' +
           Math.max(0.35, w).toFixed(3) + '%;background:' + (seg.style.background || 'var(--brand)');
+        if (seg.title) pip.title = seg.title;
         track.appendChild(pip);
       });
     });
+    /* 高度随泳道数自适应：每道 4px + 上下留白各 4px（n*4+7）。
+       视窗框占满高度且四边 2px 绿边框；上下留白 4px = 边框 2px + 边框到色条 2px，
+       故绿框上下边框到首/末泳道色条正好 2px。 */
+    if (rows.length) track.style.height = (rows.length * 4 + 7) + 'px';
     const win = el('div', 'cx-mini-win');
     track.appendChild(win);
     mini.appendChild(track);
@@ -809,26 +825,75 @@
     sc.addEventListener('scroll', () => paintMedMini(sc, mini), { passive: true });
     return mini;
   }
-  /* 首次渲染定位到「当前在用药」附近；全部已停药则定位到末段，
-     避免打开就停在最早年份、整屏空白泳道。 */
-  function focusMedNow(sc) {
-    if (sc.dataset.cxFocused) return;
+  /* 首次渲染定位：落在「一屏能看到最多药」的位置。
+     旧版固定跳到最后一个在用段左侧 62%，在 9 年疗程 + 密集换药的数据上
+     会停在 2019 年的空白区——右边有药、当前屏全空，医生以为时间轴坏了。
+     现在按段密度选窗口：统计每个候选窗口内的段数，取最密者；
+     并列时优先含在用药的窗口，让打开即见当前治疗。 */
+  /* 自动定位每个时间轴实例只做一次：WeakSet 挂在元素上，
+     不随 DOM 重绘/类名变化丢失。旧版用 dataset 标记，视图切换时被清掉，
+     MutationObserver 重跑又把用户翻到的位置拉回密集区 → 「点下一段没反应」。 */
+  const medFocused = new WeakSet();
+  function focusMedNow(sc, force) {
+    if (!force && medFocused.has(sc)) return;
+    medFocused.add(sc);
     sc.dataset.cxFocused = '1';
-    const segs = [...sc.querySelectorAll('.med-tl-seg')];
+    const segs = medSegs(sc);
     if (!segs.length) return;
-    const open = segs.filter(s => s.classList.contains('open'));
-    const target = open.length ? open[open.length - 1] : segs[segs.length - 1];
-    const sr = sc.getBoundingClientRect();
-    const tr = target.getBoundingClientRect();
-    const absLeft = (tr.left - sr.left) + sc.scrollLeft;
-    /* 让目标段落在视窗右侧 1/3 处，既看到当前用药也保留近期上下文 */
-    sc.scrollLeft = Math.max(0, absLeft - sc.clientWidth * 0.62);
+    const cw = sc.clientWidth || 1;
+    const total = sc.scrollWidth || 1;
+    if (total - cw <= 4) { sc.scrollLeft = 0; return; }
+    const items = segs.map((s) => {
+      const l = (parseFloat(s.style.left) || 0) / 100 * total;
+      const w = Math.max(2, (parseFloat(s.style.width) || 0) / 100 * total);
+      return { l, r: l + w, open: s.classList.contains('open') };
+    });
+    const maxLeft = Math.max(0, total - cw);
+    /* 候选窗口左沿：每段起点前留 8% 视窗余量，外加起点 0 */
+    const cands = [0];
+    items.forEach((it) => {
+      cands.push(Math.max(0, Math.min(maxLeft, it.l - cw * 0.08)));
+    });
+    /* 打分：段数为主，但必须计入「窗口内实际可见的药量长度」。
+       只数段数时，一条贯穿全程的长程药（如氨氯地平）会让每个窗口都是 1 段，
+       于是选到疗程最左端——打开就是 2015 年的空白泳道。
+       可见长度让密集换药区胜出；在用药再加权，保证当前治疗优先入眼。 */
+    let best = { left: 0, score: -1 };
+    cands.forEach((left) => {
+      const right = left + cw;
+      let n = 0, open = 0, cover = 0;
+      items.forEach((it) => {
+        const vis = Math.min(it.r, right) - Math.max(it.l, left);
+        if (vis > 2) { n++; cover += vis; if (it.open) open++; }
+      });
+      const score = n * 1000 + (cover / cw) * 300 + open * 120;
+      if (score > best.score + 0.5) best = { left, score };
+    });
+    /* 若最优窗口已在末尾，回退一屏，保证前后都能翻 */
+    let left = best.left;
+    if (left >= maxLeft - 2 && maxLeft > 0) left = Math.max(0, maxLeft - cw * 0.9);
+    sc.scrollLeft = left;
+  }
+  /* 整览画布宽度按实测视口贴合：渲染时只能用「屏宽 − 估算留白」，
+     真机上类别列宽、卡片内边距与估算值有出入，会留下右侧空隙或轻微溢出。
+     插入 DOM 后用真实 clientWidth 校正一次，保证「一屏看全」严丝合缝。 */
+  function fitMedCanvas(sc, box) {
+    if (!box.classList.contains('cx-fitview')) return;
+    if (window.innerWidth > 600) return;
+    const canvas = sc.querySelector('.med-tl-canvas');
+    if (!canvas) return;
+    const w = sc.clientWidth;
+    if (w > 0 && Math.abs((parseFloat(canvas.style.width) || 0) - w) > 1) {
+      canvas.style.width = w + 'px';
+      box.dataset.medFit = String(w);
+    }
   }
   function syncMedBar() {
     document.querySelectorAll('.med-tl-scroll').forEach((sc) => {
       const frame = sc.closest('.med-tl-frame');
       const box = sc.closest('.med-tl-box');
       if (!frame || !box) return;
+      fitMedCanvas(sc, box);
       let bar = box.querySelector('.cx-medscroll');
       if (sc.scrollWidth - sc.clientWidth <= 4) {
         if (bar) bar.remove();
@@ -1017,11 +1082,30 @@
     mark.style.color = colors[key] || 'rgba(17,17,17,.06)';
   }
 
+  /* 翻页/拖动后只重绘装饰：保留 cxFocused，绝不重新自动定位，
+     否则刚翻到的位置会被拉回密集区，用户看到「点了没反应」。 */
+  window.addEventListener('cx-medscroll-repaint', () => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.med-tl-scroll').forEach((sc) => {
+        const box = sc.closest('.med-tl-box');
+        if (!box) return;
+        const bar = box.querySelector('.cx-medscroll');
+        const mini = box.querySelector('.cx-medmini');
+        if (bar) paintMedBar(sc, bar);
+        if (mini) paintMedMini(sc, mini);
+        syncMedDateBadge(sc);
+        alignMedTicks(sc);
+      });
+    });
+  });
+
   /* 窄屏整览↔细看切换后，画布宽度变了：重算滚动条、概览与标签吸附。
      整览模式下没有横向滚动，自绘条与概览会自动移除。 */
   window.addEventListener('cx-medview-change', () => {
     requestAnimationFrame(() => {
-      document.querySelectorAll('.med-tl-scroll').forEach((sc) => { delete sc.dataset.cxFocused; });
+      /* 视图真的切换了才重新定位一次（force）；
+         日常 DOM 重绘走 syncMedBar，不会再抢走用户的滚动位置。 */
+      document.querySelectorAll('.med-tl-scroll').forEach((sc) => focusMedNow(sc, true));
       syncMedBar();
       document.querySelectorAll('.med-tl-scroll').forEach(pinMedLabels);
     });

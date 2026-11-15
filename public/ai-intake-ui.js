@@ -14,6 +14,11 @@
  *
  * 依赖后端接口：/api/ai-intake/*（见 lib/ai-intake.mjs）
  *
+ * 图片张数与自动分批：单次模型调用最多 8 张（promptBudget.maxImages），
+ *   但前端按「单会话总量」收图（promptBudget.maxImagesPerSession，默认 32）。
+ *   超过单批 8 张时由后端流水线自动分批识别、结果合并到同一会话，
+ *   前端无需手动拆分上传；选图超过单批时给出分批提示。
+ *
  * 安全：模型输出与材料文本均为不可信数据，所有渲染必须转义
  *   （与 index.html:2028「下面所有渲染都必须转义」的要求一致）。
  * ========================================================= */
@@ -413,8 +418,10 @@
         '现在返回的是<b>演示数据</b>而非真实识别结果。可用于验证界面与入库流程，' +
         '<b>请勿把演练结果采纳进真实病历</b>。配置方法见 <code>lib/ai-client.mjs</code> 顶部注释。</div>';
     } else {
-      h += '<div class="ai-banner info">识别模型：<b>' + esc(s.models && s.models.extract) + '</b>　·　单次最多 ' +
-        esc((s.promptBudget || {}).maxImages) + ' 张图　·　图片自动压缩至长边 ' + MAX_EDGE + 'px 后上传</div>';
+      /* 自动分批：单批 8 张，超过自动分批识别并合并；总量上限 maxImagesPerSession */
+      h += '<div class="ai-banner info">识别模型：<b>' + esc(s.models && s.models.extract) + '</b>　·　一次最多 ' +
+        esc((s.promptBudget || {}).maxImagesPerSession || 32) + ' 张图（每 ' + esc((s.promptBudget || {}).maxImages || 8) +
+        ' 张一批，超出自动分批）　·　图片自动压缩至长边 ' + MAX_EDGE + 'px 后上传</div>';
     }
 
     /* 新建患者模式：姓名提示 + 建档规则说明 */
@@ -433,8 +440,9 @@
       'ondragover="event.preventDefault();this.classList.add(\'over\')" ' +
       'ondragleave="this.classList.remove(\'over\')" ' +
       'ondrop="AiUI.onDrop(event)">' +
-      '点击选择，或把图片拖到这里<br><span style="font-size:11.5px">支持 JPG / PNG，单张 ≤15MB，一次最多 ' +
-      esc((s.promptBudget || {}).maxImages) + ' 张；PDF 暂未支持，请先截图或转成图片</span></div>' +
+      '点击选择，或把图片拖到这里<br><span style="font-size:11.5px">支持 JPG / PNG / WebP，单张 ≤15MB，一次最多 ' +
+      esc((s.promptBudget || {}).maxImagesPerSession || 32) + ' 张，超过 ' + esc((s.promptBudget || {}).maxImages || 8) +
+      ' 张自动分批识别；PDF 暂未支持，请先截图或转成图片</span></div>' +
       '<input type="file" id="ai-file" accept="image/*" multiple style="display:none" onchange="AiUI.onFiles(this.files)">' +
       '<div class="ai-thumbs" id="ai-thumbs"></div>' +
       '<div class="form-item" style="margin-top:11px"><label>或粘贴文字材料（医生口述、出院小结文本等）</label>' +
@@ -462,13 +470,18 @@
     return h;
   }
 
-  /* ---------- 文件选择 ---------- */
+  /* ---------- 文件选择 ----------
+     自动分批：张数上限是「单会话总量」（默认 32），不是单批 8。
+     超过单批 8 张时后端自动分批识别、结果合并到同一会话，
+     这里只在超过总量时截断，并在接近/超过单批时提示将分批。 */
   async function onFiles(fileList) {
-    const max = (ai.status && ai.status.promptBudget && ai.status.promptBudget.maxImages) || 8;
+    const pb = (ai.status && ai.status.promptBudget) || {};
+    const max = pb.maxImagesPerSession || 32;
+    const perBatch = pb.maxImages || 8;
     const incoming = Array.from(fileList || []).filter(f => f.type.startsWith('image/'));
     if (!incoming.length) { say('⚠ 请选择图片文件'); return; }
     if (ai.files.length + incoming.length > max) {
-      say('⚠ 单次最多 ' + max + ' 张，已保留前 ' + max + ' 张');
+      say('⚠ 一次最多 ' + max + ' 张，已保留前 ' + max + ' 张');
     }
     for (const f of incoming) {
       if (ai.files.length >= max) break;
@@ -489,6 +502,9 @@
     }
     renderThumbs();
     resetFileInput();
+    if (ai.files.length > perBatch) {
+      say('已选 ' + ai.files.length + ' 张，超过单批 ' + perBatch + ' 张，识别时将自动分 ' + Math.ceil(ai.files.length / perBatch) + ' 批并合并结果');
+    }
   }
 
   /* L10：重置 file input 的 value，保证清空后重选同一文件仍触发 onchange */

@@ -179,11 +179,27 @@ try {
     assert.equal(r.status, 202);
   });
 
-  /* L1 超量上传友好错误 */
-  await check('L1 超量图片返回 400 而非 500', async () => {
-    const p = await mkPatient(token, '超量');
+  /* L1 + 自动分批：9 张（>单批8）不再报错，自动分批识别成功 */
+  await check('自动分批 9 张图识别成功并合并', async () => {
+    const p = await mkPatient(token, '分批9张');
+    currentContent = JSON.stringify({ items: [{ kind: 'psa', payload: { date: '2025-06-01', value: 5.0 }, evidence: 'PSA 5.0', page: 1 }] }); currentFinish = 'stop';
     const fd = new FormData(); fd.append('patientId', p.id);
-    for (let i = 0; i < 9; i++) fd.append('files', new Blob([PNG], { type: 'image/png' }), 'p' + i + '.png');
+    for (let i = 0; i < 9; i++) { fd.append('files', new Blob([PNG], { type: 'image/png' }), 'p' + i + '.png'); fd.append('w' + i, '100'); fd.append('h' + i, '100'); }
+    const r = await fetch(BASE + '/api/ai-intake/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: fd });
+    const d = await r.json(); assert.ok(r.ok, JSON.stringify(d));
+    let s;
+    for (let i = 0; i < 160; i++) { await new Promise(r => setTimeout(r, 150)); s = await call(token, '/api/ai-intake/sessions/' + d.sessionId); if (s.status === 'pending' || s.status === 'failed') break; }
+    assert.equal(s.status, 'pending', '9 张应自动分批成功：' + JSON.stringify(s));
+    assert.ok((s.warnings || []).some(w => /自动分 2 批/.test(w)), '应有分批提示：' + JSON.stringify(s.warnings));
+    const res = await call(token, '/api/ai-intake/sessions/' + d.sessionId + '/result');
+    /* 两批各返回 1 条 PSA，合并后应有 2 条（跨批重复由去重标注，但都在 items 里） */
+    assert.ok(res.items.filter(x => x.kind === 'psa').length >= 2, '两批结果应合并：' + res.items.length);
+  });
+  /* L1：超过会话总量 32 张才返回友好 400 */
+  await check('L1 超过会话总量返回 400 而非 500', async () => {
+    const p = await mkPatient(token, '超总量');
+    const fd = new FormData(); fd.append('patientId', p.id);
+    for (let i = 0; i < 33; i++) fd.append('files', new Blob([PNG], { type: 'image/png' }), 'p' + i + '.png');
     const r = await fetch(BASE + '/api/ai-intake/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: fd });
     assert.equal(r.status, 400);
     const d = await r.json(); assert.ok(/最多/.test(d.error), JSON.stringify(d));

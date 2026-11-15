@@ -10,6 +10,8 @@
 
 ![总览统计](screenshots/readme/overview.jpg)
 
+> **产品介绍页**：登录页「了解产品」按钮可打开内置的产品介绍页（`public/product-intro/index.html`），以滚动动画演示数据展示、数据录入、自动计算与指南方案推荐；所有截图均为构造的模拟数据，素材随仓库本地提供，不依赖外部图床。
+
 ---
 
 ## ⚠️ 使用前必读
@@ -113,6 +115,17 @@ PSA / 睾酮动态曲线带阈值参考线（去势 50 / 深度降酮 20 ng/dl�
 |---|---|
 | ![移动登录](screenshots/readme/mobile-login.jpg) | ![移动总览](screenshots/readme/mobile-overview.jpg) |
 
+### 产品介绍页
+
+登录页的「了解产品」按钮打开内置产品介绍页（`public/product-intro/index.html`），黑色苹果官网风格、滚动驱动动画，逐段演示：
+
+- **数据展示**：总览待办 / 科研就绪度 / 队列表格轮播，工作台五页签整图浏览，用药时间轴，PSA 与睾酮双曲线；
+- **数据录入**：新增患者 / 登记就诊 / AI 病历登记三种方式，AI 登记五阶段演示台（版面解析 → 字段抽取 → 冲突检测 → 医生审核 → 校验入库）；
+- **自动计算**：BCR / CRPC / 风险分层 / PSADT / 随访到期等判定卡片与 nmCRPC 判定引擎演示；
+- **方案推荐**：CSCO 2026 指南方案库场景切换演示、诊疗路径四图总览与完整评估卡放大查看。
+
+介绍页为纯前端单文件 + 本地截图素材，不含真实患者数据，可独立打开。
+
 ## 3. 功能
 
 **患者主档与诊疗全程**
@@ -147,8 +160,14 @@ PSA / 睾酮动态曲线带阈值参考线（去势 50 / 深度降酮 20 ng/dl�
 **AI 病历登记（可选）**
 
 - 上传病历/报告 → 版面解析 → 字段抽取 → 脱敏 → 医生逐条审核 → 入库
+- 单会话最多 32 张图，超过单批 8 张时**自动分批识别、结果合并**到同一会话，医生一次审核
 - 默认使用阿里云百炼（DashScope）`qwen3-vl-flash` 做结构化抽取
 - **不配置 API Key 时自动进入离线演练模式**，返回结构合法但不联网的示例结果，便于本地验证前后端链路
+
+**产品介绍页**
+
+- 登录页「了解产品」按钮 → `public/product-intro/index.html`，滚动动画演示展示 / 录入 / 计算 / 方案推荐
+- 纯前端单文件 + 本地截图素材（`public/product-intro/assets/`），不依赖外部图床，不含真实患者数据
 
 ## 4. 技术栈
 
@@ -259,7 +278,10 @@ npm run dev     # node --watch，改完自动重启
 │   ├── ai-intake-ui.js       # AI 登记审核界面
 │   ├── construct.css         # 松绿构成主题层（纯美术，可整体移除）
 │   ├── construct.js          # 装饰层（aria-hidden 节点，不改业务 DOM）
-│   └── guideline-pathway.html# 指南路径图独立页
+│   ├── guideline-pathway.html# 指南路径图独立页
+│   └── product-intro/        # 产品介绍页（登录页「了解产品」入口）
+│       ├── index.html        # 单文件介绍页（滚动动画 + 交互演示）
+│       └── assets/           # 本地截图素材（模拟数据）
 ├── scripts/
 │   ├── generate-test-cohort.py  # 基础演示队列生成
 │   ├── enrich-cohort.py         # 高密度演示队列生成
@@ -350,6 +372,8 @@ A single-disease follow-up and research database for prostate cancer, built with
 It covers the full care pathway: baseline staging and pathology, radical prostatectomy / radiotherapy / ADT and later-line therapy, structured follow-up visits with reminders, PSA and testosterone kinetics, BCR / persistence / CRPC / metastasis determination, medication timelines by treatment class, drug-specific toxicity monitoring, cohort statistics, research-readiness scoring, tidy CSV export and JSON backup, audit logging, role-based access, and an optional LLM-based clinical-note intake pipeline with a fully offline mock mode.
 
 The UI follows a "pine-green constructivist" visual language — Swiss grid order crossed with constructivist colour blocks: hard right angles, flat primaries, numbered indices and a visible baseline grid. The theme layer (`construct.css` / `construct.js`) is fully decoupled from business logic and can be removed without affecting any feature.
+
+A built-in **product tour** (`public/product-intro/index.html`, opened via the "了解产品" button on the login page) presents the database Apple-style with scroll-driven animations: data display, three intake paths (including a five-stage AI-intake demo), automated clinical computation, and CSCO 2026 guideline-based regimen recommendation. It is a self-contained frontend page with local screenshot assets (synthetic data only). AI intake accepts up to 32 images per session and automatically batches recognition beyond 8 images per model call, merging results for a single review.
 
 Three-state semantics run through the whole schema: `NULL` = not assessed, `0` = assessed negative, `1` = positive. "Not assessed" is never counted as negative.
 

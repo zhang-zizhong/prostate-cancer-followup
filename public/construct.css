@@ -752,6 +752,21 @@ html.pcd-login-lock header,html.pcd-login-lock main{display:none!important}
 }
 .login-box .btn:hover{background:var(--brand-deep)!important;border-color:var(--brand-deep)!important;box-shadow:7px 7px 0 var(--yellow)!important;transform:translate(-3px,-3px)}
 .login-box .btn:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--yellow)!important}
+/* 产品介绍入口：登录按钮下方的次级链接，构成主义硬边语言 */
+.login-box .login-intro-link{
+  display:flex;align-items:center;gap:12px;margin-top:12px;padding:11px 14px;
+  border:2px solid var(--ink);background:#fff;color:var(--ink);text-decoration:none;
+  transition:transform .16s var(--ease-out),box-shadow .16s var(--ease-out),background-color .16s;
+}
+.login-box .login-intro-link:hover{background:var(--t-sage,#E8F1E4);box-shadow:6px 6px 0 var(--brand);transform:translate(-2px,-2px)}
+.login-box .login-intro-link:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--brand)}
+.login-box .login-intro-link .lil-ic{flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;background:var(--brand);color:#fff}
+.login-box .login-intro-link .lil-ic svg{width:17px;height:17px}
+.login-box .login-intro-link .lil-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.login-box .login-intro-link .lil-txt b{font-family:var(--disp);font-size:13.5px;letter-spacing:.12em}
+.login-box .login-intro-link .lil-txt small{font-size:10.5px;color:#4A4A4A;line-height:1.4}
+.login-box .login-intro-link .lil-arrow{flex:0 0 auto;font-size:16px;color:var(--brand);transition:transform .16s var(--ease-out)}
+.login-box .login-intro-link:hover .lil-arrow{transform:translateX(3px)}
 .login-tip{
   color:#4A4A4A!important;border-top:2px solid var(--ink);padding-top:12px;
   margin-top:clamp(12px,2.2vh,22px)!important;font-size:11px!important;line-height:1.85;
@@ -2906,20 +2921,19 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
   padding:9px 16px;background:var(--bar)!important;border-bottom:2px solid var(--bar-line)!important;
 }
 .cx-mini-track{
-  position:relative;flex:1;height:16px;background:#fff;
-  border:2px solid var(--ink);cursor:pointer;overflow:hidden;
+  position:relative;flex:1;height:19px;background:#fff;box-sizing:border-box;
+  cursor:pointer;overflow:hidden;
 }
+/* 纵向泳道与主轴行序一一对应（--lane-i 由 JS 按行序写入），
+   高度随泳道数由 JS 内联自适应（n*4+7）；首道距顶 4px，
+   绿框上边框(2px)到首道色条 2px；末道距底 4px，绿框下边框到末道 2px */
 .cx-mini-pip{
-  position:absolute;top:2px;height:4px;min-width:2px;
+  position:absolute;top:calc(4px + var(--lane-i,0)*4px);height:3px;min-width:2px;
   box-shadow:0 0 0 .5px rgba(17,17,17,.25);
 }
-/* 多泳道压缩到一条：按顺序错开纵向位置，仍能看出并行密度 */
-.cx-mini-pip:nth-child(3n+1){top:1px}
-.cx-mini-pip:nth-child(3n+2){top:6px}
-.cx-mini-pip:nth-child(3n+3){top:11px}
 .cx-mini-win{
   position:absolute;top:0;bottom:0;
-  background:rgba(0,105,75,.16);border-left:2px solid var(--brand);border-right:2px solid var(--brand);
+  background:rgba(0,105,75,.16);border:2px solid var(--brand);
   pointer-events:none;box-sizing:border-box;
 }
 .cx-mini-cap{
@@ -2930,7 +2944,7 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
 @media(max-width:600px){
   .cx-medmini{padding:8px 12px;gap:8px}
   .cx-mini-cap{display:none}
-  .cx-mini-track{height:14px}
+  .cx-mini-track{height:19px}
 }
 
 /* 常驻横向滚动条：独立一行，位于画布下方，绝不覆盖药物条或说明 */
@@ -3989,12 +4003,11 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
   .ws2-link{min-height:40px;display:inline-flex;align-items:center;padding:8px 4px!important}
   td .ws2-link{margin:-4px 0}
   .ws2-modal-x,.np-x,.record-menu-btn{min-height:40px}
-  /* 药物条只有 9-13px 高，靠它弹备注在手机上几乎点不中：
-     用透明上下 padding 扩到 32px，视觉高度不变。 */
-  .med-tl-seg::after,.med-tl-detail::after{
-    content:'';position:absolute;left:0;right:0;top:-11px;bottom:-11px;
-  }
-  .med-tl-seg,.med-tl-detail{position:relative}
+  /* 药物条与说明本来就是 absolute（按时间百分比定位）。
+     这里绝不能改成 relative：那会让它们脱离时间坐标、按文档流纵向堆叠，
+     同一泳道的十几段药会依次排到行外（实测 top 40/56/72…），
+     表现为「小条乱跑、压到别的泳道」。命中区由 V17 的 ::before 负责，
+     且 open 条的 ::after 已用于「仍在用」浅色端标记，不可占用。 */
   /* 自绘拖拽控件：触摸下扩命中区，但不禁纵向手势 */
   .cx-scroll,.cx-hscroll,.cx-medscroll{touch-action:none!important}
   .cx-hscroll,.cx-medscroll{padding:8px 0!important;background-clip:content-box}
@@ -4055,3 +4068,225 @@ header h1 .brand-mark,.brand-mark{background:var(--brand)!important;color:#fff!i
   .cx-headbar .cx-hb-name{font-size:13px}
   .cx-headbar .cx-hb-risk{display:none}
 }
+
+/* =========================================================================
+ * V17 · 手机端药物时间轴：从「看不清的小条」改为「可读、可点按」
+ *
+ * 旧版问题（真机截图）：
+ *   1. 整览把 9 年疗程压到 200px，40 天的短程药只有 2~3px，等于看不见；
+ *   2. 细看沿用桌面密度（10~26px/月），药名被裁成「奥。」、日期只剩「2…」；
+ *   3. 「注」角标盖在 9px 高的细条上，短条几乎被角标吃掉；
+ *   4. 类别列 112px 占掉近半屏，画布只剩 200px 左右。
+ *
+ * 新方案：
+ *   · 默认细看，画布密度由 JS 按「最长药名 ÷ 最小换药间隔」反推，药名读得完；
+ *   · 全程轮廓交给上方概览缩略图（点/拖跳转），不再靠压缩主图；
+ *   · 药物条 14px 高 + 透明命中区扩到 30px，手指点得中；
+ *   · 药名单行完整显示在条下，放不下就整条隐藏（信息在详情卡与清单里）；
+ *   · 「注」角标移到条右上方外侧，不再压住条体；
+ *   · 类别列收窄到 84px，画布多出 28px。
+ * ========================================================================= */
+@media(max-width:600px){
+  /* 类别列 96px：六字短标签（新型内分泌 / PARP/靶向）实测需 58px，
+     84px 列减去圆点与内边距只剩 53px 会省略成「新型内…」，故给到 96px。 */
+  .med-tl-box .med-tl-labels{flex:0 0 96px!important}
+  .med-tl-box .med-tl-label-head{padding:0 8px!important;font-size:9.5px!important;letter-spacing:.02em!important}
+  .med-tl-box .med-tl-label-row{
+    grid-template-columns:7px minmax(0,1fr)!important;column-gap:6px!important;padding:0 8px!important;
+  }
+  /* 类别名一律单行省略：84px 列宽下换行会溢出到相邻泳道，
+     完整名称在 title、图例与下方清单里都能读到。 */
+  .med-tl-box .med-tl-label-row b{
+    font-size:10.5px!important;line-height:1.25!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+    overflow-wrap:normal!important;
+  }
+  .med-tl-box .med-tl-label-row small{font-size:9px!important}
+  .med-tl-box .med-tl-label-dot{width:7px!important;height:7px!important}
+
+  /* 两套药物条按视图显隐：整览用聚合条（cx-bars-fit），细看用独立条。
+     并存而非重渲染，切换时滚动位置与弹层状态都不丢。 */
+  .med-tl-box.cx-fitview .cx-bars-detail{display:none!important}
+  .med-tl-box:not(.cx-fitview) .cx-bars-fit{display:none!important}
+
+  /* 细看：行高 64 = 条区 30 + 说明 26 + 余量，两列锁死同一步进 */
+  .med-tl-box:not(.cx-fitview) .med-tl-cat-row,
+  .med-tl-box:not(.cx-fitview) .med-tl-label-row{
+    height:64px!important;min-height:64px!important;max-height:64px!important;
+    margin:0!important;box-sizing:border-box!important;overflow:hidden!important;
+  }
+  .med-tl-box:not(.cx-fitview) .med-tl-barline{
+    height:30px!important;margin:0!important;padding:0!important;box-sizing:border-box!important;
+  }
+  /* 药物条：14px 实体 + 上下各 8px 透明命中区（::before），手指点得中 */
+  .med-tl-box:not(.cx-fitview) .med-tl-seg{
+    top:8px!important;height:14px!important;min-width:6px!important;
+    box-shadow:0 1px 0 rgba(17,17,17,.22)!important;
+  }
+  .med-tl-box:not(.cx-fitview) .med-tl-seg::before{
+    content:'';position:absolute;left:-3px;right:-3px;top:-8px;bottom:-8px;
+  }
+  .med-tl-box:not(.cx-fitview) .med-tl-seg.open::after{width:4px!important}
+  .med-tl-box:not(.cx-fitview) .med-tl-seg:focus-visible{
+    outline:2px solid var(--ink)!important;outline-offset:2px!important;
+  }
+  .med-tl-box:not(.cx-fitview) .med-tl-seg:active{filter:brightness(.92)!important}
+  /* 「注」角标移到条右上方外侧，不再压住 14px 条体 */
+  .med-tl-box:not(.cx-fitview) .med-note-badge{
+    right:-4px!important;top:-7px!important;min-width:12px!important;height:12px!important;
+    font-size:8.5px!important;line-height:12px!important;
+    border:1px solid var(--bar-line)!important;box-shadow:none!important;
+  }
+  /* 说明：单行完整药名，12px 可读字号；日期在详情卡里 */
+  .med-tl-box:not(.cx-fitview) .med-tl-details{
+    display:block!important;height:26px!important;margin:0!important;overflow:hidden!important;
+  }
+  .med-tl-box:not(.cx-fitview) .med-tl-detail{top:2px!important;padding-right:4px!important}
+  .med-tl-box:not(.cx-fitview) .med-tl-detail span{display:none!important}
+  .med-tl-box:not(.cx-fitview) .med-tl-detail b{font-size:12px!important;line-height:1.3!important}
+  .med-tl-box:not(.cx-fitview) .med-tl-detail.cx-tight b{
+    background:transparent!important;border-left:0!important;box-shadow:none!important;
+    padding:0!important;max-width:100%!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  /* 药名前有 3px 分类色竖线，与上方色块呼应，扫读时能对上泳道 */
+  .med-tl-box:not(.cx-fitview) .med-tl-detail.cx-tight{
+    border-left:3px solid var(--cx-pin,var(--bar-line))!important;padding-left:5px!important;
+  }
+  .med-tl-box:not(.cx-fitview) .med-tl-detail:active b{color:var(--brand-deep)!important}
+
+  /* 整览（默认）：一屏看全全程。色条加粗到 16px 并保留 4px 最小宽度，
+     短程药不再是看不见的细线；命中区扩到 32px，手指点得中。
+     药名不在此视图显示——点色块出详情卡，或切细看。 */
+  .med-tl-box.cx-fitview .med-tl-cat-row,
+  .med-tl-box.cx-fitview .med-tl-label-row{
+    height:40px!important;min-height:40px!important;max-height:40px!important;
+  }
+  .med-tl-box.cx-fitview .med-tl-barline{height:32px!important;margin:0!important;padding:0!important}
+  .med-tl-box.cx-fitview .med-tl-seg{
+    top:8px!important;height:16px!important;min-width:5px!important;
+    /* 白色描边把相邻短程药分开：13 段支持治疗压到一屏时不再糊成一条 */
+    box-shadow:0 0 0 1px #fff,0 1px 0 rgba(17,17,17,.2)!important;
+  }
+  .med-tl-box.cx-fitview .med-tl-seg::before{
+    content:'';position:absolute;left:-2px;right:-2px;top:-8px;bottom:-8px;
+  }
+  .med-tl-box.cx-fitview .med-tl-seg:active{filter:brightness(.9)!important}
+  .med-tl-box.cx-fitview .med-tl-seg:focus-visible{outline:2px solid var(--ink)!important;outline-offset:2px!important}
+  .med-tl-box.cx-fitview .med-note-badge{display:none!important}
+  .med-tl-box.cx-fitview .med-tl-details{display:none!important}
+  /* 整览下类别列显示段数：密集短程药压到一屏后只有几像素，
+     段数让医生知道这条泳道里有多段可点，而不必在画布上挂角标越界。 */
+  .med-tl-box.cx-fitview .med-tl-label-row small{
+    display:block!important;font-size:9px!important;color:#5A655C!important;margin-top:1px!important;
+  }
+  .med-tl-box.cx-fitview .med-tl-label-row{
+    grid-template-rows:auto auto!important;align-content:center!important;
+  }
+  .med-tl-box.cx-fitview .med-tl-label-dot{grid-row:1/3!important}
+  /* 整览行高 40：类别名同样单行省略，短标签已足够辨识 */
+  .med-tl-box.cx-fitview .med-tl-label-row b{
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+    font-size:10.5px!important;line-height:1.2!important;
+  }
+  /* 「今天」标记：整览下画布只有一屏宽，标记必然落在最后一个年份附近。
+     改为紧贴虚线的窄竖旗（竖排两字），不再横向压住「2026」刻度文字。 */
+  .med-tl-box .med-tl-today span{
+    top:1px!important;font-size:8.5px!important;line-height:1.05!important;
+    padding:2px 1px!important;writing-mode:vertical-rl;letter-spacing:0;
+  }
+  .med-tl-box .med-tl-today:not(.edge-right) span{left:2px!important;right:auto!important}
+  .med-tl-box .med-tl-today.edge-right span{right:2px!important;left:auto!important}
+
+  /* 时间段翻页：仅细看模式显示，三个按钮等宽好点 */
+  .med-tl-box .cx-medstep{display:none}
+  .med-tl-box:not(.cx-fitview) .cx-medstep{
+    display:flex;gap:0;border-bottom:2px solid var(--bar-line);background:var(--bar);
+  }
+  .cx-stepbtn{
+    flex:1;min-height:38px;padding:8px 6px;border:0;background:transparent;
+    font-family:var(--disp);font-size:11.5px;font-weight:700;color:var(--brand-deep);
+    cursor:pointer;letter-spacing:.02em;
+  }
+  .cx-stepbtn+.cx-stepbtn{border-left:1px solid var(--bar-line)}
+  .cx-stepbtn.cx-stepnow{background:#fff;color:var(--ink)}
+  .cx-stepbtn:active{background:var(--bar-2)}
+
+  /* 视图切换：两个按钮等宽、够大，拇指点得中 */
+  .med-tl-box .med-tl-view{width:100%;order:3}
+  .med-tl-box .cx-medview{flex:1;padding:9px 10px!important;font-size:12px!important;min-height:38px}
+  .med-tl-box .med-tl-top{gap:8px!important}
+  .med-tl-box .med-tl-legend{width:100%;order:4;font-size:10px!important;gap:8px!important}
+
+  /* 刻度：手机端只留年份主刻度 + 半年次刻度，文字不挤 */
+  .med-tl-box .med-tl-tick{font-size:10px!important}
+  .med-tl-box .med-tl-tick span{top:10px!important}
+  /* 两列表头必须等高：刻度行 32 + 下边框 2 = 34，类别表头也取 34（含边框），
+     否则数据行整体错位 2px，类别名与药物条对不上。 */
+  .med-tl-box .med-tl-axis{height:32px!important;box-sizing:content-box!important}
+  .med-tl-box .med-tl-label-head{height:34px!important;box-sizing:border-box!important}
+  .med-tl-frame.cx-hasdate .med-tl-axis{margin-top:20px!important}
+  .med-tl-frame.cx-hasdate .med-tl-label-head{height:54px!important}
+  .cx-meddate{font-size:9.5px!important;padding:2px 6px!important}
+
+  /* 概览：手机端加高一点，色条更清楚，绿框仍是 2px 间距 */
+  .cx-medmini{padding:8px 10px!important}
+  .cx-mini-track{height:23px!important}
+  .cx-mini-pip{height:4px!important;top:calc(4px + var(--lane-i,0)*5px)!important}
+
+  /* 自绘滚动条：加高到 16px，拇指好拖 */
+  .cx-medscroll{height:16px!important}
+
+  /* 底部指引：手机端字号略大，行距舒展 */
+  .med-tl-box .med-tl-foot{font-size:10.5px!important;line-height:1.6!important;padding:8px 10px!important}
+
+  /* 清单卡片：单列，药名与起止一行读完，不再两列挤成残字 */
+  .med-tl-mobile-items{grid-template-columns:1fr!important;gap:6px!important}
+  .med-tl-mobile-items .med-tl-detail-chip{
+    font-size:11px!important;line-height:1.5!important;padding:8px 10px!important;
+    border-left-width:4px!important;
+  }
+  .med-tl-mobile-items .med-tl-detail-chip b{display:inline!important;font-size:11.5px!important;margin:0!important}
+  .med-tl-mobile-items .med-tl-detail-chip:active{background:var(--bar-2)!important}
+}
+
+/* 用药详情卡：点按药物条/药名/清单后弹出，手机端无 hover 也能看全信息 */
+.mnp-dose{
+  font-family:var(--num);font-size:11px;color:#3F4A42;
+  background:var(--bar);border-left:3px solid var(--brand);
+  padding:3px 8px;margin:0 0 6px;
+}
+.mnp-note.empty{color:#8A948B;font-style:italic}
+.med-note-pop{border:2px solid var(--ink)!important;border-radius:0!important;box-shadow:4px 4px 0 rgba(17,17,17,.22)!important}
+.med-note-pop .mnp-title{font-family:var(--disp);letter-spacing:.06em}
+.med-note-pop .mnp-drug{font-family:var(--disp);font-size:14px}
+@media(max-width:600px){
+  .med-note-pop{max-width:calc(100vw - 24px)!important}
+  .med-note-pop .mnp-note{font-size:12.5px!important;line-height:1.65!important}
+}
+/* 所有药物条与药名都可点按：指针反馈统一 */
+.med-tl-seg.has-note,.med-tl-detail.has-note,.med-tl-detail-chip.has-note{cursor:pointer}
+.med-tl-detail.noted b{color:var(--brand-deep)}
+
+/* 整览聚合块：把挤在一起的短程药合成一块，块内标「N 段」。
+   块宽足够时文字居中显示；很窄时只留数字，仍保证 ≥18px 命中宽度。 */
+.med-tl-seg.cx-cluster{overflow:visible}
+.cx-clustern{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  font-family:var(--num);font-size:9px;font-weight:700;line-height:1;
+  color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35);white-space:nowrap;pointer-events:none;
+}
+@media(max-width:600px){
+  .med-tl-box.cx-fitview .med-tl-seg.cx-cluster{min-width:18px!important}
+  .med-tl-box.cx-fitview .cx-clustern{font-size:9.5px!important}
+}
+/* 聚合块弹层：逐段列出药名、起止、剂量与备注 */
+.mnp-list{display:flex;flex-direction:column;gap:7px;max-height:min(52vh,340px);overflow-y:auto}
+.mnp-list::-webkit-scrollbar{width:8px}
+.mnp-list::-webkit-scrollbar-track{background:var(--bar)}
+.mnp-list::-webkit-scrollbar-thumb{background:var(--brand);border:2px solid var(--bar)}
+.mnp-row{border-left:3px solid var(--brand);background:var(--t-paper);padding:6px 9px}
+.mnp-row b{display:block;font-family:var(--disp);font-size:12.5px;color:var(--ink);line-height:1.3}
+.mnp-row span{display:block;font-family:var(--num);font-size:10.5px;color:#4F5A51;margin-top:2px}
+.mnp-row i{display:block;font-style:normal;font-size:10.5px;color:var(--brand-deep);margin-top:2px}
+.mnp-row em{display:block;font-style:normal;font-size:11px;color:#3F4A42;line-height:1.55;margin-top:3px}
