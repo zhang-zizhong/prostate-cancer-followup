@@ -52,7 +52,7 @@
 .ws2-empty { padding: 14px 8px; color: #9aaab3; font-size: 12px; text-align: center; background: #fafcfd; border: 1px dashed #dbe6ec; border-radius: 8px; }
 .ws2-episode { border: 1px solid #dde8ee; border-radius: 10px; margin: 8px 0; padding: 10px; background: #fff; }
 .ws2-episode.active { border-left: 4px solid #2f8f74; }
-.ws2-episode.done { border-left: 4px solid #7c8f8c; }
+.ws2-episode.done { border-left: 4px solid #2A4E86; }
 .ws2-episode.stopped { border-left: 4px solid #a94a4a; }
 .ws2-ep-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
 .ws2-ep-head b { font-size: 13px; color: #1f4658; }

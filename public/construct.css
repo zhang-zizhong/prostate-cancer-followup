@@ -453,10 +453,12 @@ header .btn-logout:hover,.btn-logout:hover{background:#fff;color:var(--ink)}
 .ws2-gantt-track{background:#EDEDED;border:1px solid var(--ink);border-radius:0}
 .ws2-gantt-track i{background:var(--blue);border-radius:0}
 .ws2-gantt-track i.active{background:var(--green)}
-.ws2-gantt-track i.completed{background:#5A5A5A}
+.ws2-gantt-track i.completed{background:var(--blue)}
 .ws2-gantt-track i.stopped{background:var(--red)}
 .ws2-episode.active{border-left:8px solid var(--green)}
-.ws2-episode.done{border-left:8px solid #5A5A5A}
+/* 已完成治疗段：原灰色条在纸底上像「失效/禁用」，改主题蓝表示「已归档可查」；
+   进行中仍绿、已终止仍红，临床语义不变。 */
+.ws2-episode.done{border-left:8px solid var(--blue)}
 .ws2-episode.stopped{border-left:8px solid var(--red)}
 .ws2-resp{border-radius:0;font-family:var(--disp)}
 .ws2-resp.r-cr{background:var(--green);color:#fff}
@@ -2431,7 +2433,7 @@ header .btn-logout:hover,.btn-logout:hover{background:#EFC65C!important;color:#2
 .ov-kpi.cx-k-clay,.stat-card.cx-k-clay{border-color:var(--red)!important}
 /* 治疗段与方案：按状态/等级取色 */
 .ws2-episode.active{border-color:var(--green)!important}
-.ws2-episode.done{border-color:#7C857C!important}
+.ws2-episode.done{border-color:var(--blue)!important}
 .ws2-episode.stopped{border-color:var(--red)!important}
 .ws2-option.lv1{border-color:var(--green)!important}
 .ws2-option.lv2{border-color:var(--amber-deep)!important}
@@ -2643,8 +2645,11 @@ header .btn-logout:hover,.btn-logout:hover{background:#EFC65C!important;color:#2
 .cx-csco,.ws2-summary-card,.tl-box,.tl-detail{--cx-accent:var(--brand)}
 .med-tl-box,.mon-wrap,.ws2-path-detail{--cx-accent:var(--s-teal)}
 .ws2-episode.active{--cx-accent:var(--green)}
-.ws2-episode.done{--cx-accent:#7C857C}
+.ws2-episode.done{--cx-accent:var(--blue)}
 .ws2-episode.stopped{--cx-accent:var(--red)}
+/* 已完成治疗段：色纸也钉到蓝色系。随机色纸会让蓝边配绿底/紫底，
+   看起来像配色出错；这里压过 .cx-t* 的 !important，保证整卡蓝色一致。 */
+.ws2-episode.done{background:var(--t-blue)!important}
 .ws2-option.lv1{--cx-accent:var(--green)}
 .ws2-option.lv2{--cx-accent:var(--amber-deep)}
 .ws2-option.lv3{--cx-accent:#7C857C}
