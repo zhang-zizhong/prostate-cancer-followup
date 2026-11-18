@@ -619,8 +619,8 @@
         kv('瘤负荷', (() => { try { const b = ClinicalCore.tumorBurden(p); return b.label + (b.basis ? '（' + b.basis + '）' : ''); } catch (e) { return '未评估'; } })()) + kv('DRE', p.dreResult === 'abnormal' ? '异常' : p.dreResult === 'normal' ? '正常' : '未做/未记录') +
       '</div><div class="ws2-actions"><button class="btn btn-outline btn-sm" type="button" onclick="Workspace.openProfileEditor()">编辑诊断/分期</button><button class="ws2-link" type="button" onclick="Workspace.openVisit()">＋ 病理 / 影像 / 结局</button></div></section>' +
       '<section class="ws2-card"><div class="ws2-card-h">病理报告 <span>' + paths.length + '</span></div>' +
-        (paths.length ? '<div class="ws2-table-wrap"><table class="ws2-table"><thead><tr><th>日期</th><th>标本</th><th>主要</th><th>Gleason/ISUP</th><th>pTNM</th><th>切缘</th><th>淋巴结</th><th></th></tr></thead><tbody>' +
-          paths.map(x => '<tr><td>' + esc(x.reportDate) + '</td><td>' + esc(wsl('specimenType', x.specimenType)) + '</td><td>' + (x.isPrimary ? '<b style="color:#2f8f74">主要</b>' : '—') + '</td><td>' + esc((x.gleasonPrimary != null ? x.gleasonPrimary + '+' + x.gleasonSecondary + '=' + x.gleasonTotal : '—') + ' / GG' + (x.isup || '—')) + '</td><td>' + esc(x.ptnm || '—') + '</td><td>' + esc(x.marginStatus ? wsl('marginStatus', x.marginStatus) : '—') + '</td><td>' + fmt(x.lnPositive) + '/' + fmt(x.lnExamined) + '</td><td><button class="ws2-link" type="button" onclick="Workspace.openStructuredEditor(\'pathology\',' + x.id + ')">编辑</button></td></tr>').join('') +
+        (paths.length ? '<div class="ws2-table-wrap"><table class="ws2-table"><thead><tr><th>日期</th><th>标本</th><th>Gleason/ISUP</th><th>pTNM</th><th>切缘</th><th>淋巴结</th><th></th></tr></thead><tbody>' +
+          paths.map(x => '<tr><td>' + esc(x.reportDate) + '</td><td>' + esc(wsl('specimenType', x.specimenType)) + '</td><td>' + esc((x.gleasonPrimary != null ? x.gleasonPrimary + '+' + x.gleasonSecondary + '=' + x.gleasonTotal : '—') + ' / GG' + (x.isup || '—')) + '</td><td>' + esc(x.ptnm || '—') + '</td><td>' + esc(x.marginStatus ? wsl('marginStatus', x.marginStatus) : '—') + '</td><td>' + fmt(x.lnPositive) + '/' + fmt(x.lnExamined) + '</td><td><button class="ws2-link" type="button" onclick="Workspace.openStructuredEditor(\'pathology\',' + x.id + ')">编辑</button></td></tr>').join('') +
           '</tbody></table></div>' : '<div class="ws2-empty">暂无病理。点“＋ 病理/影像/结局”或登记本次就诊时新增。</div>') +
       '</section></div>' +
       (paths.length ? '<section class="ws2-card"><div class="ws2-card-h">病理详情 <span>IDC-P / 筛状 / DAC / NEPC / PNI / 针数</span></div>' +
@@ -2309,8 +2309,8 @@
       tbl('功能与监测', ['日期', '分类', '项目', '结果', '单位', '状态', '备注'], arr(p.clinicalRecords).map(x => [
         x.date, wsl('clinicalCategory', x.category), x.item, x.val, x.unit, wsl('clinicalStatus', x.status), x.note
       ])) +
-      tbl('病理', ['日期', '标本', '主要', 'Gleason/ISUP', 'pTNM', '切缘', '淋巴结', 'IDC-P/筛状', 'DAC/NEPC', '备注'], arr(p.pathologyReports).map(x => [
-        x.reportDate, wsl('specimenType', x.specimenType), x.isPrimary ? '是' : '否',
+      tbl('病理', ['日期', '标本', 'Gleason/ISUP', 'pTNM', '切缘', '淋巴结', 'IDC-P/筛状', 'DAC/NEPC', '备注'], arr(p.pathologyReports).map(x => [
+        x.reportDate, wsl('specimenType', x.specimenType),
         x.gleasonTotal != null ? (x.gleasonPrimary + '+' + x.gleasonSecondary + '=' + x.gleasonTotal + ' / GG' + (x.isup || '—')) : '',
         x.ptnm, wsl('marginStatus', x.marginStatus), (x.lnPositive == null ? '' : x.lnPositive) + '/' + (x.lnExamined == null ? '' : x.lnExamined),
         [x.idcP == null ? '' : (x.idcP ? 'IDC-P+' : 'IDC-P-'), x.cribriform == null ? '' : (x.cribriform ? '筛状+' : '筛状-')].join(' '),
